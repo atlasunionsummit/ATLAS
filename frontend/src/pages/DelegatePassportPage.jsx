@@ -39,6 +39,7 @@ export default function DelegatePassportPage() {
   useEffect(() => {
     document.title = "Delegate Digital Pass · Atlas Union Summit";
     loadSessionAndPass();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleLoginSuccess = (user) => {

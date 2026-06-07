@@ -1795,6 +1795,7 @@ export function PassLedgerAndScanner({ delegates, onRefresh }) {
 
   useEffect(() => {
     fetchPassesList();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Bulk Generate
@@ -1931,6 +1932,7 @@ export function PassLedgerAndScanner({ delegates, onRefresh }) {
         scanner.clear().catch(e => console.error("Scanner clean error:", e));
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subTab, scriptLoaded, cameraActive]);
 
   // Filters
