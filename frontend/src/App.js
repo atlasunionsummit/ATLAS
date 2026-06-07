@@ -4,6 +4,9 @@ import { Toaster, toast } from "sonner";
 import "@/App.css";
 
 import LoadingScreen from "@/components/atlas/LoadingScreen";
+import AdminPanel from "@/pages/AdminPanel";
+import DelegateDashboard from "@/pages/DelegateDashboard";
+import DelegatePassportPage from "@/pages/DelegatePassportPage";
 import Navbar from "@/components/atlas/Navbar";
 import StatusOverlay from "@/components/atlas/StatusOverlay";
 import Hero from "@/components/atlas/Hero";
@@ -134,10 +137,6 @@ function Home() {
     </div>
   );
 }
-
-import AdminPanel from "@/pages/AdminPanel";
-import DelegateDashboard from "@/pages/DelegateDashboard";
-import DelegatePassportPage from "@/pages/DelegatePassportPage";
 
 function App() {
   return (
