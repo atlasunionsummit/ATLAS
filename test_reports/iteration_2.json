@@ -1,0 +1,29 @@
+{
+  "summary": "Iteration 2 frontend re-test focused on (a) elimination of the previously-blocking R3F applyProps runtime overlay, (b) hero artwork reverted to original blue-hair warrior, (c) horizontally-centered navbar with mobile hamburger, (d) SVG Delhi skyline background, plus a full regression of the cinematic flows (REQUEST ACCESS dialog, cipher 2526 unlock, Atlas Passport generator) and anchor smooth-scroll behaviour. All 10 requested checks PASSED. Zero React/page errors captured during the full session. Visual confirmation: original 1lnc54oj_image.png warrior renders inside the guardian frame, navbar pill measures 33.3% to 66.7% of the 1920px viewport (perfectly centered, no overflow), 720px viewport hides desktop links and shows hamburger that opens a 5-link dropdown, /api/unlock returns 200 with all 5 unlocked-reveal blocks rendered, /api/passport returns 200 with a real generated ID (e.g. AUS-B21E-2026) which is correctly painted onto the passport-delegate-id node, clicking nav-link-faq smooth-scrolls to scrollY=9319.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Hero — Delhi Skyline SVG", "issues": ["Skyline silhouette is quite subtle at 1920x1080 because the radial vignette in Hero.jsx (rgba(8,0,15,0.95) at 100%) almost fully blacks-out the bottom band where most parallax buildings sit. Skyline IS rendered (1 SVG with arch path detected, building rows visible at the page foot) but may read as 'flat dark' on first impression. Consider lowering the bottom vignette opacity to ~0.75 or adding a faint glow under the arch to make the skyline more cinematic."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_atlas_api.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "@react-three/fiber, @react-three/drei and three are still listed in /app/frontend/package.json even though no source file imports them anymore (replaced by DelhiSkylineSVG). Recommend `yarn remove @react-three/fiber @react-three/drei three` to shrink the bundle by ~600 KB and eliminate any risk of the visual-edits plugin re-triggering the old applyProps `x-line-number` crash on a future hot-reload.",
+    "Passport.jsx still triggers framer-motion warning: 'Please ensure that the container has a non-static position…'. The wrapRef section already has className='relative', but useScroll is likely reading the parent. Pass `layoutEffect:false` or move the ref to a `position:relative` inner div — purely a console warning, non-blocking.",
+    "Navbar.jsx uses fixed mobile dropdown breakpoint via Tailwind `lg:` (>=1024px). At exactly 1024-1100px the pill is tight; consider switching to `xl:` or adjusting label spacing — minor polish only."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (sanity verified via live /api/unlock 200, /api/passport 200, /api/access 200)", "frontend": "100% (10/10 requested checks)"},
+  "test_credentials": "Unlock cipher: 2526 (verified working — /api/unlock returns 200 and 5 unlocked-reveal blocks render)",
+  "seed_data_creation": "Created 1 access_request (T2 Tester / t2@atlas.test) and 1 passport row (T2 FINAL DELEGATE → AUS-B21E-2026) during this iteration.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Loading screen skip: page.add_init_script(\"sessionStorage.setItem('atlas_booted','1')\"). Cipher unlock + passport generation are slightly async — wait ~2.5s after click OR use page.expect_response(/api/unlock|/api/passport) for deterministic assertions (the initial single-pass run captured 0 reveals and the placeholder 'AUS-XXXX-2026' because it asserted too early; the response-aware re-run captured the real values). All data-testid values match /app/frontend/src/constants/testIds.js. R3F/three are unused but still in package.json.",
+  "rca of the issue": "The original iteration's R3F applyProps `x-line-number` crash is fully resolved — replacing @react-three/fiber with the pure-SVG DelhiSkylineSVG component bypasses the visual-edits plugin's incompatibility with R3F's custom reconciler. The page now boots clean with zero pageerror events captured. Navbar overflow fix confirmed working: wrapping in `flex justify-center` + `max-w-[min(960px,94vw)]` keeps the pill centered (33.3%-66.7% at 1920px) and within viewport at all tested widths (1920, 720)."
+}
