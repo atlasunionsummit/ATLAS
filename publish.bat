@@ -45,26 +45,27 @@ if %ERRORLEVEL% EQU 0 (
 :: 5. Check if GitHub CLI is installed
 echo.
 where gh >nul 2>&1
-if %ERRORLEVEL% NEQ 0 (
-    echo GitHub CLI (gh) was not found in your PATH.
-    echo.
-    echo To publish this repository, please:
-    echo 1. Go to https://github.com/new and create a private repository.
-    echo 2. Copy the repository URL (e.g., https://github.com/yourusername/atlasunionsummitv2.git)
-    echo.
-    set /p REPO_URL="Enter the GitHub Repository URL: "
-    if "!REPO_URL!"=="" (
-        echo [ERROR] Repository URL cannot be empty.
-        goto end
-    )
-    git remote remove origin >nul 2>&1
-    git remote add origin !REPO_URL!
-    echo.
-    echo Pushing to GitHub...
-    git push -u origin main
-    goto check_success
-)
+if %ERRORLEVEL% EQU 0 goto gh_installed
 
+echo GitHub CLI (gh) was not found in your PATH.
+echo.
+echo To publish this repository, please:
+echo 1. Go to https://github.com/new and create a private repository.
+echo 2. Copy the repository URL (e.g., https://github.com/yourusername/atlasunionsummitv2.git)
+echo.
+set /p REPO_URL="Enter the GitHub Repository URL: "
+if "!REPO_URL!"=="" (
+    echo [ERROR] Repository URL cannot be empty.
+    goto end
+)
+git remote remove origin >nul 2>&1
+git remote add origin !REPO_URL!
+echo.
+echo Pushing to GitHub...
+git push -u origin main
+goto check_success
+
+:gh_installed
 echo [OK] GitHub CLI (gh) is installed.
 echo.
 echo Checking GitHub authentication status...
