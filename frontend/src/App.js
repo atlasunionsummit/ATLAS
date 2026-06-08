@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { Toaster, toast } from "sonner";
+import { Analytics } from "@vercel/analytics/react";
 import "@/App.css";
 
 import LoadingScreen from "@/components/atlas/LoadingScreen";
@@ -140,14 +141,17 @@ function Home() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/admin" element={<AdminPanel />} />
-        <Route path="/dashboard" element={<DelegateDashboard />} />
-        <Route path="/passport" element={<DelegatePassportPage />} />
-      </Routes>
-    </BrowserRouter>
+    <>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/dashboard" element={<DelegateDashboard />} />
+          <Route path="/passport" element={<DelegatePassportPage />} />
+        </Routes>
+      </BrowserRouter>
+      <Analytics />
+    </>
   );
 }
 
