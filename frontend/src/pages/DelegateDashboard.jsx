@@ -253,9 +253,9 @@ export default function DelegateDashboard({ onRequestAccess }) {
           </div>
 
           <div className="flex items-center gap-3 text-xs">
-            <span className="text-[var(--atlas-cyan)] font-mono font-bold">
-              ID · {delegate.id}
-            </span>
+              <div className="text-[#a58d60] text-[10px] tracking-[0.2em] uppercase font-bold">
+                Classification • Advisory Node (Groq)
+              </div>
           </div>
         </header>
 
@@ -702,7 +702,7 @@ function NotepadConsole({ delegate }) {
 // ----------------------------------------------------
 function AIChatbot({ delegate }) {
   const [messages, setMessages] = useState([
-    { sender: "System", text: "Welcome to MUN AI Command. Powered by Gemini AI. Ask me about MUN rules of procedure, crisis points, or resolution planning.", timestamp: new Date().toISOString() }
+    { sender: "System", text: "Welcome to MUN AI Command. Powered by Groq Llama-3. Ask me about MUN rules of procedure, crisis points, or resolution planning.", timestamp: new Date().toISOString() }
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -765,7 +765,7 @@ function AIChatbot({ delegate }) {
       console.error("Groq Error:", error);
       setMessages(prev => [...prev, {
         sender: "System",
-        text: "Error: Failed to connect to AI Command core. Verify API credentials.",
+        text: `Error: ${error.message}`,
         timestamp: new Date().toISOString(),
       }]);
     } finally {
