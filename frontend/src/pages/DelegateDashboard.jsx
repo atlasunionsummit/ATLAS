@@ -735,7 +735,7 @@ function AIChatbot({ delegate }) {
           Authorization: `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: "llama3-8b-8192",
+          model: "llama-3.1-8b-instant",
           messages: [
             {
               role: "system",
@@ -750,7 +750,16 @@ function AIChatbot({ delegate }) {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        let errorMsg = `HTTP error! status: ${response.status}`;
+        try {
+          const errData = await response.json();
+          if (errData && errData.error && errData.error.message) {
+            errorMsg = errData.error.message;
+          }
+        } catch (e) {
+          // keep default errorMsg
+        }
+        throw new Error(errorMsg);
       }
 
       const data = await response.json();
