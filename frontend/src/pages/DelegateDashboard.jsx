@@ -739,8 +739,15 @@ function AIChatbot({ delegate }) {
           messages: [
             {
               role: "system",
-              content: "You are MUN Cognitive Command, an AI assistant for the Atlas Union Summit 2026. You help delegates with Model UN rules of procedure, resolution drafting, and diplomacy. Keep your responses concise, professional, and slightly futuristic/cybernetic in tone."
+              content: `You are MUN Cognitive Command, an AI assistant for the Atlas Union Summit 2026. 
+You are currently assisting ${delegate?.name || "a Delegate"}, representing ${delegate?.country || "their nation"} in the ${delegate?.committee || "GUEST"} committee. 
+Help them with Model UN rules of procedure, resolution drafting, and diplomacy. 
+Keep your responses concise, professional, and slightly futuristic/cybernetic in tone.`
             },
+            ...messages.map(m => ({
+              role: m.sender === "You" ? "user" : "assistant",
+              content: m.text
+            })),
             {
               role: "user",
               content: userMsg.text
