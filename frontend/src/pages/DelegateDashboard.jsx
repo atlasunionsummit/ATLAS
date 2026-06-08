@@ -403,8 +403,9 @@ function AgendaTracker({ delegate }) {
     const fetchEvents = async () => {
       const allEvents = await getEvents();
       // Filter events by committee and global
+      const delegateCommittee = delegate.committee || "GUEST";
       const filtered = allEvents.filter(
-        (e) => e.committee === "ALL" || e.committee.toLowerCase().includes(delegate.committee.toLowerCase().split(" ")[0].toLowerCase())
+        (e) => e.committee === "ALL" || e.committee.toLowerCase().includes(delegateCommittee.toLowerCase().split(" ")[0].toLowerCase())
       );
       setEvents(filtered);
     };
@@ -432,7 +433,7 @@ function AgendaTracker({ delegate }) {
       <div className="space-y-4 max-w-[700px]">
         {events.length === 0 ? (
           <div className="glass rounded p-8 border border-white/5 text-center text-white/30 text-xs">
-            NO SESSIONS CONFIGURED FOR COMMITTEE {delegate.committee}
+            NO SESSIONS CONFIGURED FOR COMMITTEE {delegate.committee || "GUEST"}
           </div>
         ) : (
           events.map((e) => (
@@ -489,10 +490,11 @@ function EncryptedChat({ delegate }) {
 
   // Set contacts based on committee
   useEffect(() => {
-    let list = MOCK_CONTACTS[delegate.committee];
+    const delegateCommittee = delegate.committee || "GUEST";
+    let list = MOCK_CONTACTS[delegateCommittee];
     if (!list) {
       // Find key match or use default
-      const key = Object.keys(MOCK_CONTACTS).find(k => delegate.committee.includes(k.split(" ")[0]));
+      const key = Object.keys(MOCK_CONTACTS).find(k => delegateCommittee.includes(k.split(" ")[0]));
       list = key ? MOCK_CONTACTS[key] : MOCK_CONTACTS.default;
     }
     setContacts(list);
