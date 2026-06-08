@@ -30,7 +30,7 @@ export default function Hero({ onRequestAccess }) {
         }}
       />
 
-      <div className="relative z-10 max-w-[1240px] mx-auto px-6 lg:px-12 grid lg:grid-cols-[1.05fr_0.95fr] gap-12 lg:gap-16 items-center">
+      <div className="relative z-10 max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-12 grid lg:grid-cols-[1.05fr_0.95fr] gap-12 lg:gap-16 items-center">
         {/* LEFT */}
         <div>
           <motion.div
@@ -58,13 +58,13 @@ export default function Hero({ onRequestAccess }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.1 }}
             className="hero-type text-white"
-            style={{ fontSize: "clamp(56px, 9.2vw, 156px)" }}
+            style={{ fontSize: "clamp(44px, 11vw, 156px)" }}
           >
             <span className="block">ATLAS</span>
             <span className="block text-glow-purple">UNION</span>
             <span className="block flex items-end gap-4 flex-wrap">
               <span>SUMMIT</span>
-              <span className="outlined" style={{ fontSize: "clamp(38px, 6vw, 102px)" }}>
+              <span className="outlined" style={{ fontSize: "clamp(32px, 8vw, 102px)" }}>
                 2026
               </span>
             </span>
@@ -75,7 +75,7 @@ export default function Hero({ onRequestAccess }) {
             animate={{ opacity: 1 }}
             transition={{ duration: 1, delay: 0.6 }}
             className="font-serif-italic mt-8 text-[var(--atlas-gold)]"
-            style={{ fontSize: "clamp(20px, 2.2vw, 30px)" }}
+            style={{ fontSize: "clamp(18px, 3.5vw, 30px)" }}
           >
             “This is where it begins.”
           </motion.p>

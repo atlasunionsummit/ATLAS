@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import {
   getDelegates,
   saveDelegates,
@@ -132,6 +133,13 @@ export default function DelegateDashboard() {
 
   return (
     <div className="min-h-screen bg-[var(--atlas-black)] text-[#F5F1FF] flex font-mono select-none relative">
+      {/* Mobile sidebar backdrop overlay */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+        />
+      )}
       {/* Floating Push Notification Banner overlay */}
       <div className="fixed top-20 right-6 z-[200] w-[320px] space-y-3 pointer-events-none">
         <AnimatePresence>
@@ -301,7 +309,7 @@ function ProfileDesk({ delegate, onUpdate }) {
       </div>
 
       <form onSubmit={handleSubmit} className="glass rounded border border-white/5 p-6 space-y-5">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field
             label="FULL NAME"
             value={form.full_name}
@@ -314,7 +322,7 @@ function ProfileDesk({ delegate, onUpdate }) {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field
             label="TELEPHONE SECURE LINE"
             value={form.phone_number}
@@ -515,21 +523,21 @@ function EncryptedChat({ delegate }) {
   return (
     <div className="h-full flex flex-col md:flex-row border border-white/5 rounded-md overflow-hidden glass">
       {/* Contacts List */}
-      <div className="w-full md:w-64 border-r border-white/5 flex flex-col shrink-0">
-        <div className="p-4 border-b border-white/5 bg-black/10">
+      <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-white/5 flex flex-col shrink-0">
+        <div className="p-3 md:p-4 border-b border-white/5 bg-black/10 hidden md:block">
           <span className="classified-label text-purple-400 text-[9px] block">
             / SECURE DIRECTORIES
           </span>
           <h4 className="font-display text-white text-sm mt-1">COMMITTEE MEMBERS</h4>
         </div>
-        <div className="flex-1 overflow-y-auto space-y-1 p-2 scrollbar-none">
+        <div className="flex flex-row md:flex-col overflow-x-auto md:overflow-y-auto gap-2 p-2 scrollbar-none">
           {contacts.map((c) => (
             <button
               key={c.country}
               onClick={() => setSelectedContact(c)}
-              className={`w-full text-left p-3 rounded font-mono text-xs transition-colors block ${
+              className={`shrink-0 md:w-full text-left p-2.5 md:p-3 rounded font-mono text-xs transition-colors block ${
                 selectedContact?.country === c.country
-                  ? "bg-white/[0.04] text-[var(--atlas-cyan)] font-bold border-l-2 border-[var(--atlas-cyan)]"
+                  ? "bg-white/[0.04] text-[var(--atlas-cyan)] font-bold border-b-2 md:border-b-0 md:border-l-2 border-[var(--atlas-cyan)]"
                   : "text-white/60 hover:text-white hover:bg-white/[0.01]"
               }`}
             >
@@ -543,7 +551,7 @@ function EncryptedChat({ delegate }) {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col h-[450px] md:h-[550px]">
+      <div className="flex-1 flex flex-col h-[70vh] max-h-[550px] min-h-[380px]">
         {/* Active Contact Header */}
         <div className="p-4 border-b border-white/5 bg-black/10 shrink-0 flex items-center justify-between">
           <div>
@@ -649,13 +657,12 @@ function NotepadConsole({ delegate }) {
         </span>
       </div>
 
-      <div className="glass rounded border border-white/5 p-4 relative">
+      <div className="glass rounded border border-white/5 p-4 relative h-[50vh] min-h-[300px] md:h-[60vh] flex flex-col">
         <textarea
           value={notes}
           onChange={(e) => handleSave(e.target.value)}
           placeholder="Begin typing session logs, resolution clause outlines, debate points, or caucusing notes here..."
-          rows={15}
-          className="w-full bg-transparent outline-none border-none text-white font-mono text-xs leading-relaxed resize-none scrollbar-thin placeholder:text-white/20"
+          className="w-full flex-grow bg-transparent outline-none border-none text-white font-mono text-xs leading-relaxed resize-none scrollbar-thin placeholder:text-white/20"
         />
         <div className="absolute bottom-2 right-4 text-[8px] text-white/25 font-mono tracking-widest">
           PERSISTED IN STORAGE
@@ -666,37 +673,18 @@ function NotepadConsole({ delegate }) {
 }
 
 // ----------------------------------------------------
-// Tab Sub-component: AIChatbot (Command AI w/ 5-limit query)
+// Tab Sub-component: AIChatbot (Command AI w/ Gemini)
 // ----------------------------------------------------
 function AIChatbot({ delegate }) {
   const [messages, setMessages] = useState([
-    { sender: "System", text: "Welcome to MUN AI Command. You are allocated 5 intelligence queries per day. Ask me about MUN rules of procedure, crisis points, or resolution planning.", timestamp: new Date().toISOString() }
+    { sender: "System", text: "Welcome to MUN AI Command. Powered by Gemini AI. Ask me about MUN rules of procedure, crisis points, or resolution planning.", timestamp: new Date().toISOString() }
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Read message count for today
-  const today = new Date().toISOString().split("T")[0];
-  const usageKey = `aus_ai_usage_${delegate.id}_${today}`;
-  const [usageCount, setUsageCount] = useState(() => {
-    try {
-      const stored = localStorage.getItem(usageKey);
-      return stored ? Number(stored) : 0;
-    } catch {
-      return 0;
-    }
-  });
-
-  const handleSend = (e) => {
+  const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
-
-    if (usageCount >= 5) {
-      toast.error("QUOTA EXCEEDED", {
-        description: "You have exhausted your 5-query daily allocation limits.",
-      });
-      return;
-    }
 
     const userMsg = {
       sender: "You",
@@ -707,53 +695,52 @@ function AIChatbot({ delegate }) {
     const updated = [...messages, userMsg];
     setMessages(updated);
     setInput("");
-    
-    // Increment usage
-    const nextCount = usageCount + 1;
-    setUsageCount(nextCount);
-    localStorage.setItem(usageKey, nextCount.toString());
-
     setLoading(true);
 
-    // AI logic response simulation
-    setTimeout(() => {
-      setLoading(false);
-      let reply = "";
-      const query = userMsg.text.toLowerCase();
-
-      if (query.includes("moderated") || query.includes("caucus") || query.includes("rules")) {
-        reply = "Under standard MUN protocol: A moderated caucus allows delegates to speak on a specific topic. To initiate, request a motion stating total time, speaking time, and topic (e.g. 'Motion for a 10-minute moderated caucus with 1-minute speaking time on the topic of border security'). It requires a simple majority to pass.";
-      } else if (query.includes("resolution") || query.includes("draft")) {
-        reply = "Draft resolutions are split into: Preambulatory Clauses (stating the context, background, and previous treaties, starting with italicized active participles like 'Deeply concerned' or 'Recalling') and Operative Clauses (stating actions to be taken, numbered, starting with active verbs like 'Urges', 'Requests', or 'Calls upon').";
-      } else if (query.includes("position") || query.includes("paper")) {
-        reply = "A Position Paper outlines your country's policy on the agenda topics. Structure it in three sections: (1) Background of the issue, (2) Your country's domestic policy and connection to previous actions, (3) Proposed solutions you want the committee to debate.";
-      } else {
-        reply = "Intelligence response computed: For MUN caucuses, ensure alliances are forged early. Position your nation as a facilitator of compromises to draft the working paper. Let me know if you need specific details on drafting preambulatory clauses or motions!";
+    try {
+      const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
+      if (!apiKey) {
+        throw new Error("Missing Gemini API Key");
       }
+      
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      
+      const prompt = `You are MUN Cognitive Command, an AI assistant for the Atlas Union Summit 2026. 
+You help delegates with Model UN rules of procedure, resolution drafting, and diplomacy. 
+Keep your responses concise, professional, and slightly futuristic/cybernetic in tone.
+Answer the following query from a delegate:
+
+${userMsg.text}`;
+
+      const result = await model.generateContent(prompt);
+      const reply = result.response.text();
 
       setMessages(prev => [...prev, {
         sender: "AI COMMAND",
         text: reply,
         timestamp: new Date().toISOString(),
       }]);
-    }, 1500);
+    } catch (error) {
+      console.error("Gemini Error:", error);
+      setMessages(prev => [...prev, {
+        sender: "System",
+        text: "Error: Failed to connect to AI Command core. Verify API credentials.",
+        timestamp: new Date().toISOString(),
+      }]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="max-w-[700px] h-[550px] border border-white/5 rounded-md flex flex-col glass overflow-hidden">
+    <div className="max-w-[700px] h-[70vh] max-h-[550px] min-h-[380px] border border-white/5 rounded-md flex flex-col glass overflow-hidden">
       {/* Header */}
       <div className="p-4 border-b border-white/5 bg-black/10 shrink-0 flex justify-between items-center">
         <div>
           <h4 className="text-white text-xs font-bold font-mono">MUN COGNITIVE COMMAND</h4>
           <span className="text-[8.5px] tracking-widest text-[var(--atlas-gold)] block">
-            CLASSIFICATION · ADVISORY NODE
-          </span>
-        </div>
-        <div className="text-right">
-          <span className={`px-2 py-0.5 rounded text-[9.5px] font-semibold border ${
-            usageCount >= 5 ? "bg-red-500/10 text-red-400 border-red-500/25" : "bg-[var(--atlas-cyan)]/10 text-[var(--atlas-cyan)] border-[var(--atlas-cyan)]/25"
-          }`}>
-            ALLOCATION: {usageCount} / 5 USED
+            CLASSIFICATION · ADVISORY NODE (GEMINI)
           </span>
         </div>
       </div>
@@ -779,7 +766,7 @@ function AIChatbot({ delegate }) {
                     ? "bg-[var(--atlas-cyan)]/10 border border-[var(--atlas-cyan)]/25 text-white"
                     : isSystem
                     ? "bg-white/[0.02] border border-white/5 text-white/50 italic"
-                    : "bg-[#0b0212]/80 border border-[var(--atlas-gold)]/25 text-[var(--atlas-gold)] shadow-[0_0_8px_rgba(201,164,76,0.08)]"
+                    : "bg-[#0b0212]/80 border border-[var(--atlas-gold)]/25 text-[var(--atlas-gold)] shadow-[0_0_8px_rgba(201,164,76,0.08)] whitespace-pre-wrap"
                 }`}
               >
                 {m.text}
@@ -793,7 +780,7 @@ function AIChatbot({ delegate }) {
               AI COMMAND is computing...
             </span>
             <div className="rounded p-3 bg-[#0b0212]/80 border border-[var(--atlas-gold)]/20 text-[var(--atlas-gold)]/40 text-xs italic mt-1">
-              Querying neural protocol nodes...
+              Querying Gemini neural protocol nodes...
             </div>
           </div>
         )}
@@ -802,15 +789,15 @@ function AIChatbot({ delegate }) {
       {/* Input */}
       <form onSubmit={handleSend} className="p-4 border-t border-white/5 bg-black/10 shrink-0 flex gap-2">
         <input
-          disabled={usageCount >= 5 || loading}
-          placeholder={usageCount >= 5 ? "Query allocation exhausted for today." : "Ask MUN advisor a query..."}
+          disabled={loading}
+          placeholder="Ask MUN advisor a query..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
           className="flex-grow bg-transparent border border-white/10 rounded px-3 py-2 outline-none text-xs text-white focus:border-[var(--atlas-gold)] disabled:opacity-40"
         />
         <button
           type="submit"
-          disabled={usageCount >= 5 || loading}
+          disabled={loading}
           className="btn-atlas !py-2 !px-4 !text-xs shrink-0 disabled:opacity-45"
         >
           QUERY
@@ -877,7 +864,7 @@ function VenueLocator() {
             / TAJ PALACE CONFERENCE TERMINAL MAP
           </span>
 
-          <div className="relative w-full aspect-[1.8/1] bg-black/60 rounded border border-white/5 flex flex-col p-4 justify-between select-none">
+          <div className="relative w-full aspect-[1.25/1] sm:aspect-[1.8/1] bg-black/60 rounded border border-white/5 flex flex-col p-4 justify-between select-none">
             {/* Top row */}
             <div className="flex justify-between gap-4 h-[42%]">
               <div className={`flex-1 border border-white/10 rounded flex flex-col items-center justify-center relative p-2 transition-all duration-500 ${

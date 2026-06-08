@@ -294,7 +294,7 @@ export default function DelegatePassportPage() {
               <motion.div
                 initial={{ rotateY: -10, rotateX: 5 }}
                 animate={{ rotateY: 0, rotateX: 0 }}
-                className="w-full max-w-[380px] bg-[#0c0316] rounded-2xl border border-[var(--atlas-gold)]/35 overflow-hidden shadow-[0_0_40px_rgba(201,164,76,0.12)] p-6 font-mono text-xs flex flex-col justify-between aspect-[1/1.58]"
+                className="w-full max-w-[380px] bg-[#0c0316] rounded-2xl border border-[var(--atlas-gold)]/35 overflow-hidden shadow-[0_0_40px_rgba(201,164,76,0.12)] p-5 sm:p-6 font-mono text-xs flex flex-col justify-between aspect-[1/1.58]"
               >
                 {/* Header */}
                 <div className="flex justify-between items-start">
@@ -316,21 +316,21 @@ export default function DelegatePassportPage() {
                 </div>
 
                 {/* Profile Block */}
-                <div className="flex gap-4 items-center mt-6">
+                <div className="flex gap-4 items-center mt-4 sm:mt-6">
                   <img
                     src={pass.avatar_url}
                     alt="avatar"
-                    className="w-14 h-14 rounded-full border border-white/10 bg-black/40"
+                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border border-white/10 bg-black/40"
                   />
                   <div>
                     <span className="text-white/40 text-[9px] block tracking-widest">TICKET HOLDER</span>
-                    <span className="text-white font-display text-lg font-bold leading-none block mt-1">{pass.delegate_name.toUpperCase()}</span>
+                    <span className="text-white font-display text-base sm:text-lg font-bold leading-none block mt-1">{pass.delegate_name.toUpperCase()}</span>
                     <span className="text-[var(--atlas-cyan)] text-[10px] block mt-1 tracking-wider">{pass.position.toUpperCase()}</span>
                   </div>
                 </div>
 
                 {/* Grid Details */}
-                <div className="grid grid-cols-2 gap-y-4 gap-x-2 mt-6 text-[10px] tracking-wider border-t border-b border-white/5 py-4">
+                <div className="grid grid-cols-2 gap-y-3 gap-x-2 mt-4 sm:mt-6 text-[10px] tracking-wider border-t border-b border-white/5 py-3 sm:py-4">
                   <div>
                     <span className="text-white/40 block text-[8px] tracking-widest">COMMITTEE</span>
                     <span className="text-white block mt-0.5 truncate">{pass.committee}</span>
@@ -345,14 +345,14 @@ export default function DelegatePassportPage() {
                   </div>
                   <div>
                     <span className="text-white/40 block text-[8px] tracking-widest">VENUE LOCATION</span>
-                    <span className="text-white block mt-0.5 text-[9px] truncate">Taj Palace, Delhi</span>
+                    <span className="text-white block mt-0.5 text-[9px] truncate font-sans">Taj Palace, Delhi</span>
                   </div>
                 </div>
 
                 {/* Scanner Barcode / QR */}
-                <div className="flex flex-col items-center mt-6">
+                <div className="flex flex-col items-center mt-4 sm:mt-6">
                   <div className="p-2 bg-white rounded-md shadow">
-                    <img src={qrURL} alt="QR Code Scanner" className="w-[100px] h-[100px]" />
+                    <img src={qrURL} alt="QR Code Scanner" className="w-[90px] h-[90px] sm:w-[100px] sm:h-[100px]" />
                   </div>
                   <span className="text-white/45 text-[8.5px] tracking-widest mt-2">{pass.pass_id}</span>
                 </div>

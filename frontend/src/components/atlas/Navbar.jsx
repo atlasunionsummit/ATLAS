@@ -93,48 +93,53 @@ export default function Navbar({
         </div>
 
         {/* Delegate Login / Access Action */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1 sm:gap-1.5">
           {delegateUser ? (
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-[9px] tracking-wider text-[var(--atlas-cyan)] uppercase border border-[var(--atlas-cyan)]/35 rounded px-2.5 py-1.5 bg-[var(--atlas-cyan)]/5">
-                👤 {delegateUser.role === "admin" ? "ADMIN" : (delegateUser.nickname || delegateUser.full_name)}
+            <div className="flex items-center gap-1 sm:gap-2">
+              <span className="font-mono text-[9px] tracking-wider text-[var(--atlas-cyan)] uppercase border border-[var(--atlas-cyan)]/35 rounded px-2 sm:px-2.5 py-1.5 bg-[var(--atlas-cyan)]/5 flex items-center gap-1">
+                <span>👤</span>
+                <span className="hidden sm:inline">{delegateUser.role === "admin" ? "ADMIN" : (delegateUser.nickname || delegateUser.full_name)}</span>
               </span>
               {delegateUser.role === "admin" ? (
                 <Link
                   to="/admin"
-                  className="font-mono text-[9.5px] text-[var(--atlas-gold)] hover:text-white px-3 py-1.5 border border-[var(--atlas-gold)]/20 hover:border-white/20 rounded transition-all shrink-0"
+                  className="font-mono text-[9.5px] text-[var(--atlas-gold)] hover:text-white px-2 sm:px-3 py-1.5 border border-[var(--atlas-gold)]/20 hover:border-white/20 rounded transition-all shrink-0"
                 >
-                  ADMIN PANEL
+                  <span className="hidden sm:inline">ADMIN PANEL</span>
+                  <span className="sm:hidden">ADMIN</span>
                 </Link>
               ) : (
                 <Link
                   to="/dashboard"
-                  className="font-mono text-[9.5px] text-[var(--atlas-cyan)] hover:text-white px-3 py-1.5 border border-[var(--atlas-cyan)]/20 hover:border-white/20 rounded transition-all shrink-0"
+                  className="font-mono text-[9.5px] text-[var(--atlas-cyan)] hover:text-white px-2 sm:px-3 py-1.5 border border-[var(--atlas-cyan)]/20 hover:border-white/20 rounded transition-all shrink-0"
                 >
-                  DASHBOARD
+                  <span className="hidden sm:inline">DASHBOARD</span>
+                  <span className="sm:hidden">DASH</span>
                 </Link>
               )}
               <button
                 onClick={onDelegateLogout}
-                className="btn-atlas !bg-red-500/10 hover:!bg-red-500/20 !border-red-500/35 !text-red-400 !py-1.5 !px-3 !text-[9.5px] shrink-0"
+                className="btn-atlas !bg-red-500/10 hover:!bg-red-500/20 !border-red-500/35 !text-red-400 !py-1.5 !px-2 sm:!px-3 !text-[9.5px] shrink-0"
               >
-                LOGOUT
+                <span className="hidden sm:inline">LOGOUT</span>
+                <span className="sm:hidden">OUT</span>
               </button>
             </div>
           ) : (
             <>
               <button
                 onClick={onRequestDelegateLogin}
-                className="font-mono text-[9.5px] text-white/60 hover:text-white px-3 py-1.5 border border-white/10 hover:border-white/20 rounded transition-all shrink-0"
+                className="font-mono text-[9.5px] text-white/60 hover:text-white px-2 sm:px-3 py-1.5 border border-white/10 hover:border-white/20 rounded transition-all shrink-0"
               >
                 SIGN IN
               </button>
               <button
                 data-testid={ATLAS.navRequestAccess}
                 onClick={onRequestAccess}
-                className="btn-atlas !py-2 !px-3.5 !text-[10px] shrink-0"
+                className="btn-atlas !py-1.5 sm:!py-2 !px-2 sm:!px-3.5 !text-[9px] sm:!text-[10px] shrink-0"
               >
-                REQUEST ACCESS <span aria-hidden>→</span>
+                <span className="hidden sm:inline">REQUEST ACCESS <span aria-hidden>→</span></span>
+                <span className="sm:hidden">REQUEST <span aria-hidden>→</span></span>
               </button>
             </>
           )}
