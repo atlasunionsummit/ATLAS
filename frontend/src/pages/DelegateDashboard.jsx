@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import {
   getDelegates,
   saveDelegates,
@@ -724,23 +723,38 @@ function AIChatbot({ delegate }) {
     setLoading(true);
 
     try {
-      const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
+      const apiKey = process.env.REACT_APP_GROQ_API_KEY;
       if (!apiKey) {
-        throw new Error("Missing Gemini API Key");
+        throw new Error("Missing Groq API Key");
       }
       
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      
-      const prompt = `You are MUN Cognitive Command, an AI assistant for the Atlas Union Summit 2026. 
-You help delegates with Model UN rules of procedure, resolution drafting, and diplomacy. 
-Keep your responses concise, professional, and slightly futuristic/cybernetic in tone.
-Answer the following query from a delegate:
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: "llama3-8b-8192",
+          messages: [
+            {
+              role: "system",
+              content: "You are MUN Cognitive Command, an AI assistant for the Atlas Union Summit 2026. You help delegates with Model UN rules of procedure, resolution drafting, and diplomacy. Keep your responses concise, professional, and slightly futuristic/cybernetic in tone."
+            },
+            {
+              role: "user",
+              content: userMsg.text
+            }
+          ]
+        })
+      });
 
-${userMsg.text}`;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-      const result = await model.generateContent(prompt);
-      const reply = result.response.text();
+      const data = await response.json();
+      const reply = data.choices[0].message.content;
 
       setMessages(prev => [...prev, {
         sender: "AI COMMAND",
@@ -748,7 +762,7 @@ ${userMsg.text}`;
         timestamp: new Date().toISOString(),
       }]);
     } catch (error) {
-      console.error("Gemini Error:", error);
+      console.error("Groq Error:", error);
       setMessages(prev => [...prev, {
         sender: "System",
         text: "Error: Failed to connect to AI Command core. Verify API credentials.",
