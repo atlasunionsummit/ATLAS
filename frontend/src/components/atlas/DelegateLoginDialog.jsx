@@ -48,22 +48,35 @@ export default function DelegateLoginDialog({ open, onClose, onLoginSuccess }) {
           (r) => r.email.toLowerCase() === email
         );
 
-        await signOutUser();
-
         if (regMatch) {
           if (regMatch.status === "pending_verification") {
-            toast.warning("DOSSIER PENDING", {
-              description: "Your registration has been received, but the admin command registry has not approved it yet. Please wait.",
-            });
+            const pendingUser = {
+              email: email,
+              role: "pending",
+              full_name: regMatch.full_name,
+              committee: regMatch.committee,
+              id: regMatch.registration_id || "PENDING"
+            };
+            localStorage.setItem("aus_delegate_session", JSON.stringify(pendingUser));
+            onLoginSuccess(pendingUser);
+            onClose();
           } else {
+            await signOutUser();
             toast.error("DOSSIER DECLINED", {
               description: "Your registration dossier was declined. Contact admin support.",
             });
           }
         } else {
-          toast.error("ACCESS DENIED", {
-            description: "No approved operator dossier or registration matches this Google account. Please register first.",
-          });
+          // Unrecognized Google account -> guest
+          const guestUser = {
+            email: email,
+            role: "guest",
+            full_name: user.displayName || "GUEST OPERATOR",
+            id: "GUEST-" + Math.floor(Math.random() * 10000)
+          };
+          localStorage.setItem("aus_delegate_session", JSON.stringify(guestUser));
+          onLoginSuccess(guestUser);
+          onClose();
         }
       }
     } catch (err) {

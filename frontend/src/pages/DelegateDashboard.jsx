@@ -41,7 +41,7 @@ const VAULT_DOCUMENTS = [
   { title: "Vaidya Council Briefing Material", category: "CLASSIFIED", size: "5.8 MB" },
 ];
 
-export default function DelegateDashboard() {
+export default function DelegateDashboard({ onRequestAccess }) {
   const navigate = useNavigate();
   const [delegate, setDelegate] = useState(null);
   const [activeTab, setActiveTab] = useState("profile");
@@ -274,12 +274,36 @@ export default function DelegateDashboard() {
               {activeTab === "profile" && (
                 <ProfileDesk delegate={delegate} onUpdate={handleProfileUpdate} />
               )}
-              {activeTab === "agenda" && <AgendaTracker delegate={delegate} />}
-              {activeTab === "messaging" && <EncryptedChat delegate={delegate} />}
-              {activeTab === "notes" && <NotepadConsole delegate={delegate} />}
-              {activeTab === "ai" && <AIChatbot delegate={delegate} />}
-              {activeTab === "map" && <VenueLocator delegate={delegate} />}
-              {activeTab === "vault" && <DocumentVault delegate={delegate} />}
+              {activeTab === "agenda" && (
+                <RestrictedOverlay delegate={delegate} onRequestAccess={onRequestAccess}>
+                  <AgendaTracker delegate={delegate} />
+                </RestrictedOverlay>
+              )}
+              {activeTab === "messaging" && (
+                <RestrictedOverlay delegate={delegate} onRequestAccess={onRequestAccess}>
+                  <EncryptedChat delegate={delegate} />
+                </RestrictedOverlay>
+              )}
+              {activeTab === "notes" && (
+                <RestrictedOverlay delegate={delegate} onRequestAccess={onRequestAccess}>
+                  <NotepadConsole delegate={delegate} />
+                </RestrictedOverlay>
+              )}
+              {activeTab === "ai" && (
+                <RestrictedOverlay delegate={delegate} onRequestAccess={onRequestAccess}>
+                  <AIChatbot delegate={delegate} />
+                </RestrictedOverlay>
+              )}
+              {activeTab === "map" && (
+                <RestrictedOverlay delegate={delegate} onRequestAccess={onRequestAccess}>
+                  <VenueLocator delegate={delegate} />
+                </RestrictedOverlay>
+              )}
+              {activeTab === "vault" && (
+                <RestrictedOverlay delegate={delegate} onRequestAccess={onRequestAccess}>
+                  <DocumentVault delegate={delegate} />
+                </RestrictedOverlay>
+              )}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -1030,6 +1054,41 @@ function Field({
           className="w-full mt-1.5 bg-transparent border-b border-white/10 focus:border-[var(--atlas-cyan)] outline-none py-2 text-white text-xs transition-all placeholder:text-white/20 font-mono"
         />
       )}
+    </div>
+  );
+}
+
+// ----------------------------------------------------
+// Sub-component: RestrictedOverlay
+// ----------------------------------------------------
+function RestrictedOverlay({ delegate, onRequestAccess, children }) {
+  if (delegate.role === "admin" || delegate.role === "delegate") {
+    return <>{children}</>;
+  }
+
+  return (
+    <div className="relative h-full w-full">
+      <div className="h-full w-full pointer-events-none filter blur-[6px] opacity-25 select-none transition-all duration-500">
+        {children}
+      </div>
+      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center">
+        <div className="glass-strong rounded-md p-8 max-w-[420px] w-full border border-[var(--atlas-gold)]/20 shadow-[0_0_30px_rgba(201,164,76,0.1)] flex flex-col items-center">
+          <div className="w-14 h-14 rounded-full border border-[var(--atlas-gold)]/40 flex items-center justify-center text-[var(--atlas-gold)] text-xl mb-5 bg-[var(--atlas-gold)]/5">
+            🔒
+          </div>
+          <h3 className="font-display text-white text-2xl mb-3">ACCESS RESTRICTED</h3>
+          <p className="text-white/60 font-mono text-[11px] mb-6 leading-[1.8]">
+            {delegate.role === "pending" 
+              ? "Your payment is pending approval. Command registry is verifying your dossier."
+              : "these tools are really really tools, aren't they? Register now!"}
+          </p>
+          {delegate.role !== "pending" && (
+            <button onClick={onRequestAccess} className="btn-atlas w-full text-center flex justify-center py-3">
+              ATLAS PAY INTERFACE <span>↗</span>
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

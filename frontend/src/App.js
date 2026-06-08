@@ -26,13 +26,12 @@ import DelegateLoginDialog from "@/components/atlas/DelegateLoginDialog";
 import { ScanWipe } from "@/components/atlas/SectionFX";
 import { signOutUser } from "@/lib/atlasApi";
 
-function Home() {
+function Home({ setAccessOpen }) {
   const navigate = useNavigate();
   const [booted, setBooted] = useState(
     typeof window !== "undefined" &&
       sessionStorage.getItem("atlas_booted") === "1"
   );
-  const [accessOpen, setAccessOpen] = useState(false);
   const [delegateLoginOpen, setDelegateLoginOpen] = useState(false);
   const [delegateUser, setDelegateUser] = useState(null);
 
@@ -112,8 +111,6 @@ function Home() {
       </main>
 
       <Footer onRequestAccess={() => setAccessOpen(true)} />
-
-      <AccessDialog open={accessOpen} onClose={() => setAccessOpen(false)} />
       
       <DelegateLoginDialog
         open={delegateLoginOpen}
@@ -140,15 +137,18 @@ function Home() {
 }
 
 function App() {
+  const [accessOpen, setAccessOpen] = useState(false);
+
   return (
     <>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<Home setAccessOpen={setAccessOpen} />} />
           <Route path="/admin" element={<AdminPanel />} />
-          <Route path="/dashboard" element={<DelegateDashboard />} />
+          <Route path="/dashboard" element={<DelegateDashboard onRequestAccess={() => setAccessOpen(true)} />} />
           <Route path="/passport" element={<DelegatePassportPage />} />
         </Routes>
+        <AccessDialog open={accessOpen} onClose={() => setAccessOpen(false)} />
       </BrowserRouter>
       <Analytics />
     </>
