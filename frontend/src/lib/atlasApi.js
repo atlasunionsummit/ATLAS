@@ -11,7 +11,9 @@ import {
   deleteDoc,
   query,
   where,
-  orderBy
+  orderBy,
+  onSnapshot,
+  limit
 } from "firebase/firestore";
 import { signInWithPopup, signOut } from "firebase/auth";
 
@@ -667,4 +669,43 @@ export const bulkGeneratePasses = async () => {
     console.error("Bulk pass generation failed:", e);
     return 0;
   }
+};
+
+// ----------------------------------------------------
+// Real-Time Chat APIs
+// ----------------------------------------------------
+
+export const sendChatMessage = async (room, delegate, text) => {
+  try {
+    const messageData = {
+      room: room,
+      sender_id: delegate.id,
+      sender_name: delegate.nickname || delegate.full_name || "Guest Operator",
+      sender_country: delegate.country || "Observer",
+      text: text,
+      timestamp: new Date().toISOString(),
+    };
+    await addDoc(collection(db, "live_chats"), messageData);
+  } catch (e) {
+    console.error("Failed to send chat message:", e);
+  }
+};
+
+export const subscribeToChat = (room, callback) => {
+  const q = query(
+    collection(db, "live_chats"),
+    where("room", "==", room),
+    orderBy("timestamp", "asc"),
+    limit(100)
+  );
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const messages = [];
+    snapshot.forEach((doc) => {
+      messages.push({ id: doc.id, ...doc.data() });
+    });
+    callback(messages);
+  });
+
+  return unsubscribe;
 };

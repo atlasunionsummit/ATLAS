@@ -207,6 +207,29 @@ export default function DelegatePassportPage() {
               SIGN IN TO UNLOCK ↗
             </button>
           </motion.div>
+        ) : delegateUser.role === "guest" || delegateUser.role === "pending" ? (
+          /* Observer Access Screen */
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full max-w-[500px] glass rounded-md p-8 border border-white/5 text-center space-y-6"
+          >
+            <span className="classified-label text-[var(--atlas-cyan)] block">/ OBSERVER TERMINAL</span>
+            <h2 className="font-display text-white text-3xl">GUEST ACCESS GRANTED</h2>
+            <p className="text-white/60 font-mono text-xs leading-relaxed">
+              Operator: <span className="text-white font-bold">{delegateUser.full_name}</span><br />
+              Status: <span className="text-white uppercase">{delegateUser.role} / Observer</span>
+            </p>
+            <p className="text-white/40 font-mono text-[10.5px] leading-relaxed">
+              Your official wallet pass and dossier are currently pending registration. However, you have been granted temporary access to the Global Lobby to communicate with active delegates.
+            </p>
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="btn-atlas w-full text-center py-3 text-xs"
+            >
+              ENTER GLOBAL LOBBY ↗
+            </button>
+          </motion.div>
         ) : !pass ? (
           /* Generate Pass Screen */
           <motion.div

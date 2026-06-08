@@ -10,28 +10,12 @@ import {
   getDirectMessages,
   saveDirectMessages,
   getBroadcastHistory,
+  sendChatMessage,
+  subscribeToChat
 } from "@/lib/atlasApi";
 import { toast } from "sonner";
 
-const MOCK_CONTACTS = {
-  "UNSC (United Nations Security Council)": [
-    { country: "USA", name: "Delegate of USA (UNSC)", stance: "We agree on the need for sanctions, but we must ensure humanitarian carve-outs in draft clause 3." },
-    { country: "CHINA", name: "Delegate of China (UNSC)", stance: "We urge caution on unilateral actions and advise focusing on structured diplomatic dialogue." },
-    { country: "FRANCE", name: "Delegate of France (UNSC)", stance: "Let's collaborate on compromise language for resolution section 5 before the next caucus." },
-  ],
-  "UNGA (United Nations General Assembly)": [
-    { country: "UK", name: "Delegate of United Kingdom", stance: "The UK delegation supports the draft resolution on cyber security cooperation." },
-    { country: "RUSSIA", name: "Delegate of Russian Federation", stance: "We must ensure national sovereignty is fully respected in any proposed digital treaty." },
-  ],
-  "AIPPM (All India Political Parties Meet)": [
-    { country: "Opposition Leader", name: "Leader of Opposition", stance: "The current draft policies require a comprehensive review in the interest of citizens." },
-    { country: "Home Minister", name: "Home Minister Representative", stance: "National security concerns must override standard administrative caucuses." },
-  ],
-  default: [
-    { country: "Circuit Admin", name: "AUS Operator Liaison", stance: "Welcome to the circuit. Please present your holographic passport at the lobby check-in." },
-    { country: "IP Chief", name: "International Press Editor", stance: "Submissions for the morning bulletin close in 30 minutes. Submit your draft logs." },
-  ],
-};
+// MOCK_CONTACTS removed: Using Global Real-time Chat
 
 const VAULT_DOCUMENTS = [
   { title: "AUS 2026 Background Guide", category: "GUIDELINES", size: "2.4 MB" },
@@ -112,13 +96,17 @@ export default function DelegateDashboard({ onRequestAccess }) {
     localStorage.setItem("aus_delegate_session", JSON.stringify(updatedDossier));
     
     // Update in global delegates list
-    try {
-      const globalDelegates = await getDelegates();
-      const updatedList = globalDelegates.map(d => d.email.toLowerCase() === updatedDossier.email.toLowerCase() ? { ...d, ...updatedDossier } : d);
-      await saveDelegates(updatedList);
-      toast.success("PROFILE UPDATED", { description: "Dossier credentials synchronized with Command." });
-    } catch (err) {
-      toast.error("SYNC ERROR");
+    if (updatedDossier.role === "delegate" || updatedDossier.role === "admin") {
+      try {
+        const globalDelegates = await getDelegates();
+        const updatedList = globalDelegates.map(d => d.email.toLowerCase() === updatedDossier.email.toLowerCase() ? { ...d, ...updatedDossier } : d);
+        await saveDelegates(updatedList);
+        toast.success("PROFILE UPDATED", { description: "Dossier credentials synchronized with Command." });
+      } catch (err) {
+        toast.error("SYNC ERROR");
+      }
+    } else {
+      toast.success("PROFILE UPDATED", { description: "Local profile synchronized for Observer session." });
     }
   };
 
@@ -477,166 +465,101 @@ function AgendaTracker({ delegate }) {
 }
 
 // ----------------------------------------------------
-// Tab Sub-component: EncryptedChat (Direct Messaging)
+// Tab Sub-component: EncryptedChat (Global Live Chat)
 // ----------------------------------------------------
 function EncryptedChat({ delegate }) {
-  const [contacts, setContacts] = useState([]);
-  const [selectedContact, setSelectedContact] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
-  const [typing, setTyping] = useState(false);
   const messageEndRef = useRef(null);
 
-  // Set contacts based on committee
+  // Subscribe to Global Chat
   useEffect(() => {
-    const delegateCommittee = delegate.committee || "GUEST";
-    let list = MOCK_CONTACTS[delegateCommittee];
-    if (!list) {
-      // Find key match or use default
-      const key = Object.keys(MOCK_CONTACTS).find(k => delegateCommittee.includes(k.split(" ")[0]));
-      list = key ? MOCK_CONTACTS[key] : MOCK_CONTACTS.default;
-    }
-    setContacts(list);
-    setSelectedContact(list[0]);
-  }, [delegate]);
-
-  // Load message logs when contact changes
-  useEffect(() => {
-    if (!selectedContact) return;
-    const loadLogs = async () => {
-      const logs = await getDirectMessages(`${delegate.id}_${selectedContact.country}`);
-      setMessages(logs);
-    };
-    loadLogs();
-  }, [selectedContact, delegate]);
+    const unsubscribe = subscribeToChat("GLOBAL", (newMessages) => {
+      setMessages(newMessages);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Scroll to bottom
   useEffect(() => {
     messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, typing]);
+  }, [messages]);
 
   const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
-
-    const userMsg = {
-      sender: "You",
-      text: input.trim(),
-      timestamp: new Date().toISOString(),
-    };
-
-    const updated = [...messages, userMsg];
-    setMessages(updated);
+    const text = input.trim();
     setInput("");
-    await saveDirectMessages(`${delegate.id}_${selectedContact.country}`, updated);
-
-    // Simulate reply
-    setTyping(true);
-    setTimeout(async () => {
-      setTyping(false);
-      const replyMsg = {
-        sender: selectedContact.name,
-        text: selectedContact.stance,
-        timestamp: new Date().toISOString(),
-      };
-      const finalMsgs = [...updated, replyMsg];
-      setMessages(finalMsgs);
-      await saveDirectMessages(`${delegate.id}_${selectedContact.country}`, finalMsgs);
-    }, 1500);
+    await sendChatMessage("GLOBAL", delegate, text);
   };
 
   return (
-    <div className="h-full flex flex-col md:flex-row border border-white/5 rounded-md overflow-hidden glass">
-      {/* Contacts List */}
-      <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-white/5 flex flex-col shrink-0">
-        <div className="p-3 md:p-4 border-b border-white/5 bg-black/10 hidden md:block">
-          <span className="classified-label text-purple-400 text-[9px] block">
-            / SECURE DIRECTORIES
+    <div className="h-full flex flex-col border border-white/5 rounded-md overflow-hidden glass">
+      {/* Active Contact Header */}
+      <div className="p-3 md:p-4 border-b border-white/5 bg-black/10 shrink-0 flex items-center justify-between">
+        <div>
+          <h4 className="text-white text-sm font-bold font-mono tracking-widest">
+            GLOBAL LOBBY
+          </h4>
+          <span className="text-[8.5px] tracking-widest text-[var(--atlas-cyan)] block mt-0.5">
+            STATUS · LIVE MULTIPLAYER TERMINAL
           </span>
-          <h4 className="font-display text-white text-sm mt-1">COMMITTEE MEMBERS</h4>
         </div>
-        <div className="flex flex-row md:flex-col overflow-x-auto md:overflow-y-auto gap-2 p-2 scrollbar-none">
-          {contacts.map((c) => (
-            <button
-              key={c.country}
-              onClick={() => setSelectedContact(c)}
-              className={`shrink-0 md:w-full text-left p-2.5 md:p-3 rounded font-mono text-xs transition-colors block ${
-                selectedContact?.country === c.country
-                  ? "bg-white/[0.04] text-[var(--atlas-cyan)] font-bold border-b-2 md:border-b-0 md:border-l-2 border-[var(--atlas-cyan)]"
-                  : "text-white/60 hover:text-white hover:bg-white/[0.01]"
-              }`}
-            >
-              <div className="text-[10.5px] truncate">{c.name}</div>
-              <span className="text-[8px] tracking-widest text-white/30 block mt-0.5">
-                ZONE ACTIVE · {c.country}
-              </span>
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-[var(--atlas-cyan)] animate-pulse shadow-[0_0_8px_var(--atlas-cyan)]" />
+          <span className="text-[9px] text-[var(--atlas-cyan)] font-mono tracking-widest font-bold">ONLINE</span>
         </div>
       </div>
 
-      {/* Chat Area */}
-      <div className="flex-1 flex flex-col h-[70vh] max-h-[550px] min-h-[380px]">
-        {/* Active Contact Header */}
-        <div className="p-4 border-b border-white/5 bg-black/10 shrink-0 flex items-center justify-between">
-          <div>
-            <h4 className="text-white text-xs font-bold font-mono">
-              {selectedContact?.name}
-            </h4>
-            <span className="text-[8.5px] tracking-widest text-[var(--atlas-cyan)] block">
-              STATUS · SECURE ENCRYPTED TERMINAL
-            </span>
-          </div>
-        </div>
-
-        {/* Message Logs */}
-        <div className="flex-grow overflow-y-auto p-4 space-y-4 scrollbar-thin">
-          {messages.map((m, idx) => {
-            const isUser = m.sender === "You";
+      {/* Message Logs */}
+      <div className="flex-grow overflow-y-auto p-4 space-y-5 scrollbar-thin">
+        <AnimatePresence initial={false}>
+          {messages.map((m) => {
+            const isUser = m.sender_id === delegate.id;
             return (
-              <div
-                key={idx}
-                className={`flex flex-col max-w-[80%] ${
+              <motion.div
+                key={m.id || m.timestamp}
+                initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                className={`flex flex-col max-w-[85%] md:max-w-[70%] ${
                   isUser ? "ml-auto items-end" : "mr-auto items-start"
                 }`}
               >
-                <span className="text-[8.5px] text-white/30 font-mono tracking-wider mb-1">
-                  {m.sender} · {new Date(m.timestamp).toLocaleTimeString()}
+                <span className="text-[8px] md:text-[9px] text-white/40 font-mono tracking-widest mb-1 px-1">
+                  {m.sender_name} ({m.sender_country}) · {new Date(m.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                 </span>
                 <div
-                  className={`rounded p-3 text-xs leading-relaxed ${
+                  className={`rounded-2xl p-3 md:p-3.5 text-xs md:text-sm leading-relaxed shadow-xl ${
                     isUser
-                      ? "bg-[var(--atlas-cyan)]/10 border border-[var(--atlas-cyan)]/25 text-white"
-                      : "bg-[#0b0212]/80 border border-white/5 text-white/90"
+                      ? "bg-[var(--atlas-cyan)]/20 border border-[var(--atlas-cyan)]/40 text-white rounded-tr-none"
+                      : "bg-[#140b1e]/90 border border-white/10 text-white/90 rounded-tl-none"
                   }`}
+                  style={{ backdropFilter: "blur(4px)" }}
                 >
                   {m.text}
                 </div>
-              </div>
+              </motion.div>
             );
           })}
-          {typing && (
-            <div className="mr-auto items-start max-w-[80%]">
-              <span className="text-[8.5px] text-white/30 font-mono tracking-wider">
-                {selectedContact?.name} is typing...
-              </span>
-              <div className="rounded p-3 bg-[#0b0212]/80 border border-white/5 text-white/40 text-xs italic mt-1">
-                Decrypting incoming transmission...
-              </div>
-            </div>
-          )}
-          <div ref={messageEndRef} />
-        </div>
+        </AnimatePresence>
+        <div ref={messageEndRef} />
+      </div>
 
-        {/* Form Input */}
-        <form onSubmit={handleSend} className="p-4 border-t border-white/5 bg-black/10 shrink-0 flex gap-2">
+      {/* Input Area */}
+      <div className="p-3 md:p-4 border-t border-white/5 bg-black/20 shrink-0">
+        <form onSubmit={handleSend} className="flex gap-2 md:gap-3 relative">
           <input
-            placeholder="Type encrypted message..."
+            type="text"
+            className="flex-1 bg-white/5 border border-white/10 rounded-full px-4 md:px-5 py-2.5 md:py-3 text-xs md:text-sm text-white placeholder-white/30 focus:outline-none focus:border-[var(--atlas-cyan)]/50 transition-colors"
+            placeholder="Broadcast to all delegates..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            className="flex-grow bg-transparent border border-white/10 rounded px-3 py-2 outline-none text-xs text-white focus:border-[var(--atlas-cyan)]"
           />
-          <button type="submit" className="btn-atlas !py-2 !px-4 !text-xs shrink-0">
+          <button
+            type="submit"
+            disabled={!input.trim()}
+            className="shrink-0 bg-[var(--atlas-cyan)] text-black px-5 md:px-6 py-2.5 md:py-3 rounded-full text-xs md:text-sm font-bold tracking-widest hover:bg-white hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center min-w-[80px]"
+          >
             SEND
           </button>
         </form>
