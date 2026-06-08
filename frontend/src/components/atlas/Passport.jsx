@@ -221,7 +221,7 @@ export default function Passport({ delegateUser, onOpenRegistration }) {
           </div>
         </div>
 
-        <div className="perspective flex items-center justify-center">
+        <div className="perspective flex flex-col items-center justify-center">
           <motion.div
             style={{ rotateY: rotY, rotateX: rotX, transformStyle: "preserve-3d" }}
             className="relative w-full max-w-[520px] aspect-[1.58/1] rounded-xl overflow-hidden holo glow-purple"

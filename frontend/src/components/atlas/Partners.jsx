@@ -34,7 +34,7 @@ export default function Partners() {
               Expected participation from leading academic ecosystems across
               Delhi and beyond.
             </p>
-            <div className="mt-8 grid grid-cols-3 sm:grid-cols-4 gap-2">
+            <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-2">
               {Array.from({ length: 12 }).map((_, i) => (
                 <motion.div
                   key={i}

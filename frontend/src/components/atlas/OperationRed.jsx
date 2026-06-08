@@ -224,7 +224,7 @@ export default function OperationRed() {
               evolving geopolitical and humanitarian emergencies.
             </p>
 
-            <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-2">
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
               {BULLETS.map((b) => (
                 <div
                   key={b}
@@ -235,7 +235,7 @@ export default function OperationRed() {
               ))}
             </div>
 
-            <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-2">
+            <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
               {OUTCOMES.map((b) => (
                 <div
                   key={b}

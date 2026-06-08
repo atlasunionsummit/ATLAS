@@ -162,9 +162,6 @@ export default function Committees() {
                 <p className="font-mono text-[10px] tracking-[0.22em] text-white/55 leading-[1.7]">
                   {c.atmosphere}
                 </p>
-                <span className="font-mono text-[10.5px] tracking-[0.28em] text-white/80 group-hover:text-[var(--atlas-gold)] transition-colors">
-                  ENTER →
-                </span>
               </div>
             </div>
 

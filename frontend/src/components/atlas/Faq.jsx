@@ -60,7 +60,7 @@ export default function Faq() {
               >
                 <button
                   onClick={() => setOpen(isOpen ? -1 : i)}
-                  className="w-full text-left py-6 flex items-start gap-6"
+                  className="w-full text-left py-6 flex items-start gap-4 sm:gap-6"
                 >
                   <span className="font-mono text-[10px] tracking-[0.3em] text-[var(--atlas-gold)] pt-2">
                     0{i + 1}
@@ -87,7 +87,7 @@ export default function Faq() {
                       exit={{ height: 0, opacity: 0 }}
                       className="overflow-hidden"
                     >
-                      <p className="pb-7 pl-[58px] pr-10 text-white/70 leading-[1.8] max-w-[640px]">
+                      <p className="pb-7 pl-[42px] sm:pl-[58px] pr-4 sm:pr-10 text-white/70 leading-[1.8] max-w-[640px]">
                         {item.a}
                       </p>
                     </motion.div>

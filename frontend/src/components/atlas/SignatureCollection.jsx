@@ -186,12 +186,6 @@ export default function SignatureCollection() {
               <span className="font-mono text-[10px] tracking-[0.28em] text-white/45">
                 CIRCUIT · 2026
               </span>
-              <button
-                className="font-mono text-[11px] tracking-[0.28em] text-white group-hover:text-[var(--atlas-gold)] transition-colors"
-                data-testid={ATLAS.signatureEnter(it.key)}
-              >
-                ENTER →
-              </button>
             </div>
           </motion.article>
         ))}

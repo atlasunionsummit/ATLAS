@@ -30,7 +30,7 @@ export default function Ecosystem() {
       id="ecosystem"
       className="relative py-28 lg:py-40 px-6 lg:px-10 max-w-[1240px] mx-auto"
     >
-      <div className="grid lg:grid-cols-[0.7fr_1.3fr] gap-12 items-start">
+      <div className="grid lg:grid-cols-[0.7fr_1.3fr] gap-8 lg:gap-12 items-start">
         <div className="lg:sticky lg:top-32">
           <span className="classified-label text-[var(--atlas-gold)]">
             / 01 — ECOSYSTEM
@@ -82,8 +82,8 @@ export default function Ecosystem() {
               className="glass rounded-md p-6 lg:p-8 group hover:border-[var(--atlas-gold)]/40 transition-colors"
               style={{ borderColor: "rgba(245,241,255,0.08)" }}
             >
-              <div className="flex items-start gap-8">
-                <span className="font-mono text-[12px] tracking-[0.3em] text-[var(--atlas-gold)] pt-2">
+              <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-8">
+                <span className="font-mono text-[12px] tracking-[0.3em] text-[var(--atlas-gold)] sm:pt-2">
                   {p.code}
                 </span>
                 <div className="flex-1">
@@ -97,7 +97,7 @@ export default function Ecosystem() {
                     {p.body}
                   </p>
                 </div>
-                <span className="font-mono text-white/30 group-hover:text-[var(--atlas-gold)] transition-colors text-xl">
+                <span className="hidden sm:block font-mono text-white/30 group-hover:text-[var(--atlas-gold)] transition-colors text-xl">
                   ↗
                 </span>
               </div>
