@@ -7,8 +7,6 @@ import {
   getEvents,
   getDelegateNotes,
   saveDelegateNotes,
-  getDirectMessages,
-  saveDirectMessages,
   getBroadcastHistory,
   sendChatMessage,
   subscribeToChat
@@ -267,9 +265,7 @@ export default function DelegateDashboard({ onRequestAccess }) {
                 </RestrictedOverlay>
               )}
               {activeTab === "messaging" && (
-                <RestrictedOverlay delegate={delegate} onRequestAccess={onRequestAccess}>
-                  <EncryptedChat delegate={delegate} />
-                </RestrictedOverlay>
+                <EncryptedChat delegate={delegate} />
               )}
               {activeTab === "notes" && (
                 <RestrictedOverlay delegate={delegate} onRequestAccess={onRequestAccess}>
