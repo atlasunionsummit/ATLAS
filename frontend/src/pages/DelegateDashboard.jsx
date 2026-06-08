@@ -730,7 +730,7 @@ function AIChatbot({ delegate }) {
       }
       
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
       
       const prompt = `You are MUN Cognitive Command, an AI assistant for the Atlas Union Summit 2026. 
 You help delegates with Model UN rules of procedure, resolution drafting, and diplomacy. 
