@@ -694,7 +694,6 @@ export const sendChatMessage = async (room, delegate, text) => {
 export const subscribeToChat = (room, callback) => {
   const q = query(
     collection(db, "live_chats"),
-    where("room", "==", room),
     orderBy("timestamp", "asc"),
     limit(100)
   );
