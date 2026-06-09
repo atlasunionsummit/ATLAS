@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { registerUser, getDiscountCodes } from "@/lib/atlasApi";
 import { toast } from "sonner";
-import { ATLAS } from "@/lib/constants";
 
 const COMMITTEES = [
   "UNSC (United Nations Security Council)",
