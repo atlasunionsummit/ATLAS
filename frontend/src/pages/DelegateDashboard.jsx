@@ -187,6 +187,7 @@ export default function DelegateDashboard({ onRequestAccess }) {
             { id: "ai", label: "05 COMMAND AI", icon: "🤖" },
             { id: "map", label: "06 VENUE LOCATOR", icon: "🗺️" },
             { id: "vault", label: "07 DOCUMENT VAULT", icon: "📁" },
+            { id: "atlasplus", label: "08 ATLAS PLUS", icon: "✨" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -286,6 +287,24 @@ export default function DelegateDashboard({ onRequestAccess }) {
                 <RestrictedOverlay delegate={delegate} onRequestAccess={onRequestAccess}>
                   <DocumentVault delegate={delegate} />
                 </RestrictedOverlay>
+              )}
+              {activeTab === "atlasplus" && (
+                <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
+                  <div className="w-20 h-20 bg-[var(--atlas-gold)]/10 rounded-full flex items-center justify-center border border-[var(--atlas-gold)]/30 animate-pulse">
+                    <span className="text-4xl">✨</span>
+                  </div>
+                  <div>
+                    <h2 className="font-display text-white text-3xl mb-2">ATLAS PLUS</h2>
+                    <p className="text-[var(--atlas-cyan)] font-mono text-sm tracking-widest uppercase">
+                      Premium Features Unlocking Soon
+                    </p>
+                  </div>
+                  <div className="max-w-md bg-black/40 border border-white/10 rounded-lg p-6 glass">
+                    <p className="text-white/60 text-xs leading-relaxed font-mono">
+                      The Atlas Plus expansion is currently under development. Prepare for exclusive access to advanced analytics, priority networking channels, and premium delegate resources. Stay tuned for the official launch transmission.
+                    </p>
+                  </div>
+                </div>
               )}
             </motion.div>
           </AnimatePresence>
@@ -836,7 +855,7 @@ function VenueLocator() {
         {/* Map visualization layout (CSS/HTML grid representation) */}
         <div className="lg:col-span-2 glass rounded border border-white/5 p-6 space-y-4">
           <span className="classified-label text-white/45 text-[10px] block">
-            / TAJ PALACE CONFERENCE TERMINAL MAP
+            / IIT DELHI (TBD) CONFERENCE TERMINAL MAP
           </span>
 
           <div className="relative w-full aspect-[1.25/1] sm:aspect-[1.8/1] bg-black/60 rounded border border-white/5 flex flex-col p-4 justify-between select-none">

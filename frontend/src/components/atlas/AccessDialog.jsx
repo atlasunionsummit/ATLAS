@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ATLAS } from "@/constants/testIds";
-import { registerUser } from "@/lib/atlasApi";
+import { registerUser, getDiscountCodes } from "@/lib/atlasApi";
 import { toast } from "sonner";
+import { ATLAS } from "@/lib/constants";
 
 const COMMITTEES = [
   "UNSC (United Nations Security Council)",
@@ -11,40 +11,409 @@ const COMMITTEES = [
   "UNCSW (UN Commission on the Status of Women)",
   "UNFCCC (UN Framework Convention on Climate Change)",
   "Coachella (Simulated Crisis)",
+  "IPL (Indian Premier League)",
   "International Press",
   "Vaidya Council (Premium)",
   "Simulation Corps (Premium)",
   "F1 Simulation (Premium)",
 ];
 
+const EXCEPTION_COMMITTEES = [
+  "Vaidya Council (Premium)",
+  "Simulation Corps (Premium)",
+  "F1 Simulation (Premium)",
+];
+
+const MATRIX_DATA = {
+  "UNSC (United Nations Security Council)": [
+    { country: "Australia", status: "Open" },
+    { country: "Brazil", status: "Open" },
+    { country: "Canada", status: "Open" },
+    { country: "China", status: "Open" },
+    { country: "France", status: "Open" },
+    { country: "Germany", status: "Open" },
+    { country: "Greenland", status: "Open" },
+    { country: "India", status: "Open" },
+    { country: "Iran", status: "Open" },
+    { country: "Israel", status: "Open" },
+    { country: "Italy", status: "Open" },
+    { country: "Kazakhstan", status: "Open" },
+    { country: "Pakistan", status: "Open" },
+    { country: "Palestine", status: "Open" },
+    { country: "Russia", status: "Open" },
+    { country: "Saudi Arabia", status: "Open" },
+    { country: "South Africa", status: "Open" },
+    { country: "Spain", status: "Open" },
+    { country: "Turkey", status: "Open" },
+    { country: "UAE", status: "Open" },
+    { country: "UK", status: "Open" },
+    { country: "Ukraine", status: "Open" },
+    { country: "USA", status: "Open" },
+    { country: "Venezuela", status: "Open" },
+    { country: "Vietnam", status: "Open" }
+  ],
+  "UNGA (United Nations General Assembly)": [
+    { country: "Afghanistan", status: "Open" },
+    { country: "Algeria", status: "Open" },
+    { country: "Argentina", status: "Open" },
+    { country: "Armenia", status: "Open" },
+    { country: "Australia", status: "Open" },
+    { country: "Azerbaijan", status: "Open" },
+    { country: "Bangladesh", status: "Open" },
+    { country: "Belarus", status: "Open" },
+    { country: "Belgium", status: "Open" },
+    { country: "Bolivia", status: "Open" },
+    { country: "Brazil", status: "Open" },
+    { country: "Canada", status: "Open" },
+    { country: "Chile", status: "Open" },
+    { country: "China", status: "Open" },
+    { country: "Colombia", status: "Open" },
+    { country: "Cuba", status: "Open" },
+    { country: "Denmark", status: "Open" },
+    { country: "Egypt", status: "Open" },
+    { country: "Ethiopia", status: "Open" },
+    { country: "Finland", status: "Open" },
+    { country: "France", status: "Open" },
+    { country: "Georgia", status: "Open" },
+    { country: "Germany", status: "Open" },
+    { country: "India", status: "Open" },
+    { country: "Indonesia", status: "Open" },
+    { country: "Iran", status: "Open" },
+    { country: "Iraq", status: "Open" },
+    { country: "Israel", status: "Open" },
+    { country: "Italy", status: "Open" },
+    { country: "Japan", status: "Open" },
+    { country: "Jordan", status: "Open" },
+    { country: "Kazakhstan", status: "Open" },
+    { country: "Lebanon", status: "Open" },
+    { country: "Libya", status: "Open" },
+    { country: "Malaysia", status: "Open" },
+    { country: "Maldives", status: "Open" },
+    { country: "Malta", status: "Open" },
+    { country: "Mexico", status: "Open" },
+    { country: "Myanmar", status: "Open" },
+    { country: "Nepal", status: "Open" },
+    { country: "Netherlands", status: "Open" },
+    { country: "New Zealand", status: "Open" },
+    { country: "Nigeria", status: "Open" },
+    { country: "North Korea", status: "Open" },
+    { country: "Norway", status: "Open" },
+    { country: "Pakistan", status: "Open" },
+    { country: "Palestine", status: "Open" },
+    { country: "Peru", status: "Open" },
+    { country: "Philippines", status: "Open" },
+    { country: "Poland", status: "Open" },
+    { country: "Qatar", status: "Open" },
+    { country: "Russia", status: "Open" },
+    { country: "Saudi Arabia", status: "Open" },
+    { country: "Singapore", status: "Open" },
+    { country: "Somalia", status: "Open" },
+    { country: "South Africa", status: "Open" },
+    { country: "South Korea", status: "Open" },
+    { country: "Spain", status: "Open" },
+    { country: "Sri Lanka", status: "Open" },
+    { country: "Sudan", status: "Open" },
+    { country: "Sweden", status: "Open" },
+    { country: "Syria", status: "Open" },
+    { country: "Thailand", status: "Open" },
+    { country: "Türkiye", status: "Open" },
+    { country: "Ukraine", status: "Open" },
+    { country: "United Arab Emirates", status: "Open" },
+    { country: "United Kingdom", status: "Open" },
+    { country: "United States", status: "Open" },
+    { country: "Venezuela", status: "Open" },
+    { country: "Vietnam", status: "Open" }
+  ],
+  "AIPPM (All India Political Parties Meet)": [
+    { country: "Narendra Modi", status: "Open" },
+    { country: "Amit Shah", status: "Open" },
+    { country: "Rajnath Singh", status: "Open" },
+    { country: "J. P. Nadda", status: "Open" },
+    { country: "Nitin Gadkari", status: "Open" },
+    { country: "Yogi Adityanath", status: "Open" },
+    { country: "Shivraj Singh Chouhan", status: "Open" },
+    { country: "Devendra Fadnavis", status: "Open" },
+    { country: "Himanta Biswa Sarma", status: "Open" },
+    { country: "Smriti Irani", status: "Open" },
+    { country: "Piyush Goyal", status: "Open" },
+    { country: "Dharmendra Pradhan", status: "Open" },
+    { country: "Anurag Thakur", status: "Open" },
+    { country: "Nupur Sharma", status: "Open" },
+    { country: "Tejasvi Surya", status: "Open" },
+    { country: "Suvendu Adhikari", status: "Open" },
+    { country: "K. Annamalai", status: "Open" },
+    { country: "Sambit Patra", status: "Open" },
+    { country: "Nishikant Dubey", status: "Open" },
+    { country: "Sudhanshu Trivedi", status: "Open" },
+    { country: "Ravi Shankar Prasad", status: "Open" },
+    { country: "Kiren Rijiju", status: "Open" },
+    { country: "Ashwini Vaishnaw", status: "Open" },
+    { country: "Giriraj Singh", status: "Open" },
+    { country: "Sonia Gandhi", status: "Reserved" },
+    { country: "Rahul Gandhi", status: "Alloted" },
+    { country: "Mallikarjun Kharge", status: "Open" },
+    { country: "Priyanka Gandhi Vadra", status: "Alloted" },
+    { country: "Shashi Tharoor", status: "Alloted" },
+    { country: "Jairam Ramesh", status: "Open" },
+    { country: "Sachin Pilot", status: "Open" },
+    { country: "Bhupesh Baghel", status: "Open" },
+    { country: "K. C. Venugopal", status: "Open" },
+    { country: "Pawan Khera", status: "Open" },
+    { country: "Deepender Hooda", status: "Open" },
+    { country: "Gaurav Gogoi", status: "Open" },
+    { country: "Randeep Singh Surjewala", status: "Open" },
+    { country: "Salman Khurshid", status: "Open" },
+    { country: "Arvind Kejriwal", status: "Open" },
+    { country: "Atishi Marlena", status: "Open" },
+    { country: "Manish Sisodia", status: "Open" },
+    { country: "Mamata Banerjee", status: "Open" },
+    { country: "Abhishek Banerjee", status: "Open" },
+    { country: "Mehbooba Mufti", status: "Open" },
+    { country: "Akhilesh Yadav", status: "Open" },
+    { country: "Jaya Bachchan", status: "Open" },
+    { country: "Tejashwi Yadav", status: "Open" },
+    { country: "Manoj Jha", status: "Open" },
+    { country: "Thalapathy Vijay", status: "Open" },
+    { country: "M. K. Stalin", status: "Open" },
+    { country: "Kanimozhi", status: "Open" },
+    { country: "D. K. Shivakumar", status: "Open" },
+    { country: "K. Chandrashekar Rao", status: "Open" },
+    { country: "K. T. Rama Rao", status: "Open" },
+    { country: "Chandrababu Naidu", status: "Open" },
+    { country: "Priyanka Chaturvedi", status: "Alloted" },
+    { country: "Pawan Kalyan", status: "Open" },
+    { country: "H. D. Kumaraswamy", status: "Open" },
+    { country: "Uddhav Thackeray", status: "Open" },
+    { country: "Aaditya Thackeray", status: "Open" },
+    { country: "Eknath Shinde", status: "Open" },
+    { country: "Sharad Pawar", status: "Open" },
+    { country: "Supriya Sule", status: "Open" },
+    { country: "Sanjay Raut", status: "Open" },
+    { country: "Naveen Patnaik", status: "Open" },
+    { country: "Nitish Kumar", status: "Open" },
+    { country: "Chirag Paswan", status: "Open" },
+    { country: "Hemant Soren", status: "Open" },
+    { country: "Omar Abdullah", status: "Open" },
+    { country: "Asaduddin Owaisi", status: "Open" }
+  ],
+  "UNCSW (UN Commission on the Status of Women)": [
+    { country: "Afghanistan", status: "Open" },
+    { country: "Argentina", status: "Open" },
+    { country: "Australia", status: "Open" },
+    { country: "Bangladesh", status: "Open" },
+    { country: "Belgium", status: "Open" },
+    { country: "Brazil", status: "Open" },
+    { country: "Canada", status: "Open" },
+    { country: "China", status: "Open" },
+    { country: "Colombia", status: "Open" },
+    { country: "Democratic Republic of Congo", status: "Open" },
+    { country: "Egypt", status: "Open" },
+    { country: "Finland", status: "Open" },
+    { country: "France", status: "Open" },
+    { country: "Germany", status: "Open" },
+    { country: "Hungary", status: "Open" },
+    { country: "India", status: "Open" },
+    { country: "Indonesia", status: "Open" },
+    { country: "Iran", status: "Open" },
+    { country: "Iraq", status: "Open" },
+    { country: "Israel", status: "Open" },
+    { country: "Italy", status: "Open" },
+    { country: "Japan", status: "Open" },
+    { country: "Jordan", status: "Open" },
+    { country: "Kenya", status: "Open" },
+    { country: "Lebanon", status: "Open" },
+    { country: "Libya", status: "Open" },
+    { country: "Malaysia", status: "Open" },
+    { country: "Malta", status: "Open" },
+    { country: "Mexico", status: "Open" },
+    { country: "Myanmar", status: "Open" },
+    { country: "Nepal", status: "Open" },
+    { country: "Netherlands", status: "Open" },
+    { country: "New Zealand", status: "Open" },
+    { country: "Nigeria", status: "Open" },
+    { country: "North Korea", status: "Open" },
+    { country: "Norway", status: "Open" },
+    { country: "Pakistan", status: "Open" },
+    { country: "Palestine", status: "Open" },
+    { country: "Poland", status: "Open" },
+    { country: "Qatar", status: "Open" },
+    { country: "Romania", status: "Open" },
+    { country: "Russia", status: "Open" },
+    { country: "Saudi Arabia", status: "Open" },
+    { country: "South Africa", status: "Open" },
+    { country: "South Korea", status: "Open" },
+    { country: "Spain", status: "Open" },
+    { country: "Sri Lanka", status: "Open" },
+    { country: "Sudan", status: "Open" },
+    { country: "Sweden", status: "Open" },
+    { country: "Switzerland", status: "Open" },
+    { country: "Syria", status: "Open" },
+    { country: "Thailand", status: "Open" },
+    { country: "Türkiye", status: "Open" },
+    { country: "Uganda", status: "Open" },
+    { country: "Ukraine", status: "Open" },
+    { country: "United Arab Emirates", status: "Open" },
+    { country: "United Kingdom", status: "Open" },
+    { country: "United States", status: "Open" },
+    { country: "Venezuela", status: "Open" },
+    { country: "Yemen", status: "Open" }
+  ],
+  "UNFCCC (UN Framework Convention on Climate Change)": [
+    { country: "Afghanistan", status: "Open" },
+    { country: "Argentina", status: "Open" },
+    { country: "Australia", status: "Open" },
+    { country: "Bangladesh", status: "Open" },
+    { country: "Belgium", status: "Open" },
+    { country: "Brazil", status: "Open" },
+    { country: "Canada", status: "Open" },
+    { country: "China", status: "Open" },
+    { country: "Colombia", status: "Open" },
+    { country: "Democratic Republic of Congo", status: "Open" },
+    { country: "Egypt", status: "Open" },
+    { country: "Finland", status: "Open" },
+    { country: "France", status: "Open" },
+    { country: "Germany", status: "Open" },
+    { country: "Hungary", status: "Open" },
+    { country: "India", status: "Open" },
+    { country: "Indonesia", status: "Open" },
+    { country: "Iran", status: "Open" },
+    { country: "Iraq", status: "Open" },
+    { country: "Israel", status: "Open" },
+    { country: "Italy", status: "Open" },
+    { country: "Japan", status: "Open" },
+    { country: "Jordan", status: "Open" },
+    { country: "Kenya", status: "Open" },
+    { country: "Lebanon", status: "Open" },
+    { country: "Libya", status: "Open" },
+    { country: "Malaysia", status: "Open" },
+    { country: "Malta", status: "Open" },
+    { country: "Mexico", status: "Open" },
+    { country: "Myanmar", status: "Open" },
+    { country: "Nepal", status: "Open" },
+    { country: "Netherlands", status: "Open" },
+    { country: "New Zealand", status: "Open" },
+    { country: "Nigeria", status: "Open" },
+    { country: "North Korea", status: "Open" },
+    { country: "Norway", status: "Open" },
+    { country: "Pakistan", status: "Open" },
+    { country: "Palestine", status: "Open" },
+    { country: "Poland", status: "Open" },
+    { country: "Qatar", status: "Open" },
+    { country: "Romania", status: "Open" },
+    { country: "Russia", status: "Open" },
+    { country: "Saudi Arabia", status: "Open" },
+    { country: "South Africa", status: "Open" },
+    { country: "South Korea", status: "Open" },
+    { country: "Spain", status: "Open" },
+    { country: "Sri Lanka", status: "Open" },
+    { country: "Sudan", status: "Open" },
+    { country: "Sweden", status: "Open" },
+    { country: "Switzerland", status: "Open" },
+    { country: "Syria", status: "Open" },
+    { country: "Thailand", status: "Open" },
+    { country: "Türkiye", status: "Open" },
+    { country: "Uganda", status: "Open" },
+    { country: "Ukraine", status: "Open" },
+    { country: "United Arab Emirates", status: "Open" },
+    { country: "United Kingdom", status: "Open" },
+    { country: "United States", status: "Open" },
+    { country: "Venezuela", status: "Open" },
+    { country: "Yemen", status: "Open" }
+  ],
+  "Coachella (Simulated Crisis)": [
+    { country: "Amit Trivedi", status: "Open" },
+    { country: "Anuv Jain", status: "Open" },
+    { country: "AP Dhillon", status: "Open" },
+    { country: "A. R. Rahman", status: "Open" },
+    { country: "Badshah", status: "Open" },
+    { country: "B Praak", status: "Open" },
+    { country: "Diljit Dosanjh", status: "Open" },
+    { country: "Divine", status: "Open" },
+    { country: "Guru Randhawa", status: "Open" },
+    { country: "Honey Singh", status: "Open" },
+    { country: "Jasmine Sandlas", status: "Open" },
+    { country: "Kailash Kher", status: "Open" },
+    { country: "Karan Aujla", status: "Open" },
+    { country: "King", status: "Open" },
+    { country: "Krsna", status: "Open" },
+    { country: "Masoom Sharma", status: "Open" },
+    { country: "Neha Kakkar", status: "Open" },
+    { country: "Parmish Verma", status: "Open" },
+    { country: "Prateek Kuhad", status: "Open" },
+    { country: "Pritam", status: "Open" },
+    { country: "Raftaar", status: "Open" },
+    { country: "Seedhe Maut", status: "Open" },
+    { country: "Satinder Sartaaj", status: "Open" },
+    { country: "Shashwat Singh", status: "Open" },
+    { country: "Shreya Ghoshal", status: "Open" },
+    { country: "Sidhu Moosewala", status: "Open" },
+    { country: "Sonu Nigam", status: "Open" },
+    { country: "Sunidhi Chauhan", status: "Open" },
+    { country: "Vishal Mishra", status: "Open" }
+  ],
+  "IPL (Indian Premier League)": [
+    { country: "Chennai Super Kings (CSK)", status: "Open" },
+    { country: "Delhi Capitals (DC)", status: "Open" },
+    { country: "Gujarat Titans (GT)", status: "Open" },
+    { country: "Kolkata Knight Riders (KKR)", status: "Open" },
+    { country: "Lucknow Super Giants (LSG)", status: "Open" },
+    { country: "Mumbai Indians (MI)", status: "Open" },
+    { country: "Punjab Kings (PBKS)", status: "Open" },
+    { country: "Rajasthan Royals (RR)", status: "Open" },
+    { country: "Royal Challengers Bengaluru (RCB)", status: "Open" },
+    { country: "Sunrisers Hyderabad (SRH)", status: "Open" }
+  ],
+  "International Press": [
+    { country: "Journalist 1", status: "Open" },
+    { country: "Journalist 2", status: "Open" },
+    { country: "Journalist 3", status: "Open" },
+    { country: "Journalist 4", status: "Open" },
+    { country: "Journalist 5", status: "Open" },
+    { country: "Journalist 6", status: "Open" },
+    { country: "Journalist 7", status: "Open" },
+    { country: "Journalist 8", status: "Open" },
+    { country: "Journalist 9", status: "Open" },
+    { country: "Journalist 10", status: "Open" },
+    { country: "Photographer 1", status: "Open" },
+    { country: "Photographer 2", status: "Open" },
+    { country: "Photographer 3", status: "Open" },
+    { country: "Photographer 4", status: "Open" },
+    { country: "Photographer 5", status: "Open" },
+    { country: "Photographer 6", status: "Open" },
+    { country: "Photographer 7", status: "Open" },
+    { country: "Photographer 8", status: "Open" },
+    { country: "Photographer 9", status: "Open" },
+    { country: "Photographer 10", status: "Open" },
+    { country: "Caricaturist 1", status: "Open" },
+    { country: "Caricaturist 2", status: "Open" },
+    { country: "Caricaturist 3", status: "Open" },
+    { country: "Caricaturist 4", status: "Open" },
+    { country: "Caricaturist 5", status: "Open" },
+    { country: "Caricaturist 6", status: "Open" },
+    { country: "Caricaturist 7", status: "Open" },
+    { country: "Caricaturist 8", status: "Open" },
+    { country: "Caricaturist 9", status: "Open" },
+    { country: "Caricaturist 10", status: "Open" }
+  ],
+};
+
 const PACKAGES = {
-  "STANDARD COMMITTEES": [
-    { name: "Core Referral Access", price: 1499 },
+  "Model United Nations": [
     { name: "Early Bird", price: 1799 },
-    { name: "Regular Phase", price: 1999 },
-    { name: "Late Phase", price: 2199 },
   ],
-  "⚡ PREMIUM EXPERIENCES (Vaidya Council • Simulation Corps • F1)": [
-    { name: "Core Referral Access", price: 1999 },
-    { name: "Early Bird", price: 2299 },
-    { name: "Regular Phase", price: 2499 },
-    { name: "Late Phase", price: 2799 },
+  "School delegation": [
+    { name: "Early Bird", price: 1799 },
   ],
-  "⚡ INTERNATIONAL PRESS": [
-    { name: "Core Referral Access", price: 1199 },
-    { name: "Early Bird", price: 1399 },
-    { name: "Regular Phase", price: 1599 },
-    { name: "Late Phase", price: 1799 },
+  "For festival": [
+    { name: "Early Bird", price: 1799 },
   ],
-  "⚡ SCHOOL DELEGATE ACCESS": [
-    { name: "Early Bird", price: 1499 },
-    { name: "Regular Phase", price: 1699 },
-    { name: "Late Phase", price: 1899 },
+  "For contest": [
+    { name: "Early Bird", price: 1799 },
   ],
 };
 
 export default function AccessDialog({ open, onClose }) {
-  const [step, setStep] = useState(1); // Steps: 1 = Dossier & Package, 2 = UPI Payment, 3 = Status
+  const [step, setStep] = useState(1); // Steps: 1 = Dossier, 2 = Matrix, 3 = Package, 4 = UPI Payment, 5 = Status
   const [form, setForm] = useState({
     full_name: "",
     nickname: "",
@@ -53,15 +422,46 @@ export default function AccessDialog({ open, onClose }) {
     country: "INDIA",
     city_of_residence: "",
     committee: COMMITTEES[0],
+    portfolio_country: "",
     past_experience: "",
     dietary_instructions: "",
+    referralCode: "",
+    device_os: "Android",
   });
 
-  const [selectedCategory, setSelectedCategory] = useState("STANDARD COMMITTEES");
+  const [activeDiscountCodes, setActiveDiscountCodes] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState("Model United Nations");
   const [selectedPkgIndex, setSelectedPkgIndex] = useState(0);
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const [deviceDropdownOpen, setDeviceDropdownOpen] = useState(false);
   const [utr, setUtr] = useState("");
   const [loading, setLoading] = useState(false);
   const [registrationResult, setRegistrationResult] = useState(null);
+  const [timeLeft, setTimeLeft] = useState("");
+
+  useEffect(() => {
+    getDiscountCodes().then(setActiveDiscountCodes).catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    const targetDate = new Date("2026-06-25T23:59:59").getTime();
+    const updateTimer = () => {
+      const now = new Date().getTime();
+      const distance = targetDate - now;
+      if (distance < 0) {
+        setTimeLeft("EXPIRED");
+        return;
+      }
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+      setTimeLeft(`${days}d ${hours}h ${minutes}m ${seconds}s`);
+    };
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -91,6 +491,21 @@ export default function AccessDialog({ open, onClose }) {
 
   const selectedPackage = PACKAGES[selectedCategory][selectedPkgIndex];
 
+  // Calculate dynamic price based on discount codes
+  const isLegacyDiscount = form.referralCode.toUpperCase() === "ATLASUNIONSUMMIT2026";
+  const matchingDynamicCode = activeDiscountCodes.find(c => c.code.toUpperCase() === form.referralCode.toUpperCase() && (c.appliesTo === "All Categories" || c.appliesTo === selectedCategory));
+  
+  let finalPrice = selectedPackage.price;
+  let appliedDiscountText = null;
+
+  if (matchingDynamicCode) {
+    finalPrice = Math.round(selectedPackage.price * (1 - matchingDynamicCode.percentage / 100));
+    appliedDiscountText = `${matchingDynamicCode.percentage}% OFF APPLIED`;
+  } else if (isLegacyDiscount) {
+    finalPrice = selectedPackage.price - 300;
+    appliedDiscountText = "REFERRAL APPLIED";
+  }
+
   const handleNextStep = (e) => {
     e?.preventDefault?.();
     if (
@@ -104,8 +519,29 @@ export default function AccessDialog({ open, onClose }) {
       });
       return;
     }
-    // Transition to payment step
-    setStep(2);
+    
+    const isException = EXCEPTION_COMMITTEES.includes(form.committee);
+    if (isException) {
+      setStep(3); // Skip Matrix
+    } else {
+      setStep(2); // Go to Matrix
+    }
+  };
+
+  const handleProceedToPackage = (e) => {
+    e?.preventDefault?.();
+    if (!form.portfolio_country) {
+      toast.error("PORTFOLIO REQUIRED", {
+        description: "Please select an available portfolio from the matrix.",
+      });
+      return;
+    }
+    setStep(3);
+  };
+
+  const handleProceedToPay = (e) => {
+    e?.preventDefault?.();
+    setStep(4);
   };
 
   const handleRegisterSubmit = async (e) => {
@@ -123,7 +559,7 @@ export default function AccessDialog({ open, onClose }) {
         ...form,
         package_category: selectedCategory,
         package_name: selectedPackage.name,
-        package_price: selectedPackage.price,
+        package_price: finalPrice,
         utr_number: utr.trim(),
       };
 
@@ -132,7 +568,7 @@ export default function AccessDialog({ open, onClose }) {
       toast.success("TRANSMISSION COMPLETED", {
         description: `Ref ID: ${result.registration_id}`,
       });
-      setStep(3);
+      setStep(5);
     } catch (err) {
       toast.error("REGISTRATION FAILED", {
         description: "An error occurred during submission. Try again.",
@@ -144,7 +580,6 @@ export default function AccessDialog({ open, onClose }) {
 
   const close = () => {
     onClose();
-    // Reset state after transition completes
     setTimeout(() => {
       setStep(1);
       setForm({
@@ -155,10 +590,12 @@ export default function AccessDialog({ open, onClose }) {
         country: "INDIA",
         city_of_residence: "",
         committee: COMMITTEES[0],
+        portfolio_country: "",
         past_experience: "",
         dietary_instructions: "",
+        referralCode: "",
       });
-      setSelectedCategory("STANDARD COMMITTEES");
+      setSelectedCategory("Model United Nations");
       setSelectedPkgIndex(0);
       setUtr("");
       setRegistrationResult(null);
@@ -172,11 +609,13 @@ export default function AccessDialog({ open, onClose }) {
     });
   };
 
-  // Generate UPI pay URI for the QR code
-  const upiURI = `upi://pay?pa=9140738627@axl&pn=Namita%20Agrawal&am=${selectedPackage?.price || 0}&cu=INR&tn=AUS2026-REG`;
+  const upiURI = `upi://pay?pa=9140738627@axl&pn=Namita%20Agrawal&am=${finalPrice || 0}&cu=INR&tn=AUS2026-REG`;
   const qrURL = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&bgcolor=08000F&color=C9A44C&data=${encodeURIComponent(
     upiURI
   )}`;
+
+  const isExceptionCommittee = EXCEPTION_COMMITTEES.includes(form.committee);
+  const currentMatrix = MATRIX_DATA[form.committee] || [];
 
   return (
     <AnimatePresence>
@@ -221,115 +660,113 @@ export default function AccessDialog({ open, onClose }) {
             <div className="flex items-center justify-between mt-6 px-2 sm:px-6">
               {[
                 { s: 1, label: "01 DOSSIER" },
-                { s: 2, label: "02 PAYMENT" },
-                { s: 3, label: "03 STATUS" },
-              ].map((item, idx) => (
-                <div key={item.s} className="flex-1 flex items-center">
-                  <div className="flex flex-col items-center gap-1.5 mx-auto">
-                    <div
-                      className={`w-6 h-6 rounded-full flex items-center justify-center font-mono text-[10px] border transition-all duration-300 ${
-                        step === item.s
-                          ? "border-[var(--atlas-gold)] bg-[var(--atlas-gold)]/10 text-[var(--atlas-gold)] shadow-[0_0_8px_rgba(201,164,76,0.3)]"
-                          : step > item.s
-                          ? "border-[var(--atlas-cyan)] bg-[var(--atlas-cyan)]/10 text-[var(--atlas-cyan)]"
-                          : "border-white/10 text-white/30"
-                      }`}
-                    >
-                      {item.s}
+                { s: 2, label: "02 PORTFOLIO" },
+                { s: 3, label: "03 PACKAGE" },
+                { s: 4, label: "04 PAYMENT" },
+                { s: 5, label: "05 STATUS" },
+              ].map((item) => {
+                const isActive = step === item.s;
+                const isPassed = step > item.s;
+                // If it's an exception committee, skip Step 2 entirely in the visual flow.
+                if (item.s === 2 && EXCEPTION_COMMITTEES.includes(form.committee)) {
+                  return null;
+                }
+
+                return (
+                  <div key={item.s} className="flex-1 flex items-center">
+                    <div className="flex flex-col items-center gap-1.5 mx-auto">
+                      <div
+                        className={`w-6 h-6 rounded-full flex items-center justify-center font-mono text-[10px] border transition-all duration-300 ${
+                          isActive
+                            ? "border-[var(--atlas-gold)] bg-[var(--atlas-gold)]/10 text-[var(--atlas-gold)] shadow-[0_0_8px_rgba(201,164,76,0.3)]"
+                            : isPassed
+                            ? "border-[var(--atlas-cyan)] bg-[var(--atlas-cyan)]/10 text-[var(--atlas-cyan)]"
+                            : "border-white/10 text-white/30"
+                        }`}
+                      >
+                        {isPassed ? "✓" : item.s}
+                      </div>
+                      <span
+                        className={`font-mono text-[8px] sm:text-[9px] tracking-widest hidden sm:block transition-colors ${
+                          isPassed || isActive ? "text-white/80" : "text-white/30"
+                        }`}
+                      >
+                        {item.label}
+                      </span>
                     </div>
-                    <span
-                      className={`font-mono text-[9px] tracking-widest transition-colors ${
-                        step >= item.s ? "text-white/80" : "text-white/30"
-                      }`}
-                    >
-                      {item.label}
-                    </span>
+                    {item.s !== 5 && (
+                      <div
+                        className={`h-[1px] flex-1 mx-2 transition-colors duration-300 ${
+                          isPassed ? "bg-[var(--atlas-cyan)]/30" : "bg-white/5"
+                        }`}
+                      />
+                    )}
                   </div>
-                  {idx < 2 && (
-                    <div
-                      className={`h-[1px] flex-grow mx-2 transition-colors duration-300 ${
-                        step > item.s ? "bg-[var(--atlas-cyan)]/50" : "bg-white/10"
-                      }`}
-                    />
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
 
-            {/* Step Content */}
             <div className="mt-8">
               <AnimatePresence mode="wait">
                 {step === 1 && (
                   <motion.div
                     key="step-1"
-                    initial={{ opacity: 0, x: -10 }}
+                    initial={{ opacity: 0, x: 10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 10 }}
+                    exit={{ opacity: 0, x: -10 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <h3 className="font-display text-white text-2xl sm:text-3xl leading-none">
-                      REGISTRATION DOSSIER
-                    </h3>
-                    <p className="text-white/60 text-xs sm:text-sm mt-2">
-                      Please supply accurate details. Your operator profile is synced with Atlas.
-                    </p>
+                    <div>
+                      <h3 className="font-display text-white text-2xl sm:text-3xl leading-none">
+                        DELEGATE DOSSIER
+                      </h3>
+                      <p className="text-white/60 text-xs sm:text-sm mt-1">
+                        Input your secure credentials. This data will be used to mint your Holographic Passport.
+                      </p>
+                    </div>
 
-                    <form onSubmit={handleNextStep} className="mt-6 space-y-5">
-                      {/* Grid Form Fields */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <form onSubmit={handleNextStep} className="mt-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <Field
-                          label="FULL NAME *"
+                          label="LEGAL FULL NAME *"
                           required
                           value={form.full_name}
                           onChange={(v) => setForm((f) => ({ ...f, full_name: v }))}
                         />
                         <Field
-                          label="NICKNAME / CALLSIGN"
+                          label="CALLSIGN / NICKNAME"
                           value={form.nickname}
-                          placeholder="e.g. Maverick"
                           onChange={(v) => setForm((f) => ({ ...f, nickname: v }))}
                         />
                         <Field
-                          label="EMAIL ADDRESS *"
+                          label="SECURE EMAIL *"
                           type="email"
                           required
                           value={form.email}
                           onChange={(v) => setForm((f) => ({ ...f, email: v }))}
                         />
                         <Field
-                          label="PHONE NUMBER *"
+                          label="COMMS (PHONE) *"
                           type="tel"
                           required
                           value={form.phone_number}
-                          placeholder="+91 XXXXX XXXXX"
                           onChange={(v) => setForm((f) => ({ ...f, phone_number: v }))}
                         />
                         <Field
-                          label="COUNTRY *"
-                          required
-                          value={form.country}
-                          onChange={(v) => setForm((f) => ({ ...f, country: v }))}
-                        />
-                        <Field
-                          label="CITY OF RESIDENCE *"
+                          label="CITY OF OPERATIONS *"
                           required
                           value={form.city_of_residence}
                           onChange={(v) => setForm((f) => ({ ...f, city_of_residence: v }))}
                         />
-                      </div>
 
-                      {/* Committee & Special Requirements */}
-                      <div className="grid grid-cols-1 gap-4">
-                        <div>
-                          <label className="classified-label text-white/50 text-[10px]">
-                            CHOOSE TARGET COMMITTEE *
+                        <div className="sm:col-span-2">
+                          <label className="classified-label text-[var(--atlas-cyan)] text-[10px]">
+                            TARGET COMMITTEE *
                           </label>
                           <select
                             value={form.committee}
-                            onChange={(e) =>
-                              setForm((f) => ({ ...f, committee: e.target.value }))
-                            }
-                            className="w-full mt-1 bg-transparent border-b border-white/15 focus:border-[var(--atlas-gold)] outline-none py-2.5 font-mono text-[11px] tracking-wider text-white"
+                            onChange={(e) => setForm({ ...form, committee: e.target.value, portfolio_country: "" })}
+                            className="w-full mt-1 bg-black/40 border border-[var(--atlas-cyan)]/30 focus:border-[var(--atlas-cyan)] outline-none py-3 px-3 text-white text-xs transition-colors rounded shadow-[inset_0_0_10px_rgba(0,0,0,0.5)]"
                           >
                             {COMMITTEES.map((c) => (
                               <option key={c} value={c} className="bg-[var(--atlas-black)]">
@@ -356,83 +793,68 @@ export default function AccessDialog({ open, onClose }) {
                           value={form.dietary_instructions}
                           onChange={(v) => setForm((f) => ({ ...f, dietary_instructions: v }))}
                         />
-                      </div>
 
-                      {/* Package Section */}
-                      <div className="border-t border-white/5 pt-6 mt-6">
-                        <span className="classified-label text-[var(--atlas-gold)] text-xs">
-                          SELECT ENTRY PASS PACKAGE
-                        </span>
-
-                        {/* Category Selector Tabs */}
-                        <div className="flex gap-2 overflow-x-auto py-3 scrollbar-none mt-2">
-                          {Object.keys(PACKAGES).map((category) => (
+                        <div className="sm:col-span-2">
+                          <label className="classified-label text-[var(--atlas-cyan)] text-[10px] mb-1 block">
+                            PRIMARY HANDHELD DEVICE (FOR NFC BADGE) *
+                          </label>
+                          <div className="relative mt-1">
                             <button
-                              key={category}
                               type="button"
-                              onClick={() => {
-                                setSelectedCategory(category);
-                                setSelectedPkgIndex(0);
-                              }}
-                              className={`px-3 py-1.5 rounded-sm border font-mono text-[9.5px] tracking-wider whitespace-nowrap transition-all ${
-                                selectedCategory === category
-                                  ? "border-[var(--atlas-gold)] bg-[var(--atlas-gold)]/10 text-[var(--atlas-gold)]"
-                                  : "border-white/5 text-white/50 hover:text-white"
-                              }`}
+                              onClick={() => setDeviceDropdownOpen(!deviceDropdownOpen)}
+                              onBlur={() => setTimeout(() => setDeviceDropdownOpen(false), 200)}
+                              className="w-full bg-black/40 border border-white/15 focus:border-[var(--atlas-gold)] rounded py-3 px-4 flex justify-between items-center transition-colors text-white font-mono text-xs tracking-wider"
                             >
-                              {category.replace("⚡ ", "")}
+                              <span>{form.device_os}</span>
+                              <span className="text-[10px] opacity-50">▼</span>
                             </button>
-                          ))}
-                        </div>
-
-                        {/* Packages Grid */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-                          {PACKAGES[selectedCategory].map((pkg, idx) => (
-                            <div
-                              key={pkg.name}
-                              onClick={() => setSelectedPkgIndex(idx)}
-                              className={`cursor-pointer rounded border p-4 transition-all flex justify-between items-center ${
-                                selectedPkgIndex === idx
-                                  ? "border-[var(--atlas-gold)] bg-[var(--atlas-gold)]/5 shadow-[0_0_12px_rgba(201,164,76,0.1)]"
-                                  : "border-white/5 bg-white/[0.01] hover:border-white/10 hover:bg-white/[0.03]"
-                              }`}
-                            >
-                              <div className="flex flex-col">
-                                <span
-                                  className={`font-mono text-[9px] tracking-widest ${
-                                    selectedPkgIndex === idx
-                                      ? "text-[var(--atlas-gold)]"
-                                      : "text-white/55"
-                                  }`}
+                            
+                            <AnimatePresence>
+                              {deviceDropdownOpen && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: -5 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: -5 }}
+                                  className="absolute top-full left-0 w-full mt-1.5 bg-[#0a0510] border border-[var(--atlas-gold)]/30 rounded-md overflow-hidden z-50 shadow-[0_10px_40px_rgba(0,0,0,0.8)]"
                                 >
-                                  CATEGORY LEVEL
-                                </span>
-                                <span className="font-display text-white text-base mt-1">
-                                  {pkg.name}
-                                </span>
-                              </div>
-                              <span className="font-mono text-white text-base tracking-wider font-semibold">
-                                ₹{pkg.price}
-                              </span>
-                            </div>
-                          ))}
+                                  {["Android", "iOS (Apple)"].map((os) => (
+                                    <button
+                                      key={os}
+                                      type="button"
+                                      onClick={() => {
+                                        setForm({ ...form, device_os: os });
+                                        setDeviceDropdownOpen(false);
+                                      }}
+                                      className={`w-full text-left px-4 py-3 font-mono text-xs tracking-wider transition-colors ${
+                                        form.device_os === os
+                                          ? "bg-[var(--atlas-gold)]/10 text-[var(--atlas-gold)] border-l-2 border-[var(--atlas-gold)]"
+                                          : "text-white/70 hover:bg-white/5 hover:text-white border-l-2 border-transparent"
+                                      }`}
+                                    >
+                                      {os}
+                                    </button>
+                                  ))}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                          <p className="text-[9px] text-white/40 mt-1.5 font-mono tracking-widest">Web NFC features are optimized for Android devices.</p>
                         </div>
                       </div>
 
-                      {/* Footer Actions */}
-                      <div className="flex items-center justify-between border-t border-white/5 pt-5 mt-6 flex-wrap gap-4">
-                        <p className="font-mono text-[9px] tracking-widest text-white/40">
+                      <div className="flex items-center justify-between border-t border-white/5 pt-5 mt-6 flex-col sm:flex-row gap-4">
+                        <p className="font-mono text-[9px] tracking-widest text-white/40 w-full sm:w-auto text-center sm:text-left">
                           * MANDATORY FIELD DOSSIERS
                         </p>
-                        <button type="submit" className="btn-atlas">
-                          PROCEED TO PAY <span>↗</span>
+                        <button type="submit" className="btn-atlas w-full sm:w-auto justify-center">
+                          NEXT STEP <span>↗</span>
                         </button>
                       </div>
                     </form>
                   </motion.div>
                 )}
 
-                {step === 2 && (
+                {step === 2 && !isExceptionCommittee && (
                   <motion.div
                     key="step-2"
                     initial={{ opacity: 0, x: 10 }}
@@ -446,7 +868,231 @@ export default function AccessDialog({ open, onClose }) {
                         onClick={() => setStep(1)}
                         className="font-mono text-[10px] text-[var(--atlas-cyan)] hover:underline"
                       >
-                        ← BACK TO REGISTRATION
+                        ← BACK TO DOSSIER
+                      </button>
+                      <h3 className="font-display text-white text-2xl sm:text-3xl leading-none mt-3">
+                        PORTFOLIO MATRIX
+                      </h3>
+                      <p className="text-white/60 text-xs sm:text-sm mt-1">
+                        Select your preferred available country. Allotted countries cannot be chosen.
+                      </p>
+                    </div>
+
+                    <div className="glass rounded border border-white/5 p-5">
+                      <span className="classified-label text-[var(--atlas-cyan)] text-xs block mb-4">
+                        / SELECT COUNTRY PORTFOLIO ({form.committee.split('(')[0].trim()})
+                      </span>
+                      
+                      <div className="flex items-center gap-4 mb-4 text-[9px] font-mono tracking-widest border-b border-white/5 pb-3">
+                        <span className="flex items-center gap-1.5 text-white/80"><span className="w-2.5 h-2.5 bg-white border border-white/20 rounded-sm"></span> OPEN</span>
+                        <span className="flex items-center gap-1.5 text-red-400"><span className="w-2.5 h-2.5 bg-red-500/80 border border-red-500/20 rounded-sm"></span> ALLOTED</span>
+                        <span className="flex items-center gap-1.5 text-green-400"><span className="w-2.5 h-2.5 bg-green-500/80 border border-green-500/20 rounded-sm"></span> RESERVED</span>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[350px] overflow-y-auto pr-2 scrollbar-thin">
+                        {currentMatrix.map((item) => {
+                          const isOpen = item.status.toLowerCase() === "open";
+                          const isAlloted = item.status.toLowerCase() === "alloted";
+                          const isReserved = item.status.toLowerCase() === "reserved";
+                          const isSelected = form.portfolio_country === item.country;
+
+                          let bgClass = "bg-white text-black hover:bg-white/90";
+                          if (isAlloted) bgClass = "bg-red-500/20 text-red-200 border-red-500/20 opacity-50 cursor-not-allowed";
+                          if (isReserved) bgClass = "bg-green-500/20 text-green-200 border-green-500/20 opacity-50 cursor-not-allowed";
+                          if (isSelected) bgClass = "bg-[var(--atlas-gold)] text-black border-[var(--atlas-gold)] shadow-[0_0_15px_rgba(201,164,76,0.5)]";
+
+                          return (
+                            <button
+                              key={item.country}
+                              type="button"
+                              disabled={!isOpen}
+                              onClick={() => setForm({ ...form, portfolio_country: item.country })}
+                              className={`text-[10px] sm:text-xs font-mono py-2.5 px-3 rounded border border-transparent transition-all truncate text-left ${bgClass}`}
+                              title={item.country}
+                            >
+                              {item.country}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-white/5 pt-5 mt-6 flex-col sm:flex-row gap-4">
+                      <button onClick={() => setStep(1)} className="btn-ghost px-4 py-2 text-[10px] w-full sm:w-auto justify-center">
+                        ← BACK
+                      </button>
+                      <button type="button" onClick={handleProceedToPackage} className="btn-atlas w-full sm:w-auto justify-center">
+                        NEXT STEP <span>↗</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+
+                {step === 3 && (
+                  <motion.div
+                    key="step-3"
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    transition={{ duration: 0.3 }}
+                    className="space-y-6"
+                  >
+                    <div>
+                      <button
+                        onClick={() => {
+                          if (isExceptionCommittee) setStep(1);
+                          else setStep(2);
+                        }}
+                        className="font-mono text-[10px] text-[var(--atlas-cyan)] hover:underline"
+                      >
+                        ← BACK
+                      </button>
+                      <h3 className="font-display text-white text-2xl sm:text-3xl leading-none mt-3">
+                        ENTRY PASS PACKAGE
+                      </h3>
+                      <p className="text-white/60 text-xs sm:text-sm mt-1">
+                        Select your pricing category and apply any discount/referral codes.
+                      </p>
+                    </div>
+
+                    <div className="glass rounded border border-white/5 p-5">
+                      <div className="flex justify-between items-center flex-wrap gap-2">
+                        <span className="classified-label text-[var(--atlas-gold)] text-xs">
+                          SELECT ENTRY PASS PACKAGE
+                        </span>
+                        <span className="font-mono text-[10px] text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded border border-emerald-400/20 animate-pulse tracking-widest font-bold">
+                          TIME LEFT: {timeLeft}
+                        </span>
+                      </div>
+
+                      {/* Custom Category Dropdown */}
+                      <div className="relative mt-3 mb-2">
+                        <button
+                          type="button"
+                          onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
+                          onBlur={() => setTimeout(() => setCategoryDropdownOpen(false), 200)}
+                          className="w-full bg-black/40 border border-white/15 focus:border-[var(--atlas-gold)] rounded py-3 px-4 flex justify-between items-center transition-colors text-white font-mono text-xs tracking-wider"
+                        >
+                          <span>{selectedCategory}</span>
+                          <span className="text-[10px] opacity-50">▼</span>
+                        </button>
+                        
+                        <AnimatePresence>
+                          {categoryDropdownOpen && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -5 }}
+                              className="absolute top-full left-0 w-full mt-1.5 bg-[#0a0510] border border-[var(--atlas-gold)]/30 rounded-md overflow-hidden z-50 shadow-[0_10px_40px_rgba(0,0,0,0.8)]"
+                            >
+                              {Object.keys(PACKAGES).map((category) => (
+                                <button
+                                  key={category}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedCategory(category);
+                                    setSelectedPkgIndex(0);
+                                    setCategoryDropdownOpen(false);
+                                  }}
+                                  className={`w-full text-left px-4 py-3 font-mono text-xs tracking-wider transition-colors ${
+                                    selectedCategory === category
+                                      ? "bg-[var(--atlas-gold)]/10 text-[var(--atlas-gold)] border-l-2 border-[var(--atlas-gold)]"
+                                      : "text-white/70 hover:bg-white/5 hover:text-white border-l-2 border-transparent"
+                                  }`}
+                                >
+                                  {category}
+                                </button>
+                              ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+
+                      {/* Packages Grid */}
+                      <div className="grid grid-cols-1 gap-3 mt-3">
+                        {PACKAGES[selectedCategory].map((pkg, idx) => (
+                          <div
+                            key={pkg.name}
+                            onClick={() => setSelectedPkgIndex(idx)}
+                            className={`cursor-pointer rounded border p-4 transition-all flex justify-between items-center ${
+                              selectedPkgIndex === idx
+                                ? "border-[var(--atlas-gold)] bg-[var(--atlas-gold)]/5 shadow-[0_0_12px_rgba(201,164,76,0.1)]"
+                                : "border-white/5 bg-white/[0.01] hover:border-white/10 hover:bg-white/[0.03]"
+                            }`}
+                          >
+                            <div className="flex flex-col gap-1">
+                              <span
+                                className={`font-mono text-[9px] tracking-widest ${
+                                  selectedPkgIndex === idx
+                                    ? "text-[var(--atlas-gold)]"
+                                    : "text-white/55"
+                                }`}
+                              >
+                                CATEGORY LEVEL
+                              </span>
+                              <span className="font-display text-white text-base flex items-center gap-2">
+                                {pkg.name}
+                                {appliedDiscountText && <span className="bg-emerald-500/20 text-emerald-400 text-[9px] px-2 py-0.5 rounded-full font-mono tracking-widest border border-emerald-400/20">{appliedDiscountText}</span>}
+                              </span>
+                            </div>
+                            <div className="flex flex-col items-end gap-0.5">
+                              {appliedDiscountText && (
+                                <span className="font-mono text-white/40 text-[10px] tracking-wider line-through">
+                                  ₹{pkg.price}
+                                </span>
+                              )}
+                              <span className="font-mono text-white text-lg tracking-wider font-semibold">
+                                ₹{finalPrice}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Referral Code Field */}
+                      <div className="mt-5 bg-white/[0.02] p-3 rounded border border-white/5">
+                        <label className="classified-label text-white/50 text-[10px] mb-1 block">
+                          REFERRAL / DISCOUNT CODE (OPTIONAL)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Enter Code..."
+                          value={form.referralCode}
+                          onChange={(e) => setForm((f) => ({ ...f, referralCode: e.target.value.toUpperCase() }))}
+                          className="w-full bg-transparent border-b border-white/15 focus:border-[var(--atlas-gold)] outline-none py-2 text-white text-xs font-mono transition-all placeholder:text-white/20"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-white/5 pt-5 mt-6 flex-col sm:flex-row gap-4">
+                      <button onClick={() => {
+                          if (isExceptionCommittee) setStep(1);
+                          else setStep(2);
+                        }} className="btn-ghost px-4 py-2 text-[10px] w-full sm:w-auto justify-center">
+                        ← BACK
+                      </button>
+                      <button type="button" onClick={handleProceedToPay} className="btn-atlas w-full sm:w-auto justify-center">
+                        PROCEED TO PAY <span>↗</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+
+                {step === 4 && (
+                  <motion.div
+                    key="step-4"
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    transition={{ duration: 0.3 }}
+                    className="space-y-6"
+                  >
+                    <div>
+                      <button
+                        onClick={() => setStep(3)}
+                        className="font-mono text-[10px] text-[var(--atlas-cyan)] hover:underline"
+                      >
+                        ← BACK TO PACKAGE
                       </button>
                       <h3 className="font-display text-white text-2xl sm:text-3xl leading-none mt-3">
                         ATLAS PAY SECURE GATEWAY
@@ -472,17 +1118,25 @@ export default function AccessDialog({ open, onClose }) {
                             {form.committee}
                           </span>
                         </div>
+                        {!isExceptionCommittee && form.portfolio_country && (
+                          <div className="flex justify-between">
+                            <span className="text-white/55">PORTFOLIO</span>
+                            <span className="text-white max-w-[200px] truncate text-right">
+                              {form.portfolio_country}
+                            </span>
+                          </div>
+                        )}
                         <div className="flex justify-between">
                           <span className="text-white/55">SELECTED TICKET</span>
                           <span className="text-[var(--atlas-gold)]">
-                            {selectedCategory.replace("⚡ ", "")} · {selectedPackage.name}
+                            {selectedCategory} · {selectedPackage.name}
                           </span>
                         </div>
                         <div className="h-[1px] bg-white/10 my-3" />
                         <div className="flex justify-between text-sm">
                           <span className="text-white font-medium">TOTAL DUE</span>
                           <span className="text-[var(--atlas-cyan)] font-bold text-base">
-                            ₹{selectedPackage.price}.00
+                            ₹{finalPrice}.00
                           </span>
                         </div>
                       </div>
@@ -563,9 +1217,9 @@ export default function AccessDialog({ open, onClose }) {
                   </motion.div>
                 )}
 
-                {step === 3 && registrationResult && (
+                {step === 5 && registrationResult && (
                   <motion.div
-                    key="step-3"
+                    key="step-5"
                     initial={{ opacity: 0, scale: 0.98 }}
                     animate={{ opacity: 1, scale: 1 }}
                     className="py-6 text-center space-y-6"

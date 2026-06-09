@@ -251,6 +251,42 @@ export const getRegistrations = async () => {
   }
 };
 
+export const getDiscountCodes = async () => {
+  try {
+    const snap = await getDocs(collection(db, "discount_codes"));
+    const codes = [];
+    snap.forEach((doc) => {
+      codes.push({ id: doc.id, ...doc.data() });
+    });
+    return codes;
+  } catch (e) {
+    console.error("Failed to load discount codes:", e);
+    return [];
+  }
+};
+
+export const saveDiscountCode = async (codeData) => {
+  try {
+    const id = codeData.id || `DC-${Date.now()}`;
+    await setDoc(doc(db, "discount_codes", id), { ...codeData, id });
+    await addActivityLog(`Created discount code: ${codeData.code}`);
+    return id;
+  } catch (e) {
+    console.error("Failed to save discount code:", e);
+    throw e;
+  }
+};
+
+export const deleteDiscountCode = async (id, codeString) => {
+  try {
+    await deleteDoc(doc(db, "discount_codes", id));
+    await addActivityLog(`Deleted discount code: ${codeString}`);
+  } catch (e) {
+    console.error("Failed to delete discount code:", e);
+    throw e;
+  }
+};
+
 export const saveRegistrations = async (registrations) => {
   try {
     const snap = await getDocs(collection(db, "registrations"));
@@ -396,7 +432,7 @@ export const getConferenceSettings = async () => {
     const defaultSettings = {
       conference_name: "Atlas Union Summit 2026",
       dates: "October 16 - 18, 2026",
-      venue: "Taj Palace, New Delhi, India",
+      venue: "IIT Delhi (TBD)",
       registration_fee: "₹1,499 - ₹2,799",
       email_template_confirmation: "Dear [NAME],\n\nYour operator credentials for the Atlas Union Summit 2026 have been approved!\n\nCommittee: [COMMITTEE]\nRegistration ID: [ID]\nStatus: APPROVED\n\nPlease present this email or your holographic Operator Passport at the check-in terminal on arrival.\n\nOperational Clearance,\nAtlas Command Group",
       email_template_rejection: "Dear [NAME],\n\nWe regret to inform you that your operator registration for the Atlas Union Summit 2026 has been declined.\n\nReason: Information Verification Failed.\n\nNote: If payment was processed, a 100% refund will be credited back within 5 business days.\n\nSecurity Operations,\nAtlas Command Group"
@@ -514,7 +550,7 @@ export const saveDirectMessages = async (delegateId, messages) => {
 };
 
 // ----------------------------------------------------
-// Google Wallet & Delegate Passes APIs
+// E-Passport & Delegate Passes APIs
 // ----------------------------------------------------
 
 export const getPasses = async () => {
@@ -549,7 +585,7 @@ export const savePass = async (passData) => {
   try {
     const docRef = doc(db, "passes", passData.email.toLowerCase());
     await setDoc(docRef, passData);
-    await addActivityLog(`Digital Wallet Pass updated for ${passData.delegate_name}`);
+    await addActivityLog(`E-Passport updated for ${passData.delegate_name}`);
   } catch (e) {
     console.error("Failed to save pass:", e);
   }
@@ -563,7 +599,7 @@ export const revokePass = async (passId) => {
       const docRef = snap.docs[0].ref;
       const data = snap.docs[0].data();
       await updateDoc(docRef, { status: "revoked" });
-      await addActivityLog(`Digital Wallet Pass REVOKED for ${data.delegate_name} (${passId})`);
+      await addActivityLog(`E-Passport REVOKED for ${data.delegate_name} (${passId})`);
       return true;
     }
     return false;
@@ -581,7 +617,7 @@ export const activatePass = async (passId) => {
       const docRef = snap.docs[0].ref;
       const data = snap.docs[0].data();
       await updateDoc(docRef, { status: "active" });
-      await addActivityLog(`Digital Wallet Pass ACTIVATED for ${data.delegate_name} (${passId})`);
+      await addActivityLog(`E-Passport ACTIVATED for ${data.delegate_name} (${passId})`);
       return true;
     }
     return false;
@@ -651,7 +687,7 @@ export const bulkGeneratePasses = async () => {
           wallet_status: "not_added",
           event_details: {
             date: "October 16 - 18, 2026",
-            venue: "Taj Palace, New Delhi, India",
+            venue: "IIT Delhi (TBD)",
             time: "09:00 AM IST"
           },
           created_at: new Date().toISOString(),

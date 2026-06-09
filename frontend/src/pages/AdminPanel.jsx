@@ -18,10 +18,12 @@ import {
   signInWithGoogle,
   signOutUser,
   getPasses,
-  revokePass,
   activatePass,
   scanPass,
   bulkGeneratePasses,
+  getDiscountCodes,
+  saveDiscountCode,
+  deleteDiscountCode,
 } from "@/lib/atlasApi";
 import { toast } from "sonner";
 
@@ -62,13 +64,14 @@ export default function AdminPanel() {
   const [settings, setSettings] = useState({});
   const [broadcasts, setBroadcasts] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
+  const [discountCodes, setDiscountCodes] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch all mock data
   const refreshData = async () => {
     setLoading(true);
     try {
-      const [d, r, p, e, s, b, l] = await Promise.all([
+      const [d, r, p, e, s, b, l, dc] = await Promise.all([
         getDelegates(),
         getRegistrations(),
         getPayments(),
@@ -76,6 +79,7 @@ export default function AdminPanel() {
         getConferenceSettings(),
         getBroadcastHistory(),
         getActivityLogs(),
+        getDiscountCodes(),
       ]);
       setDelegates(d);
       setRegistrations(r);
@@ -84,6 +88,7 @@ export default function AdminPanel() {
       setSettings(s);
       setBroadcasts(b);
       setActivityLogs(l);
+      setDiscountCodes(dc);
     } catch (err) {
       toast.error("DATA FETCH FAILED");
     } finally {
@@ -261,11 +266,157 @@ export default function AdminPanel() {
                     onRefresh={refreshData}
                   />
                 )}
+                {activeTab === "discounts" && (
+                  <DiscountCodeManager
+                    discountCodes={discountCodes}
+                    onRefresh={refreshData}
+                  />
+                )}
               </motion.div>
             </AnimatePresence>
           )}
         </div>
       </main>
+    </div>
+  );
+}
+
+// ----------------------------------------------------
+// Component: DiscountCodeManager
+// ----------------------------------------------------
+function DiscountCodeManager({ discountCodes, onRefresh }) {
+  const [form, setForm] = useState({ code: "", percentage: 10, appliesTo: "All Categories" });
+  const [loading, setLoading] = useState(false);
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    if (!form.code.trim()) return toast.error("Code required");
+    setLoading(true);
+    try {
+      await saveDiscountCode({
+        code: form.code.trim().toUpperCase(),
+        percentage: Number(form.percentage),
+        appliesTo: form.appliesTo,
+        createdAt: new Date().toISOString()
+      });
+      toast.success("Discount Code Created");
+      setForm({ code: "", percentage: 10, appliesTo: "All Categories" });
+      onRefresh();
+    } catch (e) {
+      toast.error("Failed to create code");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id, codeString) => {
+    if (!window.confirm(`Revoke code ${codeString}?`)) return;
+    try {
+      await deleteDiscountCode(id, codeString);
+      toast.success("Code Revoked");
+      onRefresh();
+    } catch (e) {
+      toast.error("Failed to delete code");
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-end">
+        <div>
+          <h2 className="font-display text-2xl text-white tracking-widest">DISCOUNT CODES</h2>
+          <p className="text-[10px] text-white/40 tracking-widest mt-1">Manage global referral and discount codes.</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Create Code Form */}
+        <div className="glass rounded border border-white/5 p-5">
+          <span className="classified-label text-[var(--atlas-cyan)] text-xs block mb-4">/ CREATE NEW CODE</span>
+          <form onSubmit={handleCreate} className="space-y-4">
+            <div>
+              <label className="text-[10px] text-white/50 tracking-widest mb-1 block">CODE STRING</label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. EARLYBIRD50"
+                value={form.code}
+                onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
+                className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:border-[var(--atlas-gold)] outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-white/50 tracking-widest mb-1 block">DISCOUNT PERCENTAGE (%)</label>
+              <input
+                type="number"
+                min="1"
+                max="100"
+                required
+                value={form.percentage}
+                onChange={(e) => setForm({ ...form, percentage: e.target.value })}
+                className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:border-[var(--atlas-gold)] outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-white/50 tracking-widest mb-1 block">APPLIES TO CATEGORY</label>
+              <select
+                value={form.appliesTo}
+                onChange={(e) => setForm({ ...form, appliesTo: e.target.value })}
+                className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:border-[var(--atlas-gold)] outline-none"
+              >
+                <option value="All Categories">All Categories</option>
+                <option value="Model United Nations">Model United Nations</option>
+                <option value="School delegation">School delegation</option>
+                <option value="For festival">For festival</option>
+                <option value="For contest">For contest</option>
+              </select>
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2 bg-[var(--atlas-cyan)]/10 text-[var(--atlas-cyan)] border border-[var(--atlas-cyan)]/20 hover:bg-[var(--atlas-cyan)]/20 rounded font-mono text-[10px] tracking-widest transition-colors"
+            >
+              {loading ? "SAVING..." : "CREATE CODE"}
+            </button>
+          </form>
+        </div>
+
+        {/* Active Codes List */}
+        <div className="lg:col-span-2 glass rounded border border-white/5 p-0 overflow-hidden flex flex-col h-[500px]">
+          <div className="p-4 border-b border-white/5 bg-black/20">
+            <span className="classified-label text-[var(--atlas-gold)] text-xs">/ ACTIVE CODES</span>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {discountCodes.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-[10px] text-white/30 tracking-widest">
+                NO ACTIVE CODES FOUND
+              </div>
+            ) : (
+              discountCodes.map((c) => (
+                <div key={c.id} className="bg-black/40 border border-white/10 rounded p-4 flex justify-between items-center">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-white font-bold font-mono tracking-wider">{c.code}</span>
+                      <span className="bg-[var(--atlas-gold)]/10 text-[var(--atlas-gold)] text-[9px] px-2 py-0.5 rounded border border-[var(--atlas-gold)]/20 tracking-widest">
+                        {c.percentage}% OFF
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-white/50 mt-1.5 tracking-wider">
+                      Applies to: <span className="text-white/80">{c.appliesTo}</span>
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleDelete(c.id, c.code)}
+                    className="text-[10px] text-red-400 border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded transition-colors"
+                  >
+                    REVOKE
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -359,7 +510,8 @@ function AdminSidebar({ activeTab, setActiveTab, isOpen, setIsOpen, onLogout, us
     { id: "reports", label: "06 REPORTS", icon: "📊" },
     { id: "broadcast", label: "07 BROADCAST", icon: "📢" },
     { id: "settings", label: "08 SETTINGS", icon: "⚙" },
-    { id: "passes", label: "09 WALLET PASSES", icon: "🎟️" },
+    { id: "passes", label: "09 E-PASSPORTS", icon: "🎟️" },
+    { id: "discounts", label: "10 DISCOUNTS", icon: "🏷️" },
   ];
 
   return (
@@ -495,7 +647,7 @@ function DashboardOverview({ delegates, registrations, payments, events, logs })
               </div>
               <div className="p-3 bg-white/[0.01] border border-white/5 rounded text-xs leading-relaxed">
                 <span className="text-[var(--atlas-cyan)] font-bold">SUMMIT VENUE</span>
-                <p className="text-white/60 mt-1">Taj Palace, New Delhi, India</p>
+                <p className="text-white/60 mt-1">IIT Delhi (TBD)</p>
               </div>
             </div>
           </div>
@@ -2014,7 +2166,7 @@ export function PassLedgerAndScanner({ delegates, onRefresh }) {
                     <th className="p-4 font-semibold">DELEGATE DETAILS</th>
                     <th className="p-4 font-semibold">COMMITTEE / POSITION</th>
                     <th className="p-4 font-semibold">PASS STATUS</th>
-                    <th className="p-4 font-semibold">GOOGLE WALLET</th>
+                    <th className="p-4 font-semibold">QR STATUS</th>
                     <th className="p-4 font-semibold text-center">ENTRIES</th>
                     <th className="p-4 text-right font-semibold">ACTIONS</th>
                   </tr>
@@ -2060,7 +2212,7 @@ export function PassLedgerAndScanner({ delegates, onRefresh }) {
                         </td>
                         <td className="p-4">
                           <span className="text-[10px] text-white/60 flex items-center gap-1.5">
-                            {p.wallet_status === "added" ? "💾 ADDED" : "❌ NOT ADDED"}
+                            <span className="text-emerald-400">✅ GENERATED</span>
                           </span>
                         </td>
                         <td className="p-4 text-center font-bold text-white">
