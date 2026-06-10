@@ -426,6 +426,7 @@ export default function AccessDialog({ open, onClose }) {
     dietary_instructions: "",
     referralCode: "",
     device_os: "Android",
+    is_atlas_plus: false,
   });
 
   const [activeDiscountCodes, setActiveDiscountCodes] = useState([]);
@@ -505,6 +506,8 @@ export default function AccessDialog({ open, onClose }) {
     appliedDiscountText = "REFERRAL APPLIED";
   }
 
+  const payPrice = form.is_atlas_plus ? finalPrice + 2000 : finalPrice;
+
   const handleNextStep = (e) => {
     e?.preventDefault?.();
     if (
@@ -540,7 +543,7 @@ export default function AccessDialog({ open, onClose }) {
 
   const handleProceedToPay = (e) => {
     e?.preventDefault?.();
-    setStep(4);
+    setStep(3.5); // Go to Atlas Plus Upsell
   };
 
   const handleRegisterSubmit = async (e) => {
@@ -557,8 +560,8 @@ export default function AccessDialog({ open, onClose }) {
       const payload = {
         ...form,
         package_category: selectedCategory,
-        package_name: selectedPackage.name,
-        package_price: finalPrice,
+        package_name: form.is_atlas_plus ? `${selectedPackage.name} + ATLAS PLUS` : selectedPackage.name,
+        package_price: payPrice,
         utr_number: utr.trim(),
       };
 
@@ -1077,6 +1080,84 @@ export default function AccessDialog({ open, onClose }) {
                   </motion.div>
                 )}
 
+                {step === 3.5 && (
+                  <motion.div
+                    key="step-3-5"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.4 }}
+                    className="space-y-6"
+                  >
+                    <div className="text-center space-y-3">
+                      <div className="inline-block px-3 py-1 bg-[var(--atlas-gold)]/10 border border-[var(--atlas-gold)]/30 rounded-full">
+                        <span className="font-mono text-[10px] text-[var(--atlas-gold)] tracking-[0.3em]">VIP UPGRADE INVITATION</span>
+                      </div>
+                      <h3 className="font-display text-white text-3xl sm:text-4xl leading-none">
+                        ATLAS <span className="text-[var(--atlas-gold)] font-bold italic">PLUS</span>
+                      </h3>
+                      <p className="text-white/70 text-sm max-w-sm mx-auto">
+                        Your gateway to the ultimate Atlas experience. Not just a conference—an ecosystem.
+                      </p>
+                    </div>
+
+                    <div className="glass-strong rounded-xl border border-[var(--atlas-gold)]/30 p-1 relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-br from-[var(--atlas-gold)]/5 to-transparent pointer-events-none" />
+                      <div className="bg-black/60 rounded-lg p-5 border border-white/5 relative z-10">
+                        <div className="space-y-4 font-mono text-xs text-white/80">
+                          <div className="flex items-start gap-3">
+                            <span className="text-[var(--atlas-gold)] mt-0.5">✓</span>
+                            <span><strong className="text-[var(--atlas-gold)]">Premium Passport</strong> with exclusive Black & Gold holographic flex.</span>
+                          </div>
+                          <div className="flex items-start gap-3">
+                            <span className="text-[var(--atlas-gold)] mt-0.5">✓</span>
+                            <span><strong className="text-white">Coachella & Concert</strong> access. The complete cultural festival.</span>
+                          </div>
+                          <div className="flex items-start gap-3">
+                            <span className="text-[var(--atlas-gold)] mt-0.5">✓</span>
+                            <span><strong className="text-white">Delegate Lounge & Meals.</strong> Unwind with VIP hospitality.</span>
+                          </div>
+                          <div className="flex items-start gap-3">
+                            <span className="text-[var(--atlas-gold)] mt-0.5">✓</span>
+                            <span><strong className="text-white">Priority Check-in.</strong> Skip the lines. Fast-track entry.</span>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-5 pt-4 border-t border-white/10 flex items-center justify-between">
+                          <span className="text-[10px] text-white/50 tracking-widest uppercase">Limited Availability</span>
+                          <span className="text-xl font-bold text-[var(--atlas-gold)]">+₹2000</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 pt-2">
+                      <button
+                        onClick={() => {
+                          setForm({ ...form, is_atlas_plus: true });
+                          setStep(4);
+                        }}
+                        className="w-full relative group overflow-hidden rounded py-4 px-6 transition-all duration-300 transform hover:scale-[1.02]"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-[#947126] via-[#C9A44C] to-[#947126] opacity-90 group-hover:opacity-100" />
+                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 mix-blend-overlay" />
+                        <span className="relative z-10 font-mono text-sm tracking-[0.2em] font-bold text-black drop-shadow-md flex items-center justify-center gap-2">
+                          YES, UPGRADE TO ATLAS PLUS <span>⚡</span>
+                        </span>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          setForm({ ...form, is_atlas_plus: false });
+                          setStep(4);
+                        }}
+                        className="w-full py-3 text-[10px] font-mono tracking-widest text-white/40 hover:text-white/80 transition-colors"
+                      >
+                        NO THANKS, I'LL KEEP THE STANDARD PASS
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+
                 {step === 4 && (
                   <motion.div
                     key="step-4"
@@ -1093,11 +1174,11 @@ export default function AccessDialog({ open, onClose }) {
                       >
                         ← BACK TO PACKAGE
                       </button>
-                      <h3 className="font-display text-white text-2xl sm:text-3xl leading-none mt-3">
-                        ATLAS PAY SECURE GATEWAY
+                      <h3 className={`font-display text-2xl sm:text-3xl leading-none mt-3 ${form.is_atlas_plus ? 'text-[var(--atlas-gold)]' : 'text-white'}`}>
+                        {form.is_atlas_plus ? 'ATLAS PLUS ELITE GATEWAY' : 'ATLAS PAY SECURE GATEWAY'}
                       </h3>
                       <p className="text-white/60 text-xs sm:text-sm mt-1">
-                        Scan the dynamically encoded UPI QR code below to complete the transaction.
+                        Scan the dynamically encoded UPI QR code below to complete the {form.is_atlas_plus ? 'premium ' : ''}transaction.
                       </p>
                     </div>
 
@@ -1131,11 +1212,19 @@ export default function AccessDialog({ open, onClose }) {
                             {selectedCategory} · {selectedPackage.name}
                           </span>
                         </div>
+                        {form.is_atlas_plus && (
+                          <div className="flex justify-between mt-1">
+                            <span className="text-white/55">ADD-ON</span>
+                            <span className="text-[var(--atlas-gold)] font-bold">
+                              ATLAS PLUS (+₹2000)
+                            </span>
+                          </div>
+                        )}
                         <div className="h-[1px] bg-white/10 my-3" />
                         <div className="flex justify-between text-sm">
                           <span className="text-white font-medium">TOTAL DUE</span>
                           <span className="text-[var(--atlas-cyan)] font-bold text-base">
-                            ₹{finalPrice}.00
+                            ₹{payPrice}.00
                           </span>
                         </div>
                       </div>
@@ -1148,15 +1237,12 @@ export default function AccessDialog({ open, onClose }) {
                           SCAN ME
                         </div>
                         <img
-                          src="/payment_qr.jpg"
-                          alt="UPI QR Code"
-                          className="w-[180px] h-[180px] object-contain rounded-sm"
-                          onError={(e) => {
-                            e.target.src = qrURL;
-                          }}
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&bgcolor=08000F&color=C9A44C&data=upi://pay?pa=9140738627@axl&pn=Atlas&am=${payPrice}&cu=INR`}
+                          alt="Golden UPI QR Code"
+                          className="w-[180px] h-[180px] object-contain rounded-sm shadow-[0_0_15px_rgba(201,164,76,0.3)]"
                         />
-                        <span className="font-mono text-[9px] tracking-widest text-white/40 mt-3">
-                          PHONEPE MERCHANT QR
+                        <span className="font-mono text-[9px] tracking-widest text-[var(--atlas-gold)]/60 mt-3">
+                          ATLAS SECURE QR
                         </span>
                       </div>
 

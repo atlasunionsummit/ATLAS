@@ -113,6 +113,7 @@ export const generatePassport = async (payload) => {
     seal: seal,
     qr_url: `https://api.qrserver.com/v1/create-qr-code/?size=240x240&bgcolor=08000F&color=C9A44C&data=AUS::${delegate_id}`,
     signature: "AUS/2026",
+    is_atlas_plus: payload.is_atlas_plus || false,
     timestamp: new Date().toISOString(),
   };
 
@@ -177,6 +178,7 @@ export const registerUser = async (payload) => {
     package_name: payload.package_name,
     package_price: Number(payload.package_price),
     utr_number: payload.utr_number,
+    is_atlas_plus: payload.is_atlas_plus || false,
     status: "pending_verification",
     timestamp: new Date().toISOString(),
   };
@@ -500,12 +502,17 @@ export const getDelegateNotes = async (delegateId) => {
     const docRef = doc(db, "delegate_notes", delegateId);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return docSnap.data().notes || "";
+      const data = docSnap.data().notes;
+      // Handle legacy string notes by converting to a single note in an array
+      if (typeof data === 'string') {
+        return [{ id: 'legacy-note', title: 'Legacy Note', content: data, updated_at: new Date().toISOString() }];
+      }
+      return data || [];
     }
-    return "";
+    return [];
   } catch (e) {
     console.error("Failed to fetch notes:", e);
-    return "";
+    return [];
   }
 };
 
@@ -517,6 +524,81 @@ export const saveDelegateNotes = async (delegateId, notes) => {
     });
   } catch (e) {
     console.error("Failed to save notes:", e);
+  }
+};
+
+export const getAIChatHistory = async (delegateId) => {
+  try {
+    const docRef = doc(db, "ai_chat_history", delegateId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data().messages || [];
+    }
+    return [];
+  } catch (e) {
+    console.error("Failed to fetch AI chat:", e);
+    return [];
+  }
+};
+
+export const saveAIChatHistory = async (delegateId, messages) => {
+  try {
+    await setDoc(doc(db, "ai_chat_history", delegateId), {
+      messages,
+      updated_at: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.error("Failed to save AI chat:", e);
+  }
+};
+
+export const getVaultDocuments = async (delegateId) => {
+  try {
+    const docRef = doc(db, "vault_documents", delegateId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data().documents || [];
+    }
+    return [];
+  } catch (e) {
+    console.error("Failed to fetch vault documents:", e);
+    return [];
+  }
+};
+
+export const saveVaultDocuments = async (delegateId, documents) => {
+  try {
+    await setDoc(doc(db, "vault_documents", delegateId), {
+      documents,
+      updated_at: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.error("Failed to save vault documents:", e);
+  }
+};
+
+export const getDelegateTasks = async (delegateId) => {
+  try {
+    const docRef = doc(db, "delegate_tasks", delegateId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data().tasks || [];
+    }
+    return [];
+  } catch (e) {
+    console.error("Failed to fetch tasks:", e);
+    return [];
+  }
+};
+
+export const saveDelegateTasks = async (delegateId, tasks) => {
+  try {
+    await setDoc(doc(db, "delegate_tasks", delegateId), {
+      tasks,
+      updated_at: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.error("Failed to save tasks:", e);
   }
 };
 
@@ -718,6 +800,7 @@ export const sendChatMessage = async (room, delegate, text) => {
       sender_id: delegate.id,
       sender_name: delegate.nickname || delegate.full_name || "Guest Operator",
       sender_country: delegate.country || "Observer",
+      sender_profile_pic: delegate.profile_pic || null,
       text: text,
       timestamp: new Date().toISOString(),
     };

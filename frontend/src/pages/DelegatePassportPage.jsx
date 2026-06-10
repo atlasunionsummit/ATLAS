@@ -16,6 +16,7 @@ export default function DelegatePassportPage() {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [simulatorOpen, setSimulatorOpen] = useState(false);
+  const [showPlusIntro, setShowPlusIntro] = useState(false);
 
   // 3D Card Animation Hooks
   const wrapRef = useRef(null);
@@ -56,6 +57,10 @@ export default function DelegatePassportPage() {
         // Fetch pass from Firestore
         const passData = await getPassByEmail(user.email);
         setPass(passData);
+        if (passData?.is_atlas_plus) {
+          setShowPlusIntro(true);
+          setTimeout(() => setShowPlusIntro(false), 3500);
+        }
       } catch (e) {
         console.error("Session load error:", e);
         localStorage.removeItem("aus_delegate_session");
@@ -121,6 +126,10 @@ export default function DelegatePassportPage() {
 
       await savePass(newPass);
       setPass(newPass);
+      if (delegateUser.is_atlas_plus) {
+        setShowPlusIntro(true);
+        setTimeout(() => setShowPlusIntro(false), 3500);
+      }
       toast.success("DIGITAL PASS GENERATED", {
         description: "Your secure E-Passport is active."
       });
@@ -225,9 +234,45 @@ export default function DelegatePassportPage() {
               {generating ? "GENERATING PASS..." : "GENERATE E-PASSPORT ↗"}
             </button>
           </motion.div>
+        ) : showPlusIntro ? (
+          /* Atlas Plus Dopamine Intro Screen */
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.2 }}
+            transition={{ duration: 0.8, ease: "easeInOut" }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 mix-blend-overlay animate-pulse" />
+            <div className="text-center space-y-6 relative z-10">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
+                className="w-16 h-16 mx-auto border-t-2 border-r-2 border-[var(--atlas-gold)] rounded-full animate-spin"
+              />
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0, 1, 0, 1] }}
+                transition={{ delay: 1, duration: 0.8 }}
+              >
+                <h1 className="font-display text-[var(--atlas-gold)] text-5xl md:text-7xl tracking-[0.1em] drop-shadow-[0_0_20px_rgba(201,164,76,0.8)]">
+                  ATLAS <span className="italic">PLUS</span>
+                </h1>
+                <p className="font-mono text-white/70 tracking-[0.4em] text-xs mt-3 uppercase">
+                  VIP Uplink Established • Access Granted
+                </p>
+              </motion.div>
+            </div>
+          </motion.div>
         ) : (
           /* Pass Display Screen */
-          <div className="grid lg:grid-cols-[1fr_420px] gap-12 items-center w-full">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1 }}
+            className="grid lg:grid-cols-[1fr_420px] gap-12 items-center w-full"
+          >
             <div className="space-y-6">
               <span className="classified-label text-[var(--atlas-gold)]">/ 06 — DIGITAL PASSPORT</span>
               <h2 className="font-display text-white text-5xl lg:text-6xl leading-none">
@@ -261,7 +306,6 @@ export default function DelegatePassportPage() {
               )}
             </div>
 
-            {/* 3D Holographic Passport Card */}
             <div 
               ref={wrapRef}
               onMouseMove={handleMouseMove}
@@ -270,8 +314,18 @@ export default function DelegatePassportPage() {
             >
               <motion.div
                 style={{ rotateY: rotateY, rotateX: rotateX, transformStyle: "preserve-3d" }}
-                className="relative w-full max-w-[520px] aspect-[1.58/1] rounded-xl overflow-hidden holo glow-purple shadow-2xl"
+                className={`relative w-full max-w-[520px] aspect-[1.58/1] rounded-xl overflow-hidden transition-all duration-300 ${
+                  pass.is_atlas_plus 
+                    ? "bg-[#0a0800] border border-[var(--atlas-gold)]/40 shadow-[0_0_50px_rgba(201,164,76,0.3)]" 
+                    : "holo glow-purple shadow-2xl"
+                }`}
               >
+                {pass.is_atlas_plus && (
+                  <>
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#C9A44C]/20 via-transparent to-[#C9A44C]/10 mix-blend-overlay pointer-events-none" />
+                    <div className="absolute -inset-[100%] animate-[spin_8s_linear_infinite] opacity-30 bg-[conic-gradient(from_0deg,transparent_0_340deg,#C9A44C_360deg)] pointer-events-none" />
+                  </>
+                )}
                 <div className="absolute inset-0 grid-bg opacity-25" />
                 
                 {pass.status === "revoked" && (
@@ -286,11 +340,11 @@ export default function DelegatePassportPage() {
                   {/* header */}
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="font-mono text-[9.5px] tracking-[0.3em] text-[var(--atlas-gold)]">
+                      <p className={`font-mono text-[9.5px] tracking-[0.3em] ${pass.is_atlas_plus ? 'text-[var(--atlas-gold)] font-bold' : 'text-[var(--atlas-gold)]'}`}>
                         ATLAS UNION SUMMIT · 2026
                       </p>
-                      <p className="font-display text-white text-2xl mt-1 leading-none">
-                        OPERATOR PASSPORT
+                      <p className={`font-display text-2xl mt-1 leading-none ${pass.is_atlas_plus ? 'text-white' : 'text-white'}`}>
+                        {pass.is_atlas_plus ? 'ELITE PASSPORT' : 'OPERATOR PASSPORT'}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -304,13 +358,27 @@ export default function DelegatePassportPage() {
 
                   {/* body */}
                   <div className="flex gap-5 items-end">
+                    <div className="shrink-0 relative">
+                      <div className={`w-20 h-20 rounded-full overflow-hidden flex items-center justify-center bg-black/40 ${pass.is_atlas_plus ? 'border-2 border-[var(--atlas-gold)] shadow-[0_0_10px_rgba(201,164,76,0.6)]' : 'border border-white/20'}`}>
+                        {delegateUser?.profile_pic ? (
+                          <img src={delegateUser.profile_pic} alt="PFP" className="w-full h-full object-cover" />
+                        ) : (
+                          <img src={pass.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(pass.delegate_name)}`} alt="Avatar" className="w-full h-full object-cover p-2" />
+                        )}
+                      </div>
+                      {pass.is_atlas_plus && (
+                        <div className="absolute -top-3 -right-2 text-2xl drop-shadow-[0_0_5px_rgba(201,164,76,0.8)]">
+                          👑
+                        </div>
+                      )}
+                    </div>
                     <div className="flex-1">
                       <p className="font-mono text-[9px] tracking-[0.3em] text-white/55 uppercase">
                         {pass.position}
                       </p>
                       <p
                         className="font-display text-white leading-none mt-1 uppercase"
-                        style={{ fontSize: "clamp(22px, 3.4vw, 34px)" }}
+                        style={{ fontSize: "clamp(18px, 3.4vw, 28px)" }}
                       >
                         {pass.delegate_name}
                       </p>
@@ -362,7 +430,7 @@ export default function DelegatePassportPage() {
                 </div>
               </motion.div>
             </div>
-          </div>
+          </motion.div>
         )}
       </main>
 

@@ -9,18 +9,15 @@ import {
   saveDelegateNotes,
   getBroadcastHistory,
   sendChatMessage,
-  subscribeToChat
+  subscribeToChat,
+  getVaultDocuments,
+  saveVaultDocuments,
+  getAIChatHistory,
+  saveAIChatHistory,
+  getDelegateTasks,
+  saveDelegateTasks
 } from "@/lib/atlasApi";
 import { toast } from "sonner";
-
-// MOCK_CONTACTS removed: Using Global Real-time Chat
-
-const VAULT_DOCUMENTS = [
-  { title: "AUS 2026 Background Guide", category: "GUIDELINES", size: "2.4 MB" },
-  { title: "Rules of Procedure (Delhi Protocol)", category: "PROTOCOL", size: "1.1 MB" },
-  { title: "Draft Resolution Template 1.0", category: "TEMPLATES", size: "640 KB" },
-  { title: "Vaidya Council Briefing Material", category: "CLASSIFIED", size: "5.8 MB" },
-];
 
 export default function DelegateDashboard({ onRequestAccess }) {
   const navigate = useNavigate();
@@ -181,13 +178,12 @@ export default function DelegateDashboard({ onRequestAccess }) {
         <nav className="flex-1 py-6 px-4 space-y-1 overflow-y-auto scrollbar-none">
           {[
             { id: "profile", label: "01 OPERATOR DOSSIER", icon: "👤" },
-            { id: "agenda", label: "02 AGENDA TRACKER", icon: "📅" },
+            { id: "agenda", label: "02 ACCOUNTING TASKS", icon: "📅" },
             { id: "messaging", label: "03 ENCRYPTED CHAT", icon: "💬" },
             { id: "notes", label: "04 SECURE NOTES", icon: "📝" },
             { id: "ai", label: "05 COMMAND AI", icon: "🤖" },
-            { id: "map", label: "06 VENUE LOCATOR", icon: "🗺️" },
-            { id: "vault", label: "07 DOCUMENT VAULT", icon: "📁" },
-            { id: "atlasplus", label: "08 ATLAS PLUS", icon: "✨" },
+            { id: "atlasplus", label: "06 ATLAS PLUS", icon: "✨" },
+            { id: "accommodation", label: "07 ACCOMMODATION", icon: "🏨" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -262,7 +258,7 @@ export default function DelegateDashboard({ onRequestAccess }) {
               )}
               {activeTab === "agenda" && (
                 <RestrictedOverlay delegate={delegate} onRequestAccess={onRequestAccess}>
-                  <AgendaTracker delegate={delegate} />
+                  <AccountingCalendar delegate={delegate} />
                 </RestrictedOverlay>
               )}
               {activeTab === "messaging" && (
@@ -276,16 +272,6 @@ export default function DelegateDashboard({ onRequestAccess }) {
               {activeTab === "ai" && (
                 <RestrictedOverlay delegate={delegate} onRequestAccess={onRequestAccess}>
                   <AIChatbot delegate={delegate} />
-                </RestrictedOverlay>
-              )}
-              {activeTab === "map" && (
-                <RestrictedOverlay delegate={delegate} onRequestAccess={onRequestAccess}>
-                  <VenueLocator delegate={delegate} />
-                </RestrictedOverlay>
-              )}
-              {activeTab === "vault" && (
-                <RestrictedOverlay delegate={delegate} onRequestAccess={onRequestAccess}>
-                  <DocumentVault delegate={delegate} />
                 </RestrictedOverlay>
               )}
               {activeTab === "atlasplus" && (
@@ -306,6 +292,24 @@ export default function DelegateDashboard({ onRequestAccess }) {
                   </div>
                 </div>
               )}
+              {activeTab === "accommodation" && (
+                <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
+                  <div className="w-20 h-20 bg-[var(--atlas-cyan)]/10 rounded-full flex items-center justify-center border border-[var(--atlas-cyan)]/30 animate-pulse">
+                    <span className="text-4xl">🏨</span>
+                  </div>
+                  <div>
+                    <h2 className="font-display text-white text-3xl mb-2">ACCOMMODATION</h2>
+                    <p className="text-[var(--atlas-gold)] font-mono text-sm tracking-widest uppercase">
+                      Coming Soon
+                    </p>
+                  </div>
+                  <div className="max-w-md bg-black/40 border border-white/10 rounded-lg p-6 glass">
+                    <p className="text-white/60 text-xs leading-relaxed font-mono">
+                      Logistics for accommodation and boarding are currently being finalized by the secretariat. Information regarding partnered hotels and stays will be updated here shortly.
+                    </p>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -319,10 +323,39 @@ export default function DelegateDashboard({ onRequestAccess }) {
 // ----------------------------------------------------
 function ProfileDesk({ delegate, onUpdate }) {
   const [form, setForm] = useState({ ...delegate });
+  const fileInputRef = useRef(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     onUpdate(form);
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        const size = 256;
+        canvas.width = size;
+        canvas.height = size;
+        
+        // crop to center square
+        const minDim = Math.min(img.width, img.height);
+        const sx = (img.width - minDim) / 2;
+        const sy = (img.height - minDim) / 2;
+        
+        ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+        setForm({ ...form, profile_pic: dataUrl });
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -335,6 +368,45 @@ function ProfileDesk({ delegate, onUpdate }) {
       </div>
 
       <form onSubmit={handleSubmit} className="glass rounded border border-white/5 p-6 space-y-5">
+        <div className="flex items-center gap-6 mb-6 pb-6 border-b border-white/5">
+          <div className="relative group shrink-0">
+            <div className="w-24 h-24 rounded-full border-2 border-white/10 overflow-hidden bg-black/40 flex items-center justify-center">
+              {form.profile_pic ? (
+                <img src={form.profile_pic} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-3xl">👤</span>
+              )}
+            </div>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              accept="image/*"
+              className="hidden" 
+              onChange={handleImageUpload} 
+            />
+            <button 
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs font-mono font-bold tracking-widest text-[var(--atlas-cyan)]"
+            >
+              UPLOAD
+            </button>
+            {form.profile_pic && (
+              <button 
+                type="button"
+                onClick={() => setForm({ ...form, profile_pic: null })}
+                className="absolute -top-1 -right-1 w-6 h-6 bg-red-500/80 rounded-full text-white text-xs flex items-center justify-center hover:bg-red-500 transition-colors"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          <div>
+            <h4 className="font-display text-white text-lg tracking-wider">IDENTITY AVATAR</h4>
+            <p className="text-white/40 text-xs font-mono mt-1">Upload a circular profile photo for your passport and chat identity.</p>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field
             label="FULL NAME"
@@ -388,92 +460,149 @@ function ProfileDesk({ delegate, onUpdate }) {
 }
 
 // ----------------------------------------------------
-// Tab Sub-component: AgendaTracker
+// Tab Sub-component: AccountingCalendar
 // ----------------------------------------------------
-function AgendaTracker({ delegate }) {
-  const [events, setEvents] = useState([]);
-  const [checkedEvents, setCheckedEvents] = useState(() => {
-    try {
-      const stored = localStorage.getItem(`aus_agenda_checked_${delegate.id}`);
-      return stored ? JSON.parse(stored) : {};
-    } catch {
-      return {};
-    }
-  });
+function AccountingCalendar({ delegate }) {
+  const [tasks, setTasks] = useState([]);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskTime, setNewTaskTime] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchEvents = async () => {
-      const allEvents = await getEvents();
-      // Filter events by committee and global
-      const delegateCommittee = delegate.committee || "GUEST";
-      const filtered = allEvents.filter(
-        (e) => e.committee === "ALL" || e.committee.toLowerCase().includes(delegateCommittee.toLowerCase().split(" ")[0].toLowerCase())
-      );
-      setEvents(filtered);
+    const fetchTasks = async () => {
+      const data = await getDelegateTasks(delegate.id);
+      setTasks(data);
+      setLoading(false);
     };
-    fetchEvents();
-  }, [delegate]);
+    fetchTasks();
+  }, [delegate.id]);
 
-  const toggleEvent = (id) => {
-    const updated = { ...checkedEvents, [id]: !checkedEvents[id] };
-    setCheckedEvents(updated);
-    localStorage.setItem(`aus_agenda_checked_${delegate.id}`, JSON.stringify(updated));
-    if (updated[id]) {
-      toast.success("SESSION LOGGED", { description: "Marked as attended." });
-    }
+  const handleAddTask = async (e) => {
+    e.preventDefault();
+    if (!newTaskTitle.trim()) return;
+
+    const newTask = {
+      id: Date.now().toString(),
+      title: newTaskTitle.trim(),
+      time: newTaskTime.trim() || "TBD",
+      completed: false,
+    };
+
+    const updatedTasks = [...tasks, newTask];
+    setTasks(updatedTasks);
+    setNewTaskTitle("");
+    setNewTaskTime("");
+    await saveDelegateTasks(delegate.id, updatedTasks);
+    toast.success("TASK SCHEDULED", { description: "Accounting task saved." });
   };
+
+  const toggleTask = async (id) => {
+    const updatedTasks = tasks.map((t) => 
+      t.id === id ? { ...t, completed: !t.completed } : t
+    );
+    setTasks(updatedTasks);
+    await saveDelegateTasks(delegate.id, updatedTasks);
+  };
+
+  const deleteTask = async (id) => {
+    const updatedTasks = tasks.filter((t) => t.id !== id);
+    setTasks(updatedTasks);
+    await saveDelegateTasks(delegate.id, updatedTasks);
+    toast.success("TASK REMOVED");
+  };
+
+  if (loading) {
+    return <div className="text-white/50 text-xs font-mono">LOADING SCHEDULES...</div>;
+  }
 
   return (
     <div className="space-y-6">
       <div className="border-b border-white/5 pb-4">
         <span className="classified-label text-[var(--atlas-cyan)] text-xs block">
-          / COMMITMENTS SCHEDULE
+          / ACCOUNTING SCHEDULES
         </span>
-        <h3 className="font-display text-white text-2xl">AGENDA TRACKER</h3>
+        <h3 className="font-display text-white text-2xl">FINANCE & LOGISTICS TO-DO</h3>
       </div>
 
-      <div className="space-y-4 max-w-[700px]">
-        {events.length === 0 ? (
-          <div className="glass rounded p-8 border border-white/5 text-center text-white/30 text-xs">
-            NO SESSIONS CONFIGURED FOR COMMITTEE {delegate.committee || "GUEST"}
+      <div className="max-w-[700px] space-y-6">
+        <form onSubmit={handleAddTask} className="glass rounded border border-white/5 p-5 space-y-4">
+          <h4 className="font-mono text-xs text-white/50 uppercase tracking-widest">Schedule New Task</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="sm:col-span-2">
+              <input
+                type="text"
+                placeholder="Task Description..."
+                value={newTaskTitle}
+                onChange={(e) => setNewTaskTitle(e.target.value)}
+                className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-xs text-white outline-none focus:border-[var(--atlas-cyan)] transition-colors placeholder:text-white/30 font-mono"
+              />
+            </div>
+            <div>
+              <input
+                type="text"
+                placeholder="Time / Deadline"
+                value={newTaskTime}
+                onChange={(e) => setNewTaskTime(e.target.value)}
+                className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-xs text-white outline-none focus:border-[var(--atlas-cyan)] transition-colors placeholder:text-white/30 font-mono"
+              />
+            </div>
           </div>
-        ) : (
-          events.map((e) => (
-            <div
-              key={e.id}
-              onClick={() => toggleEvent(e.id)}
-              className={`cursor-pointer glass rounded border p-5 flex items-center justify-between gap-4 transition-all ${
-                checkedEvents[e.id]
-                  ? "border-emerald-500/20 bg-emerald-500/[0.02] opacity-65"
-                  : "border-white/5 hover:border-white/10 hover:bg-white/[0.01]"
-              }`}
-            >
-              <div className="space-y-1">
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] tracking-widest text-[var(--atlas-cyan)] font-bold font-mono">
-                    {e.time}
-                  </span>
-                  <span className="text-[9px] tracking-wider border border-white/10 rounded px-1.5 py-0.5 text-white/45">
-                    {e.venue.toUpperCase()}
-                  </span>
-                </div>
-                <h4 className={`font-display text-white text-base font-bold ${checkedEvents[e.id] ? "line-through text-white/50" : ""}`}>
-                  {e.title}
-                </h4>
-              </div>
+          <button type="submit" className="btn-atlas w-full !text-xs !py-2">
+            ADD TASK
+          </button>
+        </form>
 
+        <div className="space-y-3">
+          {tasks.length === 0 ? (
+            <div className="glass rounded p-8 border border-white/5 text-center text-white/30 text-xs font-mono">
+              NO ACCOUNTING TASKS CONFIGURED
+            </div>
+          ) : (
+            tasks.map((t) => (
               <div
-                className={`w-5 h-5 rounded border flex items-center justify-center font-mono text-xs transition-colors shrink-0 ${
-                  checkedEvents[e.id]
-                    ? "border-emerald-500 text-emerald-400 bg-emerald-500/10"
-                    : "border-white/15 text-transparent"
+                key={t.id}
+                className={`glass rounded border p-4 flex items-center justify-between gap-4 transition-all ${
+                  t.completed
+                    ? "border-emerald-500/20 bg-emerald-500/[0.02] opacity-65"
+                    : "border-white/5 hover:border-white/10"
                 }`}
               >
-                ✓
+                <div 
+                  className="flex-grow cursor-pointer space-y-1" 
+                  onClick={() => toggleTask(t.id)}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] tracking-widest text-[var(--atlas-cyan)] font-bold font-mono">
+                      {t.time}
+                    </span>
+                  </div>
+                  <h4 className={`font-display text-white text-sm sm:text-base ${t.completed ? "line-through text-white/50" : ""}`}>
+                    {t.title}
+                  </h4>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => toggleTask(t.id)}
+                    className={`w-6 h-6 rounded border flex items-center justify-center font-mono text-xs transition-colors ${
+                      t.completed
+                        ? "border-emerald-500 text-emerald-400 bg-emerald-500/10"
+                        : "border-white/15 text-transparent hover:border-white/40"
+                    }`}
+                  >
+                    ✓
+                  </button>
+                  <button
+                    onClick={() => deleteTask(t.id)}
+                    className="w-6 h-6 rounded border border-red-500/30 text-red-400 hover:bg-red-500/20 flex items-center justify-center text-xs transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
-            </div>
-          ))
-        )}
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
@@ -536,22 +665,31 @@ function EncryptedChat({ delegate }) {
                 key={m.id || m.timestamp}
                 initial={{ opacity: 0, y: 15, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                className={`flex flex-col max-w-[85%] md:max-w-[70%] ${
-                  isUser ? "ml-auto items-end" : "mr-auto items-start"
-                }`}
+                className={`flex w-full ${isUser ? "justify-end" : "justify-start"}`}
               >
-                <span className="text-[8px] md:text-[9px] text-white/40 font-mono tracking-widest mb-1 px-1">
-                  {m.sender_name} ({m.sender_country}) · {new Date(m.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                </span>
-                <div
-                  className={`rounded-2xl p-3 md:p-3.5 text-xs md:text-sm leading-relaxed shadow-xl ${
-                    isUser
-                      ? "bg-[var(--atlas-cyan)]/20 border border-[var(--atlas-cyan)]/40 text-white rounded-tr-none"
-                      : "bg-[#140b1e]/90 border border-white/10 text-white/90 rounded-tl-none"
-                  }`}
-                  style={{ backdropFilter: "blur(4px)" }}
-                >
-                  {m.text}
+                <div className={`flex gap-3 max-w-[85%] md:max-w-[70%] ${isUser ? "flex-row-reverse" : "flex-row"}`}>
+                  <div className="shrink-0 w-8 h-8 rounded-full border border-white/10 bg-black/40 flex items-center justify-center overflow-hidden self-end mb-1">
+                    {m.sender_profile_pic ? (
+                      <img src={m.sender_profile_pic} alt="PFP" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-[10px]">👤</span>
+                    )}
+                  </div>
+                  <div className={`flex flex-col ${isUser ? "items-end" : "items-start"}`}>
+                    <span className="text-[8px] md:text-[9px] text-white/40 font-mono tracking-widest mb-1 px-1">
+                      {m.sender_name} ({m.sender_country}) · {new Date(m.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </span>
+                    <div
+                      className={`rounded-2xl p-3 md:p-3.5 text-xs md:text-sm leading-relaxed shadow-xl ${
+                        isUser
+                          ? "bg-[var(--atlas-cyan)]/20 border border-[var(--atlas-cyan)]/40 text-white rounded-br-none"
+                          : "bg-[#140b1e]/90 border border-white/10 text-white/90 rounded-bl-none"
+                      }`}
+                      style={{ backdropFilter: "blur(4px)" }}
+                    >
+                      {m.text}
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             );
@@ -587,27 +725,63 @@ function EncryptedChat({ delegate }) {
 // Tab Sub-component: NotepadConsole
 // ----------------------------------------------------
 function NotepadConsole({ delegate }) {
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState([]);
+  const [activeNoteId, setActiveNoteId] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadNotes = async () => {
       const data = await getDelegateNotes(delegate.id);
       setNotes(data);
+      if (data.length > 0) {
+        setActiveNoteId(data[0].id);
+      }
+      setLoading(false);
     };
     loadNotes();
   }, [delegate]);
 
-  const handleSave = async (v) => {
-    setNotes(v);
+  const handleCreateNote = async () => {
+    const newNote = {
+      id: Date.now().toString(),
+      title: "New Secure Note",
+      content: "",
+      updated_at: new Date().toISOString()
+    };
+    const updated = [newNote, ...notes];
+    setNotes(updated);
+    setActiveNoteId(newNote.id);
+    await saveDelegateNotes(delegate.id, updated);
+  };
+
+  const handleSave = async (id, field, value) => {
     setSaving(true);
-    await saveDelegateNotes(delegate.id, v);
+    const updated = notes.map(n => 
+      n.id === id ? { ...n, [field]: value, updated_at: new Date().toISOString() } : n
+    );
+    setNotes(updated);
+    await saveDelegateNotes(delegate.id, updated);
     setTimeout(() => setSaving(false), 500);
   };
 
+  const handleDelete = async (id) => {
+    const updated = notes.filter(n => n.id !== id);
+    setNotes(updated);
+    if (activeNoteId === id) {
+      setActiveNoteId(updated.length > 0 ? updated[0].id : null);
+    }
+    await saveDelegateNotes(delegate.id, updated);
+    toast.success("NOTE ERASED", { description: "Memory scrubbed securely." });
+  };
+
+  const activeNote = notes.find(n => n.id === activeNoteId);
+
+  if (loading) return <div className="text-white/50 font-mono text-xs">DECRYPTING MEMORY BANKS...</div>;
+
   return (
-    <div className="space-y-6 max-w-[750px]">
-      <div className="flex items-center justify-between border-b border-white/5 pb-4">
+    <div className="space-y-6 h-full flex flex-col max-w-[1000px]">
+      <div className="flex items-center justify-between border-b border-white/5 pb-4 shrink-0">
         <div>
           <span className="classified-label text-amber-400 text-xs block">
             / SECURE MEMORY DESK
@@ -615,21 +789,73 @@ function NotepadConsole({ delegate }) {
           <h3 className="font-display text-white text-2xl">DELEGATE NOTEPAD</h3>
         </div>
 
-        <span className="text-[9.5px] font-mono tracking-widest text-white/35">
-          {saving ? "SAVING ENCRYPTED TEXT..." : "AUTO-SAVED IN SECURE DOSSIER"}
-        </span>
+        <button onClick={handleCreateNote} className="btn-atlas !py-2 !text-xs">
+          + NEW NOTE
+        </button>
       </div>
 
-      <div className="glass rounded border border-white/5 p-4 relative h-[50vh] min-h-[300px] md:h-[60vh] flex flex-col">
-        <textarea
-          value={notes}
-          onChange={(e) => handleSave(e.target.value)}
-          placeholder="Begin typing session logs, resolution clause outlines, debate points, or caucusing notes here..."
-          className="w-full flex-grow bg-transparent outline-none border-none text-white font-mono text-xs leading-relaxed resize-none scrollbar-thin placeholder:text-white/20"
-        />
-        <div className="absolute bottom-2 right-4 text-[8px] text-white/25 font-mono tracking-widest">
-          PERSISTED IN STORAGE
+      <div className="flex flex-col md:flex-row gap-6 flex-grow min-h-[500px]">
+        {/* Notes Index / History */}
+        <div className="w-full md:w-[250px] shrink-0 space-y-2 overflow-y-auto pr-2 scrollbar-thin">
+          {notes.length === 0 ? (
+            <div className="text-white/30 text-xs font-mono p-4 glass rounded border border-white/5 text-center">
+              NO NOTES FOUND
+            </div>
+          ) : (
+            notes.map(n => (
+              <div 
+                key={n.id}
+                onClick={() => setActiveNoteId(n.id)}
+                className={`p-3 rounded border cursor-pointer transition-all flex justify-between items-start group ${
+                  activeNoteId === n.id 
+                    ? "bg-amber-500/10 border-amber-500/30" 
+                    : "glass border-white/5 hover:border-white/10"
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <h4 className="text-white text-sm font-bold truncate">{n.title || "Untitled Note"}</h4>
+                  <p className="text-white/40 text-[9px] font-mono mt-1">
+                    {new Date(n.updated_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); handleDelete(n.id); }}
+                  className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 text-xs transition-opacity"
+                >
+                  ✕
+                </button>
+              </div>
+            ))
+          )}
         </div>
+
+        {/* Active Note Editor */}
+        {activeNote ? (
+          <div className="glass rounded border border-white/5 p-4 flex flex-col flex-grow relative">
+            <div className="flex justify-between items-center mb-3 border-b border-white/5 pb-3">
+              <input 
+                type="text" 
+                value={activeNote.title}
+                onChange={(e) => handleSave(activeNote.id, "title", e.target.value)}
+                placeholder="Note Title"
+                className="bg-transparent outline-none text-white font-display text-xl w-full"
+              />
+              <span className="text-[9.5px] font-mono tracking-widest text-white/35 shrink-0 ml-4">
+                {saving ? "SAVING..." : "AUTO-SAVED"}
+              </span>
+            </div>
+            <textarea
+              value={activeNote.content}
+              onChange={(e) => handleSave(activeNote.id, "content", e.target.value)}
+              placeholder="Begin typing session logs, resolution clause outlines, debate points, or caucusing notes here..."
+              className="w-full flex-grow bg-transparent outline-none border-none text-white font-mono text-sm leading-relaxed resize-none scrollbar-thin placeholder:text-white/20"
+            />
+          </div>
+        ) : (
+          <div className="glass rounded border border-white/5 p-4 flex flex-col flex-grow items-center justify-center text-white/20 font-mono text-xs">
+            SELECT OR CREATE A NOTE TO BEGIN
+          </div>
+        )}
       </div>
     </div>
   );
@@ -639,15 +865,29 @@ function NotepadConsole({ delegate }) {
 // Tab Sub-component: AIChatbot (Command AI w/ Gemini)
 // ----------------------------------------------------
 function AIChatbot({ delegate }) {
-  const [messages, setMessages] = useState([
-    { sender: "System", text: "Welcome to MUN AI Command. Powered by Groq Llama-3. Ask me about MUN rules of procedure, crisis points, or resolution planning.", timestamp: new Date().toISOString() }
-  ]);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      const hist = await getAIChatHistory(delegate.id);
+      if (hist.length > 0) {
+        setMessages(hist);
+      } else {
+        const welcomeMsg = [{ sender: "System", text: "Welcome to MUN AI Command. Powered by Groq Llama-3. Ask me about MUN rules of procedure, crisis points, or resolution planning.", timestamp: new Date().toISOString() }];
+        setMessages(welcomeMsg);
+        await saveAIChatHistory(delegate.id, welcomeMsg);
+      }
+      setHistoryLoaded(true);
+    };
+    fetchHistory();
+  }, [delegate.id]);
 
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || !historyLoaded) return;
 
     const userMsg = {
       sender: "You",
@@ -659,6 +899,7 @@ function AIChatbot({ delegate }) {
     setMessages(updated);
     setInput("");
     setLoading(true);
+    await saveAIChatHistory(delegate.id, updated);
 
     try {
       const apiKey = process.env.REACT_APP_GROQ_API_KEY;
@@ -710,18 +951,22 @@ Keep your responses concise, professional, and slightly futuristic/cybernetic in
       const data = await response.json();
       const reply = data.choices[0].message.content;
 
-      setMessages(prev => [...prev, {
+      const finalMessages = [...updated, {
         sender: "AI COMMAND",
         text: reply,
         timestamp: new Date().toISOString(),
-      }]);
+      }];
+      setMessages(finalMessages);
+      await saveAIChatHistory(delegate.id, finalMessages);
     } catch (error) {
       console.error("Groq Error:", error);
-      setMessages(prev => [...prev, {
+      const finalMessages = [...updated, {
         sender: "System",
         text: `Error: ${error.message}`,
         timestamp: new Date().toISOString(),
-      }]);
+      }];
+      setMessages(finalMessages);
+      await saveAIChatHistory(delegate.id, finalMessages);
     } finally {
       setLoading(false);
     }
@@ -801,192 +1046,6 @@ Keep your responses concise, professional, and slightly futuristic/cybernetic in
   );
 }
 
-// ----------------------------------------------------
-// Tab Sub-component: VenueLocator (Interactive Map & Live Tracker)
-// ----------------------------------------------------
-function VenueLocator() {
-  const [locationIndex, setLocationIndex] = useState(0);
-  const [simulating, setSimulating] = useState(false);
-
-  const LOCATIONS = [
-    { zone: "Lobby Reception", note: "Verification gates active. Present your barcode seal to retrieve entry badges.", color: "bg-white/40" },
-    { zone: "Plenary Hall", note: "Opening ceremony starting here soon. Standard committees converge.", color: "bg-[var(--atlas-purple)]" },
-    { zone: "Council Room A", note: "UNSC (United Nations Security Council) is active in this room. Operator clearance: VERIFIED.", color: "bg-[var(--atlas-cyan)]" },
-    { zone: "Hangar 4 Suite", note: "Simulation Corps and Vaidya Council (Premium) is active. Restricted entry.", color: "bg-red-500/80" },
-    { zone: "Dining Lounge", note: "Lunch buffet service active. Delegate networking hub open.", color: "bg-[var(--atlas-gold)]" },
-  ];
-
-  const handleSimulate = () => {
-    setSimulating(true);
-    toast.success("INITIATING ZONE SCAN...", { description: "Pinging local terminal WiFi beacons." });
-    
-    setTimeout(() => {
-      setSimulating(false);
-      const nextIdx = (locationIndex + 1) % LOCATIONS.length;
-      setLocationIndex(nextIdx);
-      toast.success("ZONE RESOLVED", {
-        description: `Current simulated zone: ${LOCATIONS[nextIdx].zone}`,
-      });
-    }, 1200);
-  };
-
-  const currentLocation = LOCATIONS[locationIndex];
-
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap justify-between items-center border-b border-white/5 pb-4 gap-4">
-        <div>
-          <span className="classified-label text-[var(--atlas-cyan)] text-xs block">
-            / BEACON VENUE LOCATOR
-          </span>
-          <h3 className="font-display text-white text-2xl">INTERACTIVE VENUE MAP</h3>
-        </div>
-
-        <button
-          onClick={handleSimulate}
-          disabled={simulating}
-          className="px-3 py-1.5 border border-[var(--atlas-cyan)] text-[var(--atlas-cyan)] hover:bg-[var(--atlas-cyan)]/10 text-xs tracking-wider rounded transition-all font-mono"
-        >
-          {simulating ? "SCANNING CIRCUIT..." : "SIMULATE LIVE LOCATION"}
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* Map visualization layout (CSS/HTML grid representation) */}
-        <div className="lg:col-span-2 glass rounded border border-white/5 p-6 space-y-4">
-          <span className="classified-label text-white/45 text-[10px] block">
-            / IIT DELHI (TBD) CONFERENCE TERMINAL MAP
-          </span>
-
-          <div className="relative w-full aspect-[1.25/1] sm:aspect-[1.8/1] bg-black/60 rounded border border-white/5 flex flex-col p-4 justify-between select-none">
-            {/* Top row */}
-            <div className="flex justify-between gap-4 h-[42%]">
-              <div className={`flex-1 border border-white/10 rounded flex flex-col items-center justify-center relative p-2 transition-all duration-500 ${
-                currentLocation.zone === "Council Room A" ? "border-[var(--atlas-cyan)] bg-[var(--atlas-cyan)]/10 shadow-[0_0_15px_rgba(30,220,240,0.15)]" : "bg-white/[0.01]"
-              }`}>
-                <span className="text-[10px] text-white/80 font-bold font-mono">COUNCIL ROOM A</span>
-                <span className="text-[7.5px] text-white/30 tracking-widest mt-1 block">UNSC ZONE</span>
-                {currentLocation.zone === "Council Room A" && <span className="absolute bottom-2 w-1.5 h-1.5 rounded-full bg-[var(--atlas-cyan)] animate-ping" />}
-              </div>
-
-              <div className={`flex-1 border border-white/10 rounded flex flex-col items-center justify-center relative p-2 transition-all duration-500 ${
-                currentLocation.zone === "Hangar 4 Suite" ? "border-red-500 bg-red-500/10 shadow-[0_0_15px_rgba(239,68,68,0.15)]" : "bg-white/[0.01]"
-              }`}>
-                <span className="text-[10px] text-white/80 font-bold font-mono">HANGAR 4 SUITE</span>
-                <span className="text-[7.5px] text-red-400/50 tracking-widest mt-1 block">PREMIUM TIER</span>
-                {currentLocation.zone === "Hangar 4 Suite" && <span className="absolute bottom-2 w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />}
-              </div>
-            </div>
-
-            {/* Middle connecting hallway */}
-            <div className={`h-[12%] border-y border-white/5 flex items-center justify-center relative transition-all duration-500 ${
-              currentLocation.zone === "Lobby Reception" ? "bg-white/5" : ""
-            }`}>
-              <span className="text-[8px] text-white/30 tracking-[0.3em] font-mono">CENTRAL CONCOURSE HALL</span>
-              {currentLocation.zone === "Lobby Reception" && <span className="absolute w-2 h-2 rounded-full bg-white animate-ping" />}
-            </div>
-
-            {/* Bottom row */}
-            <div className="flex justify-between gap-4 h-[42%]">
-              <div className={`flex-1 border border-white/10 rounded flex flex-col items-center justify-center relative p-2 transition-all duration-500 ${
-                currentLocation.zone === "Plenary Hall" ? "border-[var(--atlas-purple)] bg-[var(--atlas-purple)]/10 shadow-[0_0_15px_rgba(168,85,247,0.15)]" : "bg-white/[0.01]"
-              }`}>
-                <span className="text-[10px] text-white/80 font-bold font-mono">PLENARY HALL</span>
-                <span className="text-[7.5px] text-white/30 tracking-widest mt-1 block">ASSEMBLY AREA</span>
-                {currentLocation.zone === "Plenary Hall" && <span className="absolute bottom-2 w-1.5 h-1.5 rounded-full bg-[var(--atlas-purple)] animate-ping" />}
-              </div>
-
-              <div className={`flex-1 border border-white/10 rounded flex flex-col items-center justify-center relative p-2 transition-all duration-500 ${
-                currentLocation.zone === "Dining Lounge" ? "border-[var(--atlas-gold)] bg-[var(--atlas-gold)]/10 shadow-[0_0_15px_rgba(201,164,76,0.15)]" : "bg-white/[0.01]"
-              }`}>
-                <span className="text-[10px] text-white/80 font-bold font-mono">DINING LOUNGE</span>
-                <span className="text-[7.5px] text-white/30 tracking-widest mt-1 block">FOODCOURT</span>
-                {currentLocation.zone === "Dining Lounge" && <span className="absolute bottom-2 w-1.5 h-1.5 rounded-full bg-[var(--atlas-gold)] animate-ping" />}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Location Status details panel */}
-        <div className="glass rounded border border-white/5 p-5 flex flex-col gap-4">
-          <span className="classified-label text-[var(--atlas-gold)] text-[10px] block">
-            / TELEMETRY FEEDBACK
-          </span>
-
-          <div className="space-y-3 font-mono text-xs">
-            <div className="flex justify-between items-center bg-white/[0.02] p-3 border border-white/5 rounded">
-              <span className="text-white/45">GPS BEACON SIGNAL</span>
-              <span className="text-emerald-400 font-bold">100% SECURE</span>
-            </div>
-
-            <div className="p-3 border border-white/5 rounded space-y-1 bg-black/10">
-              <span className="text-white/45 block text-[9.5px]">CURRENT RESOLVED ZONE</span>
-              <span className="text-white text-base font-bold font-display tracking-wide uppercase">
-                📍 {currentLocation.zone}
-              </span>
-            </div>
-
-            <div className="p-4 rounded border border-[var(--atlas-cyan)]/25 bg-[var(--atlas-cyan)]/[0.02] leading-relaxed text-white/90">
-              {currentLocation.note}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ----------------------------------------------------
-// Tab Sub-component: DocumentVault
-// ----------------------------------------------------
-function DocumentVault() {
-  const [downloading, setDownloading] = useState(null);
-
-  const handleDownload = (docTitle) => {
-    setDownloading(docTitle);
-    toast.info("VAULT DECRYPTION INITIATED", { description: `Downloading: ${docTitle}` });
-    
-    setTimeout(() => {
-      setDownloading(null);
-      toast.success("DECRYPTION COMPLETED", {
-        description: `Saved ${docTitle} to operators download registry.`,
-      });
-    }, 1800);
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="border-b border-white/5 pb-4">
-        <span className="classified-label text-purple-400 text-xs block">
-          / STORAGE DEPOSITORY
-        </span>
-        <h3 className="font-display text-white text-2xl">SECURE DOCUMENT VAULT</h3>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-[800px]">
-        {VAULT_DOCUMENTS.map((d) => (
-          <div key={d.title} className="glass rounded border border-white/5 p-5 flex justify-between items-center gap-4">
-            <div className="space-y-1 font-mono text-xs">
-              <span className="px-2 py-0.5 border border-white/10 rounded text-[9px] uppercase text-white/45">
-                {d.category}
-              </span>
-              <h4 className="font-display text-white text-base font-bold mt-1.5">{d.title}</h4>
-              <p className="text-white/40 text-[9.5px]">FILE SIZE · {d.size}</p>
-            </div>
-
-            <button
-              onClick={() => handleDownload(d.title)}
-              disabled={downloading === d.title}
-              className="px-3 py-1.5 border border-[var(--atlas-gold)] text-[var(--atlas-gold)] hover:bg-[var(--atlas-gold)]/10 text-[10.5px] tracking-wider rounded font-mono shrink-0 disabled:opacity-40"
-            >
-              {downloading === d.title ? "DOWNLOADING..." : "DOWNLOAD"}
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 // Global Form Field helper
 function Field({
