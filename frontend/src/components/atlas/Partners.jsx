@@ -97,7 +97,7 @@ export default function Partners() {
                         alt={partner.name} 
                         className="w-full h-full object-contain p-2"
                         onError={(e) => {
-                          e.target.src = \`https://ui-avatars.com/api/?name=\${encodeURIComponent(partner.name)}&background=140b1e&color=fff\`;
+                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partner.name)}&background=140b1e&color=fff`;
                         }}
                       />
                     </div>
