@@ -94,7 +94,7 @@ export default function DelegateDashboard({ onRequestAccess }) {
         const updatedList = globalDelegates.map(d => d.email.toLowerCase() === updatedDossier.email.toLowerCase() ? { ...d, ...updatedDossier } : d);
         await saveDelegates(updatedList);
         toast.success("PROFILE UPDATED", { description: "Dossier credentials synchronized with Command." });
-      } catch (err) {
+      } catch {
         toast.error("SYNC ERROR");
       }
     } else {
@@ -939,7 +939,7 @@ Keep your responses concise, professional, and slightly futuristic/cybernetic in
           if (errData && errData.error && errData.error.message) {
             errorMsg = errData.error.message;
           }
-        } catch (e) {
+        } catch {
           // keep default errorMsg
         }
         throw new Error(errorMsg);
