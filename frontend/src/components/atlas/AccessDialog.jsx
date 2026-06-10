@@ -620,7 +620,7 @@ export default function AccessDialog({ open, onClose }) {
     <AnimatePresence>
       {open && (
         <motion.div
-          data-testid={ATLAS.accessDialog}
+          data-testid="access-dialog"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
