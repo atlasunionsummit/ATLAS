@@ -443,7 +443,6 @@ export default function AccessDialog({ open, onClose }) {
   const [selectedCategory, setSelectedCategory] = useState("Model United Nations");
   const [selectedPkgIndex, setSelectedPkgIndex] = useState(0);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
-  const [deviceDropdownOpen, setDeviceDropdownOpen] = useState(false);
   const [utr, setUtr] = useState("");
   const [loading, setLoading] = useState(false);
   const [registrationResult, setRegistrationResult] = useState(null);
@@ -973,52 +972,6 @@ export default function AccessDialog({ open, onClose }) {
                           onChange={(v) => setForm((f) => ({ ...f, dietary_instructions: v }))}
                         />
 
-                        <div className="sm:col-span-2">
-                          <label className="classified-label text-[var(--atlas-cyan)] text-[10px] mb-1 block">
-                            PRIMARY HANDHELD DEVICE (FOR NFC BADGE) *
-                          </label>
-                          <div className="relative mt-1">
-                            <button
-                              type="button"
-                              onClick={() => setDeviceDropdownOpen(!deviceDropdownOpen)}
-                              onBlur={() => setTimeout(() => setDeviceDropdownOpen(false), 200)}
-                              className="w-full bg-black/40 border border-white/15 focus:border-[var(--atlas-gold)] rounded py-3 px-4 flex justify-between items-center transition-colors text-white font-mono text-xs tracking-wider"
-                            >
-                              <span>{form.device_os}</span>
-                              <span className="text-[10px] opacity-50">▼</span>
-                            </button>
-                            
-                            <AnimatePresence>
-                              {deviceDropdownOpen && (
-                                <motion.div
-                                  initial={{ opacity: 0, y: -5 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  exit={{ opacity: 0, y: -5 }}
-                                  className="absolute top-full left-0 w-full mt-1.5 bg-[#0a0510] border border-[var(--atlas-gold)]/30 rounded-md overflow-hidden z-50 shadow-[0_10px_40px_rgba(0,0,0,0.8)]"
-                                >
-                                  {["Android", "iOS (Apple)"].map((os) => (
-                                    <button
-                                      key={os}
-                                      type="button"
-                                      onClick={() => {
-                                        setForm({ ...form, device_os: os });
-                                        setDeviceDropdownOpen(false);
-                                      }}
-                                      className={`w-full text-left px-4 py-3 font-mono text-xs tracking-wider transition-colors ${
-                                        form.device_os === os
-                                          ? "bg-[var(--atlas-gold)]/10 text-[var(--atlas-gold)] border-l-2 border-[var(--atlas-gold)]"
-                                          : "text-white/70 hover:bg-white/5 hover:text-white border-l-2 border-transparent"
-                                      }`}
-                                    >
-                                      {os}
-                                    </button>
-                                  ))}
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
-                          <p className="text-[9px] text-white/40 mt-1.5 font-mono tracking-widest">Web NFC features are optimized for Android devices.</p>
-                        </div>
                       </div>
 
                       <div className="flex items-center justify-between border-t border-white/5 pt-5 mt-6 flex-col sm:flex-row gap-4">
