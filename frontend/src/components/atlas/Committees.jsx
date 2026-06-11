@@ -86,7 +86,7 @@ export default function Committees() {
   return (
     <section
       id="committees"
-      className="relative py-28 lg:py-40 px-6 lg:px-10 max-w-[1240px] mx-auto"
+      className="relative py-28 lg:py-40 px-4 sm:px-6 lg:px-10 max-w-[1240px] mx-auto"
     >
       <div className="flex items-end justify-between flex-wrap gap-4 mb-12">
         <div>

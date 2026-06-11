@@ -28,7 +28,7 @@ export default function Ecosystem() {
   return (
     <section
       id="ecosystem"
-      className="relative py-28 lg:py-40 px-6 lg:px-10 max-w-[1240px] mx-auto"
+      className="relative py-28 lg:py-40 px-4 sm:px-6 lg:px-10 max-w-[1240px] mx-auto"
     >
       <div className="grid lg:grid-cols-[0.7fr_1.3fr] gap-8 lg:gap-12 items-start">
         <div className="lg:sticky lg:top-32">
@@ -56,7 +56,7 @@ export default function Ecosystem() {
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            className="mt-10 relative aspect-[4/5] max-w-[360px] glass rounded-md overflow-hidden"
+            className="mt-10 relative aspect-[4/5] max-w-[360px] mx-auto lg:mx-0 glass rounded-md overflow-hidden"
           >
             <img
               src={GUARDIAN_MNEMOSA}
@@ -79,7 +79,7 @@ export default function Ecosystem() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.7, delay: i * 0.05 }}
-              className="glass rounded-md p-6 lg:p-8 group hover:border-[var(--atlas-gold)]/40 transition-colors"
+              className="glass rounded-md p-5 sm:p-6 lg:p-8 group hover:border-[var(--atlas-gold)]/40 transition-colors"
               style={{ borderColor: "rgba(245,241,255,0.08)" }}
             >
               <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-8">

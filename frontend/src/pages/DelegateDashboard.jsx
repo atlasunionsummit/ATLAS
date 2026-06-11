@@ -252,21 +252,21 @@ export default function DelegateDashboard({ onRequestAccess }) {
       {/* Main content body */}
       <main className="flex-grow min-w-0 flex flex-col h-screen overflow-hidden">
         {/* Header */}
-        <header className="h-16 border-b border-white/5 px-6 flex items-center justify-between bg-black/20 backdrop-blur-md shrink-0">
-          <div className="flex items-center gap-4">
+        <header className="h-16 border-b border-white/5 px-4 sm:px-6 flex items-center justify-between bg-black/20 backdrop-blur-md shrink-0">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="text-white/60 hover:text-white lg:hidden"
+              className="text-white/60 hover:text-white lg:hidden shrink-0"
             >
               ☰
             </button>
-            <span className="font-display text-lg tracking-wider text-white">
+            <span className="font-display text-sm sm:text-lg tracking-wider text-white truncate">
               DELEGATE CONTROL DESK
             </span>
           </div>
 
-          <div className="flex items-center gap-3 text-xs">
-              <div className="text-[#a58d60] text-[10px] tracking-[0.2em] uppercase font-bold">
+          <div className="flex items-center gap-3 text-xs shrink-0 ml-2">
+              <div className="text-[#a58d60] text-[8px] sm:text-[10px] tracking-[0.2em] uppercase font-bold hidden md:block">
                 Classification • Advisory Node (Groq)
               </div>
           </div>
@@ -395,7 +395,7 @@ export default function DelegateDashboard({ onRequestAccess }) {
                               <div className="flex flex-col sm:flex-row gap-6">
                                 <div className="shrink-0 flex items-center justify-center bg-[#08000f]/80 p-2 rounded border border-[var(--atlas-gold)]/20">
                                   <img
-                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&bgcolor=08000F&color=C9A44C&data=upi://pay?pa=9140738627@axl&pn=Atlas&am=2000&cu=INR`}
+                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&bgcolor=08000F&color=C9A44C&data=${encodeURIComponent("upi://pay?pa=9140738627@axl&pn=Atlas&am=2000&cu=INR")}`}
                                     alt="Atlas Plus UPI QR Code"
                                     className="w-28 h-28 object-contain rounded-sm shadow-[0_0_15px_rgba(201,164,76,0.3)]"
                                   />

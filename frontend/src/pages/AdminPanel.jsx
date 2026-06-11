@@ -458,7 +458,7 @@ function AdminLogin({ onLoginSuccess }) {
         className="w-full max-w-[420px] glass-strong rounded-md p-8 border border-white/5 relative overflow-hidden"
       >
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--atlas-gold)] to-transparent" />
-        
+
         <div className="text-center">
           <span className="text-[10px] tracking-[0.3em] text-[var(--atlas-gold)] font-bold">
             / ATLAS SECURE AUDIT
@@ -516,9 +516,8 @@ function AdminSidebar({ activeTab, setActiveTab, isOpen, setIsOpen, onLogout, us
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-50 w-64 bg-black/40 backdrop-blur-lg border-r border-white/5 flex flex-col transition-transform duration-300 lg:translate-x-0 lg:static lg:z-0 shrink-0 ${
-        isOpen ? "translate-x-0" : "-translate-x-full"
-      }`}
+      className={`fixed inset-y-0 left-0 z-50 w-64 bg-black/40 backdrop-blur-lg border-r border-white/5 flex flex-col transition-transform duration-300 lg:translate-x-0 lg:static lg:z-0 shrink-0 ${isOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
     >
       {/* Brand */}
       <div className="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-black/20">
@@ -542,11 +541,10 @@ function AdminSidebar({ activeTab, setActiveTab, isOpen, setIsOpen, onLogout, us
               setActiveTab(tab.id);
               setIsOpen(false);
             }}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded font-mono text-[11px] tracking-widest text-left transition-all ${
-              activeTab === tab.id
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded font-mono text-[11px] tracking-widest text-left transition-all ${activeTab === tab.id
                 ? "bg-[var(--atlas-gold)]/10 text-[var(--atlas-gold)] border-l-2 border-[var(--atlas-gold)]"
                 : "text-white/55 hover:text-white hover:bg-white/[0.02]"
-            }`}
+              }`}
           >
             <span>{tab.icon}</span>
             {tab.label}
@@ -653,8 +651,8 @@ function DashboardOverview({ delegates, registrations, payments, events, logs })
           </div>
 
           <div className="bg-black/30 border border-[var(--atlas-gold)]/20 rounded-md p-4 text-[10px] text-white/50 leading-relaxed">
-            🛡️ <span className="text-white font-bold">LOCAL SESSION IS ENCRYPTED</span><br />
-            Data is persisted within local storage. No active Firebase synchronization is configured.
+            🛡️ <span className="text-white font-bold">SESSION ENCRYPTED & SYNCED</span><br />
+            Operator session is secured. Live Firebase synchronization is active for notifications and database operations.
           </div>
         </div>
       </div>
@@ -725,7 +723,7 @@ function DelegateManager({ delegates, onUpdate, onRefresh }) {
     const csvContent =
       "data:text/csv;charset=utf-8," +
       [headers.join(","), ...rows.map((e) => e.map((val) => `"${val.replace(/"/g, '""')}"`).join(","))].join("\n");
-    
+
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -1120,13 +1118,12 @@ function PaymentTracker({ payments, onUpdate, onRefresh }) {
                     <td className="p-4 font-semibold text-white">₹{p.price}</td>
                     <td className="p-4">
                       <span
-                        className={`px-2 py-0.5 rounded text-[9px] uppercase border ${
-                          p.status === "paid"
+                        className={`px-2 py-0.5 rounded text-[9px] uppercase border ${p.status === "paid"
                             ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                             : p.status === "refunded"
-                            ? "bg-red-500/10 text-red-400 border-red-500/20"
-                            : "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                        }`}
+                              ? "bg-red-500/10 text-red-400 border-red-500/20"
+                              : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                          }`}
                       >
                         {p.status}
                       </span>
@@ -1282,12 +1279,12 @@ function PaymentTracker({ payments, onUpdate, onRefresh }) {
 // Tab Component: RegistrationAuditor
 // ----------------------------------------------------
 function RegistrationAuditor({ registrations, delegates, payments, emailTemplateConf, emailTemplateRej, onRefresh }) {
-  
+
   const handleApprove = async (reg) => {
     if (confirm(`Approve registration for ${reg.full_name}? This adds them to delegates and creates a payment transaction.`)) {
       // 1. Remove from registrations
       const updatedRegs = registrations.filter((r) => r.registration_id !== reg.registration_id);
-      
+
       // 2. Create Delegate Entry
       const newDelegate = {
         id: `AUS-DEL-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -1303,7 +1300,7 @@ function RegistrationAuditor({ registrations, delegates, payments, emailTemplate
         status: "approved",
         timestamp: new Date().toISOString(),
       };
-      
+
       // 3. Create Payment Entry
       const newPayment = {
         id: `TXN-${Math.floor(10000 + Math.random() * 90000)}`,
@@ -1327,7 +1324,7 @@ function RegistrationAuditor({ registrations, delegates, payments, emailTemplate
         .replace("[NAME]", reg.full_name)
         .replace("[COMMITTEE]", reg.committee)
         .replace("[ID]", newDelegate.id);
-      
+
       console.log(`[SIMULATED EMAIL DISPATCH TO ${reg.email}]:\n${emailContent}`);
 
       toast.success("DOSSIER APPROVED", {
@@ -1996,13 +1993,13 @@ export function PassLedgerAndScanner({ delegates, onRefresh }) {
   const handleScan = async (rawCode) => {
     setScanningStatus("loading");
     setScannerError("");
-    
+
     // Extract pass ID
     let passId = rawCode.trim();
     if (passId.includes("PASS::")) {
       passId = passId.split("PASS::")[1];
     }
-    
+
     try {
       const result = await scanPass(passId, "entry");
       if (result.success) {
@@ -2104,21 +2101,19 @@ export function PassLedgerAndScanner({ delegates, onRefresh }) {
         <div className="flex gap-2">
           <button
             onClick={() => setSubTab("ledger")}
-            className={`px-4 py-2 border font-mono text-xs tracking-wider transition-all rounded ${
-              subTab === "ledger"
+            className={`px-4 py-2 border font-mono text-xs tracking-wider transition-all rounded ${subTab === "ledger"
                 ? "bg-[var(--atlas-gold)]/15 border-[var(--atlas-gold)] text-[var(--atlas-gold)] font-bold"
                 : "border-white/5 text-white/60 hover:text-white"
-            }`}
+              }`}
           >
             🎟️ DIGITAL PASS LEDGER
           </button>
           <button
             onClick={() => setSubTab("scanner")}
-            className={`px-4 py-2 border font-mono text-xs tracking-wider transition-all rounded ${
-              subTab === "scanner"
+            className={`px-4 py-2 border font-mono text-xs tracking-wider transition-all rounded ${subTab === "scanner"
                 ? "bg-[var(--atlas-cyan)]/15 border-[var(--atlas-cyan)] text-[var(--atlas-cyan)] font-bold"
                 : "border-white/5 text-white/60 hover:text-white"
-            }`}
+              }`}
           >
             📹 VENUE CHECK-IN SCANNER
           </button>
@@ -2199,13 +2194,12 @@ export function PassLedgerAndScanner({ delegates, onRefresh }) {
                         </td>
                         <td className="p-4">
                           <span
-                            className={`px-2 py-0.5 rounded text-[9px] uppercase border ${
-                              p.status === "active"
+                            className={`px-2 py-0.5 rounded text-[9px] uppercase border ${p.status === "active"
                                 ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
                                 : p.status === "used"
-                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                : "bg-red-500/10 text-red-400 border-red-500/20"
-                            }`}
+                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                  : "bg-red-500/10 text-red-400 border-red-500/20"
+                              }`}
                           >
                             {p.status}
                           </span>
@@ -2259,7 +2253,7 @@ export function PassLedgerAndScanner({ delegates, onRefresh }) {
           <div className="space-y-6">
             <div className="glass rounded border border-white/5 p-6 flex flex-col justify-between items-center text-center space-y-4">
               <span className="classified-label text-[var(--atlas-cyan)]">/ SECURE DELEGATE VALIDATION TERMINAL</span>
-              
+
               {/* Dynamic Camera Scanner Box */}
               {cameraActive ? (
                 <div className="w-full max-w-[350px] aspect-square rounded-lg overflow-hidden bg-black border border-white/10 relative">
@@ -2273,13 +2267,13 @@ export function PassLedgerAndScanner({ delegates, onRefresh }) {
                 </div>
               ) : (
                 <div className="w-full max-w-[320px] aspect-square border border-dashed border-white/10 hover:border-[var(--atlas-cyan)]/30 rounded-lg flex flex-col items-center justify-center gap-3 transition-colors cursor-pointer p-6 bg-black/10"
-                     onClick={() => {
-                       if (scriptLoaded) {
-                         setCameraActive(true);
-                       } else {
-                         toast.error("SCANNER LIBRARY STILL LOADING...");
-                       }
-                     }}
+                  onClick={() => {
+                    if (scriptLoaded) {
+                      setCameraActive(true);
+                    } else {
+                      toast.error("SCANNER LIBRARY STILL LOADING...");
+                    }
+                  }}
                 >
                   <span className="text-3xl text-white/30">📹</span>
                   <span className="font-mono text-xs text-white/60 tracking-wider">TAP TO LAUNCH DEVICE CAMERA</span>
@@ -2372,18 +2366,16 @@ export function PassLedgerAndScanner({ delegates, onRefresh }) {
                 {scanningStatus === "success" && scannedPass && (
                   <div className="space-y-4">
                     {/* Visual Pass Card details */}
-                    <div className={`p-4 rounded border flex flex-col gap-3 font-mono text-xs ${
-                      scannedPass.status === "revoked"
+                    <div className={`p-4 rounded border flex flex-col gap-3 font-mono text-xs ${scannedPass.status === "revoked"
                         ? "bg-red-500/5 border-red-500/20"
                         : "bg-emerald-500/5 border-emerald-500/20"
-                    }`}>
+                      }`}>
                       <div className="flex justify-between items-center">
                         <span className="text-[var(--atlas-cyan)] font-bold">{scannedPass.pass_id}</span>
-                        <span className={`px-2 py-0.5 rounded text-[8.5px] uppercase border ${
-                          scannedPass.status === "revoked"
+                        <span className={`px-2 py-0.5 rounded text-[8.5px] uppercase border ${scannedPass.status === "revoked"
                             ? "bg-red-500/10 text-red-400 border-red-500/20"
                             : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                        }`}>
+                          }`}>
                           {scannedPass.status.toUpperCase()}
                         </span>
                       </div>

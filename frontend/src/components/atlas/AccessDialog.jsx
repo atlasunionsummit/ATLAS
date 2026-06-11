@@ -1367,7 +1367,7 @@ export default function AccessDialog({ open, onClose }) {
                           SCAN ME
                         </div>
                         <img
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&bgcolor=08000F&color=C9A44C&data=upi://pay?pa=9140738627@axl&pn=Atlas&am=${payPrice}&cu=INR`}
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&bgcolor=08000F&color=C9A44C&data=${encodeURIComponent(`upi://pay?pa=9140738627@axl&pn=Atlas&am=${payPrice}&cu=INR`)}`}
                           alt="Golden UPI QR Code"
                           className="w-[180px] h-[180px] object-contain rounded-sm shadow-[0_0_15px_rgba(201,164,76,0.3)]"
                         />

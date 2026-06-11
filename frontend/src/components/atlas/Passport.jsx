@@ -237,14 +237,14 @@ export default function Passport({ delegateUser, onOpenRegistration }) {
               </div>
             )}
 
-            <div className="absolute inset-0 p-6 flex flex-col justify-between">
+            <div className="absolute inset-0 p-3 sm:p-4 md:p-6 flex flex-col justify-between">
               {/* header */}
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="font-mono text-[9.5px] tracking-[0.3em] text-[var(--atlas-gold)]">
+                  <p className="font-mono text-[6px] sm:text-[8px] md:text-[9.5px] tracking-[0.3em] text-[var(--atlas-gold)]">
                     ATLAS UNION SUMMIT · 2026
                   </p>
-                  <p className="font-display text-white text-2xl mt-1 leading-none">
+                  <p className="font-display text-white text-sm sm:text-lg md:text-2xl mt-0.5 sm:mt-1 leading-none">
                     OPERATOR PASSPORT
                   </p>
                 </div>
@@ -252,66 +252,66 @@ export default function Passport({ delegateUser, onOpenRegistration }) {
                   <img
                     src={ATLAS_LOGO_CLEAN}
                     alt="atlas"
-                    className="h-7 opacity-90"
+                    className="h-4 sm:h-5 md:h-7 opacity-90"
                   />
                 </div>
               </div>
 
               {/* body */}
-              <div className="flex gap-5 items-end">
+              <div className="flex gap-2 sm:gap-4 md:gap-5 items-end">
                 <div
                   data-testid={ATLAS.passport}
                   className="flex-1"
                 >
-                  <p className="font-mono text-[9px] tracking-[0.3em] text-white/55">
+                  <p className="font-mono text-[6px] sm:text-[7.5px] md:text-[9px] tracking-[0.3em] text-white/55">
                     DELEGATE
                   </p>
                   <p
-                    className="font-display text-white leading-none mt-1"
-                    style={{ fontSize: "clamp(22px, 3.4vw, 34px)" }}
+                    className="font-display text-white leading-none mt-1 truncate"
+                    style={{ fontSize: "clamp(14px, 3.4vw, 34px)" }}
                   >
                     {passport.delegate_name}
                   </p>
-                  <div className="mt-4 grid grid-cols-2 gap-x-5 gap-y-2 font-mono text-[9px] tracking-[0.25em]">
-                    <div>
-                      <span className="text-white/45">ID</span>
+                  <div className="mt-2 sm:mt-4 grid grid-cols-2 gap-x-2 gap-y-1 sm:gap-x-4 sm:gap-y-2 md:gap-x-5 md:gap-y-2 font-mono text-[6px] sm:text-[7.5px] md:text-[9px] tracking-[0.25em]">
+                    <div className="truncate">
+                      <span className="text-white/45 block">ID</span>
                       <div
                         data-testid={ATLAS.passportDelegateId}
-                        className="text-[var(--atlas-gold)]"
+                        className="text-[var(--atlas-gold)] truncate"
                       >
                         {passport.delegate_id}
                       </div>
                     </div>
-                    <div>
-                      <span className="text-white/45">COMMITTEE</span>
-                      <div className="text-white">{passport.committee}</div>
+                    <div className="truncate">
+                      <span className="text-white/45 block">COMMITTEE</span>
+                      <div className="text-white truncate">{passport.committee}</div>
                     </div>
-                    <div>
-                      <span className="text-white/45">CLEARANCE</span>
-                      <div className="text-[var(--atlas-cyan)]">
+                    <div className="truncate">
+                      <span className="text-white/45 block">CLEARANCE</span>
+                      <div className="text-[var(--atlas-cyan)] truncate">
                         {passport.clearance}
                       </div>
                     </div>
-                    <div>
-                      <span className="text-white/45">NATIONALITY</span>
-                      <div className="text-white">{passport.nationality}</div>
+                    <div className="truncate">
+                      <span className="text-white/45 block">NATIONALITY</span>
+                      <div className="text-white truncate">{passport.nationality}</div>
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-2">
+                <div className="flex flex-col items-end gap-1.5 sm:gap-2 shrink-0">
                   <img
                     src={passport.qr_url}
                     alt="qr"
-                    className="w-[88px] h-[88px] rounded-sm bg-black/40"
+                    className="w-12 h-12 sm:w-16 sm:h-16 md:w-[88px] md:h-[88px] rounded-sm bg-black/40"
                   />
-                  <p className="font-mono text-[8px] tracking-[0.28em] text-white/55">
+                  <p className="font-mono text-[5px] sm:text-[6.5px] md:text-[8px] tracking-[0.28em] text-white/55">
                     SEAL · {passport.seal.slice(0, 8)}
                   </p>
                 </div>
               </div>
 
               {/* footer */}
-              <div className="flex justify-between font-mono text-[9px] tracking-[0.3em] text-white/55 border-t border-white/10 pt-3">
+              <div className="flex justify-between font-mono text-[6px] sm:text-[7.5px] md:text-[9px] tracking-[0.3em] text-white/55 border-t border-white/10 pt-2 sm:pt-3">
                 <span>ISSUED · {passport.issued}</span>
                 <span className={(passport.status === "UNVERIFIED" || passport.status === "USELESS") ? "text-red-500 font-bold tracking-widest animate-pulse" : "text-[var(--atlas-gold)]"}>
                   STATUS · {passport.status || "APPROVED"}
