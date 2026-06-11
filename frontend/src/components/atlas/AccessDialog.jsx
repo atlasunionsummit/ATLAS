@@ -23,6 +23,12 @@ const EXCEPTION_COMMITTEES = [
   "F1 Simulation (Premium)",
 ];
 
+const COMMITTEE_RULES = {
+  "UNCSW (UN Commission on the Status of Women)": { type: "experience", max: 5 },
+  "UNFCCC (UN Framework Convention on Climate Change)": { type: "grade", min: 6, max: 9 },
+  "Coachella (Simulated Crisis)": { type: "grade", min: 6, max: 12 },
+};
+
 const MATRIX_DATA = {
   "UNSC (United Nations Security Council)": [
     { country: "Australia", status: "Open" },
@@ -427,6 +433,10 @@ export default function AccessDialog({ open, onClose }) {
     referralCode: "",
     device_os: "Android",
     is_atlas_plus: false,
+    grade: "",
+    experience_count: "",
+    date_of_birth: "",
+    id_proof_base64: "",
   });
 
   const [activeDiscountCodes, setActiveDiscountCodes] = useState([]);
@@ -506,6 +516,43 @@ export default function AccessDialog({ open, onClose }) {
     appliedDiscountText = "REFERRAL APPLIED";
   }
 
+  const handleIdUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("FILE TOO LARGE", { description: "Maximum ID size is 5MB." });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+        const maxSize = 1024;
+        if (width > height && width > maxSize) {
+          height *= maxSize / width;
+          width = maxSize;
+        } else if (height > maxSize) {
+          width *= maxSize / height;
+          height = maxSize;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        const base64Str = canvas.toDataURL("image/jpeg", 0.7);
+        setForm((f) => ({ ...f, id_proof_base64: base64Str }));
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const payPrice = form.is_atlas_plus ? finalPrice + 2000 : finalPrice;
 
   const handleNextStep = (e) => {
@@ -520,6 +567,62 @@ export default function AccessDialog({ open, onClose }) {
         description: "Please fill out all required details in the dossier.",
       });
       return;
+    }
+
+    if (!form.date_of_birth || !form.id_proof_base64) {
+      toast.error("VERIFICATION REQUIRED", {
+        description: "Please enter your Date of Birth and upload an ID proof.",
+      });
+      return;
+    }
+    const dob = new Date(form.date_of_birth);
+    const ageDifMs = Date.now() - dob.getTime();
+    const ageDate = new Date(ageDifMs);
+    const age = Math.abs(ageDate.getUTCFullYear() - 1970);
+    if (age < 14) {
+      toast.error("AGE RESTRICTION", {
+        description: `You must be at least 14 years old to register for the summit.`,
+      });
+      return;
+    }
+
+    const rule = COMMITTEE_RULES[form.committee];
+    if (rule) {
+      if (rule.type === "grade") {
+        if (!form.grade) {
+          toast.error("GRADE REQUIRED", {
+            description: "Please select your current standard/grade.",
+          });
+          return;
+        }
+        const gradeMap = {
+          "Below 6th": 5, "6th": 6, "7th": 7, "8th": 8, "9th": 9, "10th": 10, "11th": 11, "12th": 12, "College/University": 13
+        };
+        const gradeVal = gradeMap[form.grade];
+        if (gradeVal < rule.min || gradeVal > rule.max) {
+          toast.error("RESTRICTED COMMITTEE", {
+            description: `This committee is strictly for students from ${rule.min}th to ${rule.max}th grade.`,
+          });
+          return;
+        }
+      } else if (rule.type === "experience") {
+        if (!form.experience_count) {
+          toast.error("EXPERIENCE REQUIRED", {
+            description: "Please specify your number of past MUNs.",
+          });
+          return;
+        }
+        const expMap = {
+          "0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6+": 6
+        };
+        const expVal = expMap[form.experience_count];
+        if (expVal > rule.max) {
+          toast.info("RECOMMENDED FOR BEGINNERS", {
+            description: `Note: This committee is tailored for delegates with 0-5 MUNs of experience.`,
+          });
+          // Do not return, allow them to proceed
+        }
+      }
     }
     
     const isException = EXCEPTION_COMMITTEES.includes(form.committee);
@@ -596,6 +699,10 @@ export default function AccessDialog({ open, onClose }) {
         past_experience: "",
         dietary_instructions: "",
         referralCode: "",
+        grade: "",
+        experience_count: "",
+        date_of_birth: "",
+        id_proof_base64: "",
       });
       setSelectedCategory("Model United Nations");
       setSelectedPkgIndex(0);
@@ -776,6 +883,76 @@ export default function AccessDialog({ open, onClose }) {
                               </option>
                             ))}
                           </select>
+                        </div>
+
+                        {COMMITTEE_RULES[form.committee]?.type === "grade" && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="sm:col-span-2"
+                          >
+                            <label className="classified-label text-[var(--atlas-cyan)] text-[10px]">
+                              CURRENT STANDARD / GRADE *
+                            </label>
+                            <select
+                              required
+                              value={form.grade}
+                              onChange={(e) => setForm({ ...form, grade: e.target.value })}
+                              className="w-full mt-1 bg-black/40 border border-[var(--atlas-cyan)]/30 focus:border-[var(--atlas-cyan)] outline-none py-3 px-3 text-white text-xs transition-colors rounded shadow-[inset_0_0_10px_rgba(0,0,0,0.5)]"
+                            >
+                              <option value="" disabled className="bg-[var(--atlas-black)]">Select your standard</option>
+                              {["Below 6th", "6th", "7th", "8th", "9th", "10th", "11th", "12th", "College/University"].map((g) => (
+                                <option key={g} value={g} className="bg-[var(--atlas-black)]">{g}</option>
+                              ))}
+                            </select>
+                          </motion.div>
+                        )}
+
+                        {COMMITTEE_RULES[form.committee]?.type === "experience" && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="sm:col-span-2"
+                          >
+                            <label className="classified-label text-[var(--atlas-cyan)] text-[10px]">
+                              NUMBER OF PAST MUNS ATTENDED *
+                            </label>
+                            <select
+                              required
+                              value={form.experience_count}
+                              onChange={(e) => setForm({ ...form, experience_count: e.target.value })}
+                              className="w-full mt-1 bg-black/40 border border-[var(--atlas-cyan)]/30 focus:border-[var(--atlas-cyan)] outline-none py-3 px-3 text-white text-xs transition-colors rounded shadow-[inset_0_0_10px_rgba(0,0,0,0.5)]"
+                            >
+                              <option value="" disabled className="bg-[var(--atlas-black)]">Select past MUN count</option>
+                              {["0", "1", "2", "3", "4", "5", "6+"].map((ex) => (
+                                <option key={ex} value={ex} className="bg-[var(--atlas-black)]">{ex} MUNs</option>
+                              ))}
+                            </select>
+                          </motion.div>
+                        )}
+
+                        <Field
+                          label="DATE OF BIRTH (MUST BE 14+) *"
+                          type="date"
+                          required
+                          value={form.date_of_birth}
+                          onChange={(v) => setForm((f) => ({ ...f, date_of_birth: v }))}
+                        />
+
+                        <div className="sm:col-span-1">
+                          <label className="classified-label text-[var(--atlas-cyan)] text-[10px] mb-1 block">
+                            UPLOAD ID PROOF (Govt / School ID) *
+                          </label>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            required={!form.id_proof_base64}
+                            onChange={handleIdUpload}
+                            className="w-full mt-1 bg-black/40 border border-[var(--atlas-cyan)]/30 focus:border-[var(--atlas-cyan)] outline-none py-2 px-3 text-white text-[10px] transition-colors rounded shadow-[inset_0_0_10px_rgba(0,0,0,0.5)] file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-[10px] file:bg-[var(--atlas-cyan)]/20 file:text-[var(--atlas-cyan)] hover:file:bg-[var(--atlas-cyan)]/30 cursor-pointer"
+                          />
+                          {form.id_proof_base64 && <span className="text-[10px] text-green-400 mt-1 block">✓ ID Uploaded</span>}
                         </div>
 
                         <Field

@@ -178,6 +178,8 @@ export const registerUser = async (payload) => {
     package_name: payload.package_name,
     package_price: Number(payload.package_price),
     utr_number: payload.utr_number,
+    date_of_birth: payload.date_of_birth || "",
+    id_proof_base64: payload.id_proof_base64 || "",
     is_atlas_plus: payload.is_atlas_plus || false,
     status: "pending_verification",
     timestamp: new Date().toISOString(),

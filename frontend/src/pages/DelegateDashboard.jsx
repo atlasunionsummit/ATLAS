@@ -280,7 +280,7 @@ export default function DelegateDashboard({ onRequestAccess }) {
                     <h3 className="font-display text-white text-2xl">THE PREMIUM EXPERIENCE</h3>
                   </div>
 
-                  <div className="flex-grow overflow-y-auto space-y-6 scrollbar-thin pr-4">
+                  <div className="flex-grow overflow-y-auto min-h-0 space-y-6 scrollbar-thin pr-4 pt-2 pb-8">
                     <p className="text-white/70 text-sm font-mono leading-[1.8]">
                       Atlas Plus is our exclusive all-access experience, designed for participants who wish to explore every aspect of the Atlas ecosystem beyond the committee room. It is not simply a delegate pass. It is your gateway to diplomacy, culture, entertainment, networking and premium experiences—all on one stage.
                     </p>
