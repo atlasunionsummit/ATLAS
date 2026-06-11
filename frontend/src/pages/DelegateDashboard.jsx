@@ -272,20 +272,53 @@ export default function DelegateDashboard({ onRequestAccess }) {
                 </RestrictedOverlay>
               )}
               {activeTab === "atlasplus" && (
-                <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
-                  <div className="w-20 h-20 bg-[var(--atlas-gold)]/10 rounded-full flex items-center justify-center border border-[var(--atlas-gold)]/30 animate-pulse">
-                    <span className="text-4xl">✨</span>
+                <div className="flex flex-col h-full space-y-6 max-w-[800px]">
+                  <div className="border-b border-white/5 pb-4 shrink-0">
+                    <span className="classified-label text-[var(--atlas-gold)] text-xs block">
+                      / 06 — ATLAS PLUS
+                    </span>
+                    <h3 className="font-display text-white text-2xl">THE PREMIUM EXPERIENCE</h3>
                   </div>
-                  <div>
-                    <h2 className="font-display text-white text-3xl mb-2">ATLAS PLUS</h2>
-                    <p className="text-[var(--atlas-cyan)] font-mono text-sm tracking-widest uppercase">
-                      Premium Features Unlocking Soon
+
+                  <div className="flex-grow overflow-y-auto space-y-6 scrollbar-thin pr-4">
+                    <p className="text-white/70 text-sm font-mono leading-[1.8]">
+                      Atlas Plus is our exclusive all-access experience, designed for participants who wish to explore every aspect of the Atlas ecosystem beyond the committee room. It is not simply a delegate pass. It is your gateway to diplomacy, culture, entertainment, networking and premium experiences—all on one stage.
                     </p>
-                  </div>
-                  <div className="max-w-md bg-black/40 border border-white/10 rounded-lg p-6 glass">
-                    <p className="text-white/60 text-xs leading-relaxed font-mono">
-                      The Atlas Plus expansion is currently under development. Prepare for exclusive access to advanced analytics, priority networking channels, and premium delegate resources. Stay tuned for the official launch transmission.
-                    </p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="glass rounded border border-white/5 p-5">
+                        <div className="text-2xl mb-3">🏛️</div>
+                        <h4 className="font-display text-white text-lg mb-4 tracking-wider">PREMIUM CONFERENCE EXPERIENCE</h4>
+                        <ul className="space-y-4">
+                          <li>
+                            <strong className="text-[var(--atlas-gold)] font-mono text-[10px] tracking-widest block mb-1">PREMIUM ATLAS ACCREDITATION</strong>
+                            <span className="text-white/60 text-xs leading-relaxed">Receive an exclusive Atlas Plus identity badge and accreditation.</span>
+                          </li>
+                          <li>
+                            <strong className="text-[var(--atlas-gold)] font-mono text-[10px] tracking-widest block mb-1">BRANDED ATLAS PASSPORT</strong>
+                            <span className="text-white/60 text-xs leading-relaxed">A specially designed premium Atlas Passport, created as both a conference companion and a collectible memory.</span>
+                          </li>
+                          <li>
+                            <strong className="text-[var(--atlas-gold)] font-mono text-[10px] tracking-widest block mb-1">PRIORITY CHECK-IN & ASSISTANCE</strong>
+                            <span className="text-white/60 text-xs leading-relaxed">Dedicated registration and fast-track entry for a seamless arrival experience, with dedicated support throughout the summit.</span>
+                          </li>
+                        </ul>
+                      </div>
+
+                      <div className="glass rounded border border-white/5 p-5">
+                        <div className="text-2xl mb-3">🛋️</div>
+                        <h4 className="font-display text-white text-lg mb-4 tracking-wider">ATLAS DELEGATE LOUNGE</h4>
+                        <p className="text-white/60 text-xs leading-relaxed mb-4">
+                          Atlas Plus members receive access to the exclusive Delegate Lounge.
+                        </p>
+                        <ul className="space-y-2 font-mono text-[10.5px] text-white/70 tracking-wide">
+                          <li className="flex items-center gap-2"><span className="text-[var(--atlas-cyan)]">◇</span> Fully Air-Conditioned Environment</li>
+                          <li className="flex items-center gap-2"><span className="text-[var(--atlas-cyan)]">◇</span> Comfortable Seating Areas</li>
+                          <li className="flex items-center gap-2"><span className="text-[var(--atlas-cyan)]">◇</span> Networking Spaces</li>
+                          <li className="flex items-center gap-2"><span className="text-[var(--atlas-cyan)]">◇</span> Gaming & Interactive Zones</li>
+                        </ul>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -330,6 +363,11 @@ function ProfileDesk({ delegate, onUpdate }) {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("FILE TOO LARGE", { description: "Maximum image size is 5MB." });
+      return;
+    }
     
     const reader = new FileReader();
     reader.onload = (event) => {
