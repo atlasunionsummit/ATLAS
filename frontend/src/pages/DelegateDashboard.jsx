@@ -393,10 +393,12 @@ export default function DelegateDashboard({ onRequestAccess }) {
                                 <button type="button" onClick={() => setShowUpgradePay(false)} className="text-white/50 hover:text-white">✕</button>
                               </div>
                               <div className="flex flex-col sm:flex-row gap-6">
-                                <div className="shrink-0 flex items-center justify-center">
-                                  <div className="w-32 h-32 bg-white/5 rounded-md border border-white/20 flex items-center justify-center">
-                                    <span className="text-xs text-white/40">QR CODE</span>
-                                  </div>
+                                <div className="shrink-0 flex items-center justify-center bg-[#08000f]/80 p-2 rounded border border-[var(--atlas-gold)]/20">
+                                  <img
+                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&bgcolor=08000F&color=C9A44C&data=upi://pay?pa=9140738627@axl&pn=Atlas&am=2000&cu=INR`}
+                                    alt="Atlas Plus UPI QR Code"
+                                    className="w-28 h-28 object-contain rounded-sm shadow-[0_0_15px_rgba(201,164,76,0.3)]"
+                                  />
                                 </div>
                                 <div className="flex-grow space-y-4">
                                   <div>
