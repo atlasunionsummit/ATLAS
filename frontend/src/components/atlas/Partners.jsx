@@ -4,7 +4,7 @@ const PARTNERS = [
   {
     category: "Grand Sponsors",
     items: [
-      { name: "IIT Delhi", logo: "https://upload.wikimedia.org/wikipedia/en/thumb/f/fd/Indian_Institute_of_Technology_Delhi_Logo.svg/1200px-Indian_Institute_of_Technology_Delhi_Logo.svg.png" },
+      { name: "IIT Delhi", logo: "/iit_delhi.png" },
       { name: "Oxford International", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/Oxford-University-Circlet.svg/1200px-Oxford-University-Circlet.svg.png" }
     ]
   },

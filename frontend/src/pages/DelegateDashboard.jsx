@@ -26,6 +26,11 @@ export default function DelegateDashboard({ onRequestAccess }) {
   const [notifications, setNotifications] = useState([]);
   const [shownNotifications, setShownNotifications] = useState(new Set());
 
+  // Atlas Plus Upgrade state
+  const [showUpgradePay, setShowUpgradePay] = useState(false);
+  const [upgradeUtr, setUpgradeUtr] = useState("");
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
+
   // Redirect if not signed in
   useEffect(() => {
     const session = localStorage.getItem("aus_delegate_session");
@@ -99,6 +104,34 @@ export default function DelegateDashboard({ onRequestAccess }) {
       }
     } else {
       toast.success("PROFILE UPDATED", { description: "Local profile synchronized for Observer session." });
+    }
+  };
+
+  const handleUpgradeSubmit = async (e) => {
+    e.preventDefault();
+    if (!upgradeUtr.trim() || upgradeUtr.trim().length < 8) {
+      toast.error("INVALID UTR", { description: "Please enter a valid 12-digit UTR." });
+      return;
+    }
+    setUpgradeLoading(true);
+    try {
+      const globalDelegates = await getDelegates();
+      const delegateDoc = globalDelegates.find(d => d.email.toLowerCase() === delegate.email.toLowerCase());
+      if (delegateDoc) {
+        const updatedDossier = { ...delegateDoc, upgrade_pending: true, upgrade_utr: upgradeUtr };
+        const updatedList = globalDelegates.map(d => d.email.toLowerCase() === delegate.email.toLowerCase() ? updatedDossier : d);
+        await saveDelegates(updatedList);
+        setDelegate(updatedDossier);
+        localStorage.setItem("aus_delegate_session", JSON.stringify(updatedDossier));
+        toast.success("UPGRADE REQUESTED", { description: "Your payment is being verified by the secretariat." });
+      } else {
+        toast.error("ERROR", { description: "Delegate profile not found." });
+      }
+    } catch {
+      toast.error("UPGRADE FAILED", { description: "Could not submit upgrade request. Try again." });
+    } finally {
+      setUpgradeLoading(false);
+      setShowUpgradePay(false);
     }
   };
 
@@ -318,6 +351,98 @@ export default function DelegateDashboard({ onRequestAccess }) {
                           <li className="flex items-center gap-2"><span className="text-[var(--atlas-cyan)]">◇</span> Gaming & Interactive Zones</li>
                         </ul>
                       </div>
+                    </div>
+
+                    <div className="glass rounded border border-white/5 p-5 mb-4">
+                      <div className="text-2xl mb-3">🥂</div>
+                      <h4 className="font-display text-white text-lg mb-4 tracking-wider">EXCLUSIVE SOCIAL EVENTS</h4>
+                      <p className="text-white/60 text-xs leading-relaxed">
+                        Atlas Plus Members get exclusive access to our evening social events, including the Delegate Ball and the Cultural Night.
+                      </p>
+                    </div>
+
+                    <div className="mt-8 border-t border-white/10 pt-8 pb-4">
+                      {delegate?.is_atlas_plus ? (
+                        <div className="p-4 glass border border-[var(--atlas-cyan)]/40 rounded flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-[var(--atlas-cyan)]/20 flex items-center justify-center">
+                              <span className="text-xl">✨</span>
+                            </div>
+                            <div>
+                              <h4 className="font-display text-white text-lg tracking-wider">ATLAS PLUS ACTIVATED</h4>
+                              <p className="text-white/60 text-xs font-mono">Your premium pass is active.</p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : delegate?.upgrade_pending ? (
+                        <div className="p-4 glass border border-[var(--atlas-gold)]/40 rounded flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-[var(--atlas-gold)]/20 flex items-center justify-center animate-pulse">
+                            <span className="text-xl">⏳</span>
+                          </div>
+                          <div>
+                            <h4 className="font-display text-[var(--atlas-gold)] text-lg tracking-wider">UPGRADE PENDING</h4>
+                            <p className="text-white/60 text-xs font-mono">Your UTR is being verified by the secretariat.</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-6 glass border border-[var(--atlas-gold)]/40 rounded">
+                          {showUpgradePay ? (
+                            <form onSubmit={handleUpgradeSubmit} className="space-y-4">
+                              <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
+                                <h4 className="font-display text-[var(--atlas-gold)] text-lg">UPGRADE TO ATLAS PLUS</h4>
+                                <button type="button" onClick={() => setShowUpgradePay(false)} className="text-white/50 hover:text-white">✕</button>
+                              </div>
+                              <div className="flex flex-col sm:flex-row gap-6">
+                                <div className="shrink-0 flex items-center justify-center">
+                                  <div className="w-32 h-32 bg-white/5 rounded-md border border-white/20 flex items-center justify-center">
+                                    <span className="text-xs text-white/40">QR CODE</span>
+                                  </div>
+                                </div>
+                                <div className="flex-grow space-y-4">
+                                  <div>
+                                    <span className="classified-label text-white/55 text-[10px]">PAY VIA UPI ID</span>
+                                    <code className="block bg-black/40 border border-white/10 rounded px-3 py-2 text-white font-mono text-[13px] tracking-wider mt-1.5">
+                                      9140738627@axl
+                                    </code>
+                                  </div>
+                                  <div>
+                                    <label className="classified-label text-[var(--atlas-gold)] text-[10.5px]">
+                                      ENTER 12-DIGIT TRANSACTION UTR ID *
+                                    </label>
+                                    <input
+                                      required
+                                      value={upgradeUtr}
+                                      onChange={(e) => setUpgradeUtr(e.target.value)}
+                                      placeholder="e.g. 306712495810"
+                                      maxLength={16}
+                                      className="w-full mt-2 bg-black/40 border border-white/15 focus:border-[var(--atlas-gold)] outline-none py-2 px-3 font-mono text-sm tracking-widest text-white placeholder:text-white/20"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="border-t border-white/5 pt-4 flex justify-end">
+                                <button
+                                  type="submit"
+                                  disabled={upgradeLoading || !upgradeUtr}
+                                  className="btn-atlas"
+                                >
+                                  {upgradeLoading ? "SUBMITTING..." : "CONFIRM UPGRADE (₹2000)"} <span>↗</span>
+                                </button>
+                              </div>
+                            </form>
+                          ) : (
+                            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                              <div>
+                                <h4 className="font-display text-[var(--atlas-gold)] text-xl mb-1 tracking-wider">UPGRADE TO ATLAS PLUS</h4>
+                                <p className="text-white/60 text-xs font-mono">Unlock the premium experience for ₹2000.</p>
+                              </div>
+                              <button onClick={() => setShowUpgradePay(true)} className="btn-atlas shrink-0">
+                                UPGRADE NOW <span>↗</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
