@@ -1004,7 +1004,6 @@ function DelegateManager({ delegates, onUpdate, onRefresh }) {
               </div>
             </form>
           </div>
-          </div>
         </div>
       )}
 
