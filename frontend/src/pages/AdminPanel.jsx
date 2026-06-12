@@ -689,6 +689,7 @@ function DelegateManager({ delegates, onUpdate, onRefresh }) {
   const [filterCommittee, setFilterCommittee] = useState("");
   const [filterCountry, setFilterCountry] = useState("");
   const [editingDelegate, setEditingDelegate] = useState(null);
+  const [viewingDelegate, setViewingDelegate] = useState(null);
   const fileInputRef = useRef(null);
 
   // Filters
@@ -915,6 +916,12 @@ function DelegateManager({ delegates, onUpdate, onRefresh }) {
                     </td>
                     <td className="p-4 text-right space-x-2 shrink-0">
                       <button
+                        onClick={() => setViewingDelegate(d)}
+                        className="text-[var(--atlas-cyan)] hover:underline"
+                      >
+                        VIEW DATA
+                      </button>
+                      <button
                         onClick={() => setEditingDelegate(d)}
                         className="text-[var(--atlas-gold)] hover:underline"
                       >
@@ -996,6 +1003,40 @@ function DelegateManager({ delegates, onUpdate, onRefresh }) {
                 </button>
               </div>
             </form>
+          </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Data Modal */}
+      {viewingDelegate && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setViewingDelegate(null)} />
+          <div className="relative w-full max-w-[600px] glass-strong rounded p-8 border border-white/5 max-h-[90vh] flex flex-col">
+            <span className="classified-label text-[var(--atlas-cyan)] text-xs block">/ RAW DOSSIER DATA</span>
+            <div className="flex justify-between items-center mt-1 mb-6">
+              <h3 className="font-display text-white text-2xl uppercase">{viewingDelegate.full_name}</h3>
+              <button onClick={() => setViewingDelegate(null)} className="text-white/50 hover:text-white">✕</button>
+            </div>
+            
+            <div className="flex-grow overflow-y-auto pr-2 scrollbar-thin space-y-4 font-mono text-xs">
+              {Object.entries(viewingDelegate).map(([key, value]) => {
+                if(key === 'id_proof_base64' && value) {
+                  return (
+                    <div key={key} className="flex flex-col border-b border-white/5 pb-3">
+                      <span className="text-white/40 uppercase mb-1">{key.replace(/_/g, ' ')}</span>
+                      <img src={value} alt="ID" className="max-w-[200px] h-auto rounded border border-white/10" />
+                    </div>
+                  )
+                }
+                return (
+                  <div key={key} className="flex flex-col border-b border-white/5 pb-3">
+                    <span className="text-white/40 uppercase mb-1">{key.replace(/_/g, ' ')}</span>
+                    <span className="text-white break-all">{String(value)}</span>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </div>
       )}
@@ -1309,16 +1350,8 @@ function RegistrationAuditor({ registrations, delegates, payments, emailTemplate
 
       // 2. Create Delegate Entry
       const newDelegate = {
+        ...reg,
         id: `AUS-DEL-${Math.floor(1000 + Math.random() * 9000)}`,
-        full_name: reg.full_name,
-        nickname: reg.nickname || "",
-        email: reg.email,
-        phone_number: reg.phone_number,
-        country: reg.country,
-        city_of_residence: reg.city_of_residence,
-        committee: reg.committee,
-        past_experience: reg.past_experience || "",
-        dietary_instructions: reg.dietary_instructions || "",
         status: "approved",
         timestamp: new Date().toISOString(),
       };
@@ -2541,7 +2574,7 @@ function PortfolioMatrixAdmin({ delegates }) {
                   return (
                     <div
                       key={item.country}
-                      className={`text-[9px] sm:text-[10px] font-mono py-2 px-2 rounded border border-transparent truncate text-left transition-colors ${bgClass}`}
+                      className={`text-[9px] sm:text-[10px] font-mono py-2 px-2 rounded border border-transparent whitespace-normal break-words text-left transition-colors ${bgClass}`}
                       title={item.country}
                     >
                       {item.country}

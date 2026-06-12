@@ -214,7 +214,8 @@ export default function DelegateDashboard({ onRequestAccess }) {
             { id: "ai", label: "05 COMMAND AI", icon: "🤖" },
             { id: "atlasplus", label: "06 ATLAS PLUS", icon: "✨" },
             { id: "accommodation", label: "07 ACCOMMODATION", icon: "🏨" },
-            { id: "library", label: "08 ATLAS LIBRARY", icon: "📚" },
+            { id: "data", label: "08 REGISTRATION DATA", icon: "🗄️" },
+            { id: "library", label: "09 ATLAS LIBRARY", icon: "📚" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -465,6 +466,43 @@ export default function DelegateDashboard({ onRequestAccess }) {
                     <p className="text-white/60 text-xs leading-relaxed font-mono">
                       Logistics for accommodation and boarding are currently being finalized by the secretariat. Information regarding partnered hotels and stays will be updated here shortly.
                     </p>
+                  </div>
+                </div>
+              )}
+              {activeTab === "data" && (
+                <div className="flex flex-col h-full space-y-6 max-w-[800px]">
+                  <div className="border-b border-white/5 pb-4 shrink-0">
+                    <span className="classified-label text-[var(--atlas-cyan)] text-xs block">
+                      / 08 — REGISTRATION DATA
+                    </span>
+                    <h3 className="font-display text-white text-2xl">YOUR RAW DOSSIER</h3>
+                    <p className="text-white/50 text-xs mt-1 font-mono">This is the exact data payload you transmitted during registration.</p>
+                  </div>
+
+                  <div className="flex-grow overflow-y-auto min-h-0 scrollbar-thin pr-4 pt-2 pb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {Object.entries(delegate).map(([key, value]) => {
+                        if (key === 'id_proof_base64') return null; // Skip image in main grid
+                        return (
+                          <div key={key} className="glass rounded border border-white/5 p-4 flex flex-col">
+                            <span className="text-white/40 font-mono text-[9px] tracking-widest uppercase mb-1">
+                              {key.replace(/_/g, ' ')}
+                            </span>
+                            <span className="text-white text-sm font-mono break-words">
+                              {String(value)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {delegate.id_proof_base64 && (
+                      <div className="mt-6 glass rounded border border-white/5 p-4">
+                        <span className="text-white/40 font-mono text-[9px] tracking-widest uppercase mb-3 block">
+                          ID PROOF BASE64 (PREVIEW)
+                        </span>
+                        <img src={delegate.id_proof_base64} alt="ID" className="max-w-[300px] h-auto rounded border border-white/10" />
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

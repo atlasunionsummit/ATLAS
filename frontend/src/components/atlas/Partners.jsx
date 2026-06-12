@@ -21,13 +21,13 @@ const PARTNERS = [
     items: [
       { name: "AUVREO International", desc: "(MSME Registered)", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781191277/Screenshot_2026-06-11_204215_rtfbj9.png" },
       { name: "Auvresence", desc: "Official Technology Partner", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781191361/653980240_17935731552191292_2345474767558320038_n_vkhwb7.jpg" },
-      { name: "Writistic Studios", logo: "https://ui-avatars.com/api/?name=WS&background=1EDCF0&color=fff" }
+      { name: "Writistic Studios", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781278858/541925934_18042953570662296_4174604590993081332_n_uwcxzx.jpg" }
     ]
   },
   {
     category: "International Academic Outreach",
     items: [
-      { name: "University of Oxford", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781189422/University_of_Oxford-Logo.wine_yn7ik2.png" },
+      { name: "University of Oxford", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781278693/Screenshot_2026-06-12_205531_opyeq3.png" },
       { name: "Tomsk State University", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781189412/download_1_cvneph.jpg" },
       { name: "Far Eastern Federal University", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781189380/download_2_b7ou7n.jpg" },
       { name: "Novosibirsk State University", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781189373/download_3_lfgbqe.jpg" },
