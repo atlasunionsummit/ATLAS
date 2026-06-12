@@ -249,34 +249,6 @@ export default function OperationRed() {
             <p className="font-serif-italic mt-10 text-[#FF6680] text-[20px] leading-snug max-w-[560px]">
               “When the signal turns red, history belongs to those who act.”
             </p>
-
-            <div className="mt-9 flex flex-wrap gap-3">
-              <a
-                href="#access"
-                onClick={(e) => {
-                  e.preventDefault();
-                  document
-                    .querySelector('[data-testid="nav-request-access"]')
-                    ?.click?.();
-                }}
-                data-testid={ATLAS.operationRedCta}
-                className="inline-flex items-center gap-3 rounded-full px-6 py-3.5 font-mono text-[11px] tracking-[0.28em] uppercase"
-                style={{
-                  background: "linear-gradient(135deg, #FF3B5C, #A30020)",
-                  color: "#0a0204",
-                  border: "1px solid rgba(255,180,190,0.6)",
-                  boxShadow: "0 18px 50px rgba(255,59,92,0.45)",
-                }}
-              >
-                REQUEST CLEARANCE <span aria-hidden>↗</span>
-              </a>
-              <a
-                href="#classified"
-                className="inline-flex items-center gap-3 rounded-full px-6 py-3.5 font-mono text-[11px] tracking-[0.28em] uppercase border border-[#FF3B5C]/40 text-[#FFB1B8] hover:text-white hover:border-[#FF3B5C]"
-              >
-                VIEW DOSSIER →
-              </a>
-            </div>
           </div>
 
           {/* RIGHT — classified folder + live feed */}
