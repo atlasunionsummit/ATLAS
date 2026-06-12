@@ -25,6 +25,7 @@ import {
   saveDiscountCode,
   deleteDiscountCode,
 } from "@/lib/atlasApi";
+import { MATRIX_DATA } from "@/lib/matrixData";
 import { toast } from "sonner";
 
 const COMMITTEES = [
@@ -266,9 +267,27 @@ export default function AdminPanel() {
                     onRefresh={refreshData}
                   />
                 )}
+                {activeTab === "matrix" && (
+                  <PortfolioMatrixAdmin delegates={delegates} />
+                )}
                 {activeTab === "discounts" && (
                   <DiscountCodeManager
                     discountCodes={discountCodes}
+                    onRefresh={refreshData}
+                  />
+                )}
+                {activeTab === "atlas_plus" && (
+                  <AtlasPlusManager
+                    registrations={registrations}
+                    delegates={delegates}
+                    onUpdateDelegates={async (newDelegates) => {
+                      setDelegates(newDelegates);
+                      await saveDelegates(newDelegates);
+                    }}
+                    onUpdateRegistrations={async (newRegs) => {
+                      setRegistrations(newRegs);
+                      await saveRegistrations(newRegs);
+                    }}
                     onRefresh={refreshData}
                   />
                 )}
@@ -368,7 +387,7 @@ function DiscountCodeManager({ discountCodes, onRefresh }) {
                 <option value="Model United Nations">Model United Nations</option>
                 <option value="School delegation">School delegation</option>
                 <option value="For festival">For festival</option>
-                <option value="For contest">For contest</option>
+                <option value="For concert">For concert</option>
               </select>
             </div>
             <button
@@ -510,8 +529,10 @@ function AdminSidebar({ activeTab, setActiveTab, isOpen, setIsOpen, onLogout, us
     { id: "reports", label: "06 REPORTS", icon: "📊" },
     { id: "broadcast", label: "07 BROADCAST", icon: "📢" },
     { id: "settings", label: "08 SETTINGS", icon: "⚙" },
-    { id: "passes", label: "09 E-PASSPORTS", icon: "🎟️" },
-    { id: "discounts", label: "10 DISCOUNTS", icon: "🏷️" },
+    { id: "matrix", label: "09 PORTFOLIO MATRIX", icon: "🗺️" },
+    { id: "passes", label: "10 E-PASSPORTS", icon: "🎟️" },
+    { id: "discounts", label: "11 DISCOUNTS", icon: "🏷️" },
+    { id: "atlas_plus", label: "12 ATLAS PLUS", icon: "✨" },
   ];
 
   return (
@@ -1279,6 +1300,7 @@ function PaymentTracker({ payments, onUpdate, onRefresh }) {
 // Tab Component: RegistrationAuditor
 // ----------------------------------------------------
 function RegistrationAuditor({ registrations, delegates, payments, emailTemplateConf, emailTemplateRej, onRefresh }) {
+  const [viewId, setViewId] = useState(null);
 
   const handleApprove = async (reg) => {
     if (confirm(`Approve registration for ${reg.full_name}? This adds them to delegates and creates a payment transaction.`)) {
@@ -1391,8 +1413,16 @@ function RegistrationAuditor({ registrations, delegates, payments, emailTemplate
                   <div><span className="text-white/45">Committee:</span> {reg.committee}</div>
                   {reg.past_experience && <div><span className="text-white/45">Exp:</span> {reg.past_experience}</div>}
                   {reg.dietary_instructions && <div><span className="text-white/45">Diet:</span> {reg.dietary_instructions}</div>}
-                  <div className="mt-2 text-[var(--atlas-gold)] font-semibold border-t border-white/5 pt-2">
-                    UTR: {reg.utr_number}
+                  <div className="mt-2 text-[var(--atlas-gold)] font-semibold border-t border-white/5 pt-2 flex justify-between items-center">
+                    <span>UTR: {reg.utr_number}</span>
+                    {reg.id_proof_base64 && (
+                      <button 
+                        onClick={() => setViewId(reg.id_proof_base64)}
+                        className="text-[9px] px-2 py-1 bg-white/10 hover:bg-white/20 rounded border border-white/20 text-white transition-colors"
+                      >
+                        VIEW ID
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1413,6 +1443,20 @@ function RegistrationAuditor({ registrations, delegates, payments, emailTemplate
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* ID Viewer Modal */}
+      {viewId && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setViewId(null)} />
+          <div className="relative w-full max-w-[500px] glass-strong rounded p-4 border border-[var(--atlas-cyan)]/30">
+            <div className="flex justify-between items-center mb-4">
+              <span className="font-display text-[var(--atlas-cyan)] text-lg">DOCUMENT PREVIEW</span>
+              <button onClick={() => setViewId(null)} className="text-white/50 hover:text-white">✕</button>
+            </div>
+            <img src={viewId} alt="ID Proof" className="w-full h-auto rounded border border-white/10 max-h-[70vh] object-contain bg-black/40" />
+          </div>
         </div>
       )}
     </div>
@@ -2454,6 +2498,127 @@ export function PassLedgerAndScanner({ delegates, onRefresh }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ----------------------------------------------------
+// Component: PortfolioMatrixAdmin
+// ----------------------------------------------------
+function PortfolioMatrixAdmin({ delegates }) {
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto h-full flex flex-col">
+      <div className="flex justify-between items-center shrink-0">
+        <div>
+          <h2 className="text-2xl font-display tracking-wider">PORTFOLIO MATRIX TRACKER</h2>
+          <p className="text-white/50 text-xs mt-1 font-mono">Live view of occupied and open portfolios across all committees.</p>
+        </div>
+        <div className="flex items-center gap-4 text-[9px] font-mono tracking-widest border border-white/5 bg-black/20 px-4 py-2 rounded">
+          <span className="flex items-center gap-1.5 text-white/80"><span className="w-2 h-2 bg-white border border-white/20 rounded-sm"></span> OPEN</span>
+          <span className="flex items-center gap-1.5 text-red-400"><span className="w-2 h-2 bg-red-500/80 border border-red-500/20 rounded-sm"></span> OCCUPIED</span>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 overflow-y-auto pr-2 scrollbar-thin flex-1 pb-10">
+        {Object.entries(MATRIX_DATA).map(([committee, countries]) => {
+          const committeeDelegates = delegates.filter(d => d.committee === committee);
+          const occupiedMap = {};
+          committeeDelegates.forEach(d => {
+            if (d.portfolio_country) occupiedMap[d.portfolio_country] = true;
+          });
+
+          return (
+            <div key={committee} className="glass rounded border border-white/5 p-4 flex flex-col max-h-[400px]">
+              <span className="classified-label text-[var(--atlas-cyan)] text-[10px] block mb-3 border-b border-white/5 pb-2 truncate shrink-0">
+                / {committee.toUpperCase()}
+              </span>
+              <div className="grid grid-cols-2 gap-2 overflow-y-auto pr-1 scrollbar-thin">
+                {countries.map(item => {
+                  const isOccupied = occupiedMap[item.country] || item.status.toLowerCase() === "occupied";
+                  let bgClass = "bg-white/5 hover:bg-white/10 text-white/80";
+                  if (isOccupied) bgClass = "bg-red-500/20 text-red-200 border-red-500/20";
+                  
+                  return (
+                    <div
+                      key={item.country}
+                      className={`text-[9px] sm:text-[10px] font-mono py-2 px-2 rounded border border-transparent truncate text-left transition-colors ${bgClass}`}
+                      title={item.country}
+                    >
+                      {item.country}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------
+// Tab Component: AtlasPlusManager
+// ----------------------------------------------------
+function AtlasPlusManager({ delegates, registrations, onUpdateDelegates, onUpdateRegistrations, onRefresh }) {
+  const pendingRegs = registrations.filter(r => r.status === "pending_verification").map(r => ({ ...r, source: 'registration', unifiedId: r.registration_id }));
+  const allDelegates = delegates.map(d => ({ ...d, source: 'delegate', unifiedId: d.id }));
+  
+  const combined = [...pendingRegs, ...allDelegates].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  const toggleAtlasPlus = (person) => {
+    const isNowPlus = !person.is_atlas_plus;
+    if (person.source === 'delegate') {
+      const updated = delegates.map(d => d.id === person.unifiedId ? { ...d, is_atlas_plus: isNowPlus } : d);
+      onUpdateDelegates(updated);
+    } else {
+      const updated = registrations.map(r => r.registration_id === person.unifiedId ? { ...r, is_atlas_plus: isNowPlus } : r);
+      onUpdateRegistrations(updated);
+    }
+    toast.success("ATLAS PLUS UPDATED", { description: `${person.full_name} is now ${isNowPlus ? 'GRANTED' : 'REVOKED'} Atlas Plus.` });
+    addActivityLog(`Atlas Plus access ${isNowPlus ? 'granted' : 'revoked'} for ${person.full_name}`);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="border-b border-white/5 pb-4 flex justify-between items-end">
+        <div>
+          <span className="classified-label text-[var(--atlas-gold)] text-xs block">
+            / PRIVILEGE ESCALATION
+          </span>
+          <h3 className="font-display text-white text-2xl">ATLAS PLUS MANAGER</h3>
+          <p className="text-white/40 text-[10px] mt-1 font-mono">Grant or revoke Atlas Plus tier access across delegates and pending registrations.</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {combined.map((person) => (
+          <div key={person.unifiedId} className={`glass rounded border p-4 flex flex-col justify-between transition-colors ${person.is_atlas_plus ? 'border-[var(--atlas-gold)] bg-[var(--atlas-gold)]/5' : 'border-white/5'}`}>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-mono text-white/50">{person.unifiedId}</span>
+                <span className={`text-[8px] tracking-widest px-1.5 py-0.5 rounded border font-mono ${person.source === 'delegate' ? 'border-[var(--atlas-cyan)]/30 text-[var(--atlas-cyan)] bg-[var(--atlas-cyan)]/10' : 'border-purple-500/30 text-purple-400 bg-purple-500/10'}`}>
+                  {person.source.toUpperCase()}
+                </span>
+              </div>
+              <h4 className="font-display text-white text-lg truncate">{person.full_name}</h4>
+              <p className="text-[10px] text-white/50 font-mono truncate">{person.committee}</p>
+            </div>
+            
+            <div className="mt-4 pt-3 border-t border-white/5 flex justify-between items-center">
+              <span className={`text-[10px] font-mono tracking-widest ${person.is_atlas_plus ? 'text-[var(--atlas-gold)] font-bold' : 'text-white/30'}`}>
+                {person.is_atlas_plus ? '★ ATLAS PLUS ACTIVE' : 'STANDARD ACCESS'}
+              </span>
+              <button
+                onClick={() => toggleAtlasPlus(person)}
+                className={`text-[9px] px-3 py-1.5 rounded border font-mono tracking-wider transition-colors ${person.is_atlas_plus ? 'border-red-500/30 text-red-400 hover:bg-red-500/10' : 'border-[var(--atlas-gold)]/50 text-[var(--atlas-gold)] hover:bg-[var(--atlas-gold)]/10'}`}
+              >
+                {person.is_atlas_plus ? 'REVOKE' : 'GRANT PLUS'}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

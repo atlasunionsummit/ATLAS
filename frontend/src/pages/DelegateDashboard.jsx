@@ -214,6 +214,7 @@ export default function DelegateDashboard({ onRequestAccess }) {
             { id: "ai", label: "05 COMMAND AI", icon: "🤖" },
             { id: "atlasplus", label: "06 ATLAS PLUS", icon: "✨" },
             { id: "accommodation", label: "07 ACCOMMODATION", icon: "🏨" },
+            { id: "library", label: "08 ATLAS LIBRARY", icon: "📚" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -463,6 +464,24 @@ export default function DelegateDashboard({ onRequestAccess }) {
                   <div className="max-w-md bg-black/40 border border-white/10 rounded-lg p-6 glass">
                     <p className="text-white/60 text-xs leading-relaxed font-mono">
                       Logistics for accommodation and boarding are currently being finalized by the secretariat. Information regarding partnered hotels and stays will be updated here shortly.
+                    </p>
+                  </div>
+                </div>
+              )}
+              {activeTab === "library" && (
+                <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
+                  <div className="w-20 h-20 bg-[var(--atlas-cyan)]/10 rounded-full flex items-center justify-center border border-[var(--atlas-cyan)]/30 animate-pulse">
+                    <span className="text-4xl">📚</span>
+                  </div>
+                  <div>
+                    <h2 className="font-display text-white text-3xl mb-2">ATLAS LIBRARY</h2>
+                    <p className="text-[var(--atlas-gold)] font-mono text-sm tracking-widest uppercase">
+                      Coming Soon
+                    </p>
+                  </div>
+                  <div className="max-w-md bg-black/40 border border-white/10 rounded-lg p-6 glass">
+                    <p className="text-white/60 text-sm leading-relaxed font-mono uppercase">
+                      Get access to best in class resources for research and excellency.
                     </p>
                   </div>
                 </div>
