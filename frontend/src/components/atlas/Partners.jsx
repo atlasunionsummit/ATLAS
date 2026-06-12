@@ -12,8 +12,8 @@ const PARTNERS = [
     category: "Academic & Institutional Collaborations",
     items: [
       { name: "Rendezvous, IIT Delhi", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781190246/iit_delhi_i02q1b.png" },
-      { name: "DebSoc IIT Delhi", logo: "https://ui-avatars.com/api/?name=DS&background=C9A44C&color=fff" },
-      { name: "Robotics Club, IIT Delhi", logo: "https://ui-avatars.com/api/?name=RC&background=C9A44C&color=fff" }
+      { name: "DebSoc IIT Delhi", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781279328/download_10_bv5xns.png" },
+      { name: "Robotics Club, IIT Delhi", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781279399/download_11_vbpmnv.png" }
     ]
   },
   {
