@@ -203,12 +203,6 @@ export default function Committees() {
                 >
                   {c.name}
                 </h3>
-                {c.agenda && (
-                  <div className="mt-2 font-mono text-[9px] sm:text-[10px] leading-snug text-white/80 bg-black/50 backdrop-blur-sm p-2 rounded-sm border border-white/10 line-clamp-3">
-                    <span className="text-[var(--atlas-gold)] block mb-0.5 tracking-widest">AGENDA</span>
-                    {c.agenda}
-                  </div>
-                )}
                 <p className="font-mono text-[10.5px] tracking-[0.24em] text-white/75 mt-1">
                   {c.theme.toUpperCase()}
                 </p>
@@ -216,9 +210,16 @@ export default function Committees() {
             </div>
 
             <div className="flex-1 p-5 flex flex-col justify-between">
-              <p className="font-serif-italic text-[var(--atlas-gold)] text-[16px] leading-snug">
-                “{c.quote}”
-              </p>
+              {c.agenda && c.agenda !== "No Agenda" ? (
+                <div className="font-mono text-[10px] leading-[1.6] text-white/80">
+                  <span className="text-[var(--atlas-gold)] block mb-1 tracking-[0.2em]">AGENDA</span>
+                  {c.agenda}
+                </div>
+              ) : (
+                <p className="font-serif-italic text-[var(--atlas-gold)] text-[16px] leading-snug">
+                  “{c.quote}”
+                </p>
+              )}
               <div className="flex items-end justify-between gap-3 mt-4">
                 <p className="font-mono text-[10px] tracking-[0.22em] text-white/55 leading-[1.7]">
                   {c.atmosphere}

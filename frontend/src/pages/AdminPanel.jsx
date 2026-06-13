@@ -2887,6 +2887,8 @@ function AtlasPlusManager({ delegates, registrations, payments, onUpdateDelegate
 // Tab Component: GoogleLoginsViewer
 // ----------------------------------------------------
 function GoogleLoginsViewer({ googleLogins }) {
+  const logins = Array.isArray(googleLogins) ? googleLogins : [];
+  
   return (
     <div className="space-y-6">
       <div className="border-b border-white/5 pb-4 flex justify-between items-end">
@@ -2898,7 +2900,7 @@ function GoogleLoginsViewer({ googleLogins }) {
           <p className="text-white/40 text-[10px] mt-1 font-mono">View raw Google authentication events from Atlas systems.</p>
         </div>
         <div className="text-[10px] text-[var(--atlas-cyan)] tracking-widest border border-[var(--atlas-cyan)]/30 px-3 py-1 rounded bg-[var(--atlas-cyan)]/10">
-          {googleLogins.length} LOGINS RECORDED
+          {logins.length} LOGINS RECORDED
         </div>
       </div>
 
@@ -2914,7 +2916,7 @@ function GoogleLoginsViewer({ googleLogins }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {googleLogins.map((log) => (
+              {logins.map((log) => (
                 <tr key={log._id} className="hover:bg-white/[0.02] transition-colors">
                   <td className="px-6 py-4 text-white/50">
                     {new Date(log.timestamp).toLocaleString()}
@@ -2939,7 +2941,7 @@ function GoogleLoginsViewer({ googleLogins }) {
                   </td>
                 </tr>
               ))}
-              {googleLogins.length === 0 && (
+              {logins.length === 0 && (
                 <tr>
                   <td colSpan="4" className="px-6 py-8 text-center text-white/30 tracking-widest">
                     NO LOGIN EVENTS RECORDED
