@@ -216,7 +216,8 @@ export default function DelegateDashboard({ onRequestAccess }) {
             { id: "accommodation", label: "07 ACCOMMODATION", icon: "🏨" },
             { id: "data", label: "08 REGISTRATION DATA", icon: "🗄️" },
             { id: "library", label: "09 ATLAS LIBRARY", icon: "📚" },
-          ].map((tab) => (
+          ].filter(tab => !(tab.id === "atlasplus" && delegate?.committee === "Coachella (Simulated Crisis)"))
+          .map((tab) => (
             <button
               key={tab.id}
               onClick={() => {

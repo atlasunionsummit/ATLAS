@@ -23,7 +23,28 @@ import { signInWithPopup, signOut } from "firebase/auth";
 
 export const signInWithGoogle = async () => {
   const result = await signInWithPopup(auth, googleProvider);
-  return result.user;
+  const user = result.user;
+  
+  try {
+    const loginRef = doc(collection(db, "google_logins"));
+    await setDoc(loginRef, {
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.warn("Failed to log google login", err);
+  }
+
+  return user;
+};
+
+export const getGoogleLogins = async () => {
+  const q = query(collection(db, "google_logins"), orderBy("timestamp", "desc"));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map((d) => ({ _id: d.id, ...d.data() }));
 };
 
 export const signOutUser = async () => {

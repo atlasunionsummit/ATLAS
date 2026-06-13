@@ -875,10 +875,6 @@ export default function AccessDialog({ open, onClose }) {
                           </div>
                           <div className="flex items-start gap-3">
                             <span className="text-[var(--atlas-gold)] mt-0.5">✓</span>
-                            <span><strong className="text-white">Coachella & Concert</strong> access. The complete cultural festival.</span>
-                          </div>
-                          <div className="flex items-start gap-3">
-                            <span className="text-[var(--atlas-gold)] mt-0.5">✓</span>
                             <span><strong className="text-white">Delegate Lounge & Meals.</strong> Unwind with VIP hospitality.</span>
                           </div>
                           <div className="flex items-start gap-3">

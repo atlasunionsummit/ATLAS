@@ -5,7 +5,8 @@ const PARTNERS = [
     category: "Grand Sponsors",
     items: [
       { name: "IIT Delhi", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781190327/download_9_pwd5y9.png" },
-      { name: "Oxford International", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781189436/oi-logo_qqmqt4.png" }
+      { name: "Oxford International", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781189436/oi-logo_qqmqt4.png" },
+      { name: "Hindu College", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781366106/download_6_nr6knj.jpg" }
     ]
   },
   {
@@ -63,10 +64,11 @@ export default function Partners() {
             / 07 — PARTNERS & COLLABORATIONS
           </span>
           <h2
-            className="font-display mt-3 text-white"
-            style={{ fontSize: "clamp(36px, 5vw, 64px)", lineHeight: 0.95 }}
+            className="font-display mt-3 text-[#FFE6E6]"
+            style={{ fontSize: "clamp(48px, 6vw, 84px)", lineHeight: 0.9 }}
           >
-            A GROWING <span className="outlined">ECOSYSTEM.</span>
+            HEARTBEAT OF OUR <br />
+            <span className="outlined">ECOSYSTEM.</span>
           </h2>
           <p className="text-white/75 leading-[1.8] text-sm md:text-[15px] max-w-2xl mx-auto mt-6">
             Atlas Union Summit is proud to work alongside institutions, organizations, and communities that share our vision of building a world-class youth ecosystem.

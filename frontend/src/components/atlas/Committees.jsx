@@ -10,6 +10,7 @@ const COMMITTEES = [
     level: "Advanced",
     atmosphere: "Tactical · Satellite Maps · Red Light",
     quote: "Power is exercised in silence.",
+    agenda: "Deliberation on the Role of NATO Expansion and Russian Security Concerns in Reshaping the European Security Order",
     image: COMMITTEE_GUARDIAN.unsc,
     accent: "#FF3B5C",
     tag: "CLASSIFIED · LEVEL V",
@@ -21,6 +22,7 @@ const COMMITTEES = [
     level: "Intermediate",
     atmosphere: "Diplomatic Lighting · World Map",
     quote: "Every word becomes geopolitics.",
+    agenda: "Deliberation on Foreign Interference, Regime Change Operations, and the Erosion of State Sovereignty in Contemporary Conflicts",
     image: COMMITTEE_GUARDIAN.unga,
     accent: "#C9A44C",
     tag: "ASSEMBLY · OPEN",
@@ -32,6 +34,7 @@ const COMMITTEES = [
     level: "Intermediate",
     atmosphere: "Media Cameras · Election Graphics",
     quote: "Democracy is a performance art.",
+    agenda: "Deliberation upon the rising wave of Hindu Nationalism and its intersection with state policy, electoral politics and India's secular constitutional identity",
     image: COMMITTEE_GUARDIAN.aippm,
     accent: "#FF8A3D",
     tag: "DOMESTIC · LIVE FEED",
@@ -43,6 +46,7 @@ const COMMITTEES = [
     level: "Intermediate",
     atmosphere: "Elegant · Editorial Light",
     quote: "Equity is not a question.",
+    agenda: "Examining Institutional Failures in Preventing the Sexual Exploitation and Abuse of Women and Girls by Powerful Individuals, Organizations and State Actors",
     image: COMMITTEE_GUARDIAN.uncsw,
     accent: "#B98CFF",
     tag: "JURIDICAL",
@@ -54,6 +58,7 @@ const COMMITTEES = [
     level: "Advanced",
     atmosphere: "Future Earth · Scientific Visuals",
     quote: "We negotiate with time itself.",
+    agenda: "Assessing the Role of Geoengineering in Achieving the Sustainable Development Goals while Ensuring Climate Justice and Global Equity",
     image: COMMITTEE_GUARDIAN.unfccc,
     accent: "#4DFFE9",
     tag: "EARTH · OPERATIONS",
@@ -65,6 +70,7 @@ const COMMITTEES = [
     level: "Beginner",
     atmosphere: "Neon · Backstage · Press",
     quote: "Where attention becomes power.",
+    agenda: "Deliberation on the Impact of Global Entertainment on Cultural Sovereignty and Freedom of Political Expression with Special Emphasis on Emerging Entertainment Markets such as India",
     image: COMMITTEE_GUARDIAN.coachella,
     accent: "#FF4DD2",
     tag: "CULTURE · NEON",
@@ -76,10 +82,59 @@ const COMMITTEES = [
     level: "Open",
     atmosphere: "Editorial · Newsroom · Field",
     quote: "Bear witness. Then write the world.",
+    agenda: "Capturing the essence through a camera, understanding through questioning and art",
     image: COMMITTEE_GUARDIAN.ip,
     accent: "#C9A44C",
     tag: "PRESS · 24/7",
   },
+  {
+    key: "ipl",
+    name: "IPL AUCTION",
+    theme: "Sports & Strategy",
+    level: "Open",
+    atmosphere: "Auction Room · High Bids · Tension",
+    quote: "A game of numbers and nerves.",
+    agenda: "Mock IPL Auction 2026",
+    image: COMMITTEE_GUARDIAN.unga,
+    accent: "#00E5FF",
+    tag: "SPORTS · LIVE",
+  },
+  {
+    key: "f1",
+    name: "F1 SIMULATION",
+    theme: "Motorsport Strategy",
+    level: "Premium",
+    atmosphere: "Paddock Club · Pit Wall · Telemetry",
+    quote: "Speed is nothing without strategy.",
+    agenda: "No Agenda",
+    image: COMMITTEE_GUARDIAN.unsc,
+    accent: "#FF0033",
+    tag: "PREMIUM · RACING",
+  },
+  {
+    key: "vaidya",
+    name: "VAIDYA COUNCIL",
+    theme: "Healthcare & Policy",
+    level: "Premium",
+    atmosphere: "Medical Board · Research Labs",
+    quote: "The intersection of science and society.",
+    agenda: "No Agenda",
+    image: COMMITTEE_GUARDIAN.uncsw,
+    accent: "#00FF99",
+    tag: "PREMIUM · HEALTH",
+  },
+  {
+    key: "asc",
+    name: "SIMULATION CORPS",
+    theme: "Strategic Operations",
+    level: "Premium",
+    atmosphere: "Command Center · Intelligence",
+    quote: "The invisible hand that moves the board.",
+    agenda: "No Agenda",
+    image: COMMITTEE_GUARDIAN.unfccc,
+    accent: "#FF9900",
+    tag: "PREMIUM · COMMAND",
+  }
 ];
 
 export default function Committees() {
@@ -148,6 +203,12 @@ export default function Committees() {
                 >
                   {c.name}
                 </h3>
+                {c.agenda && (
+                  <div className="mt-2 font-mono text-[9px] sm:text-[10px] leading-snug text-white/80 bg-black/50 backdrop-blur-sm p-2 rounded-sm border border-white/10 line-clamp-3">
+                    <span className="text-[var(--atlas-gold)] block mb-0.5 tracking-widest">AGENDA</span>
+                    {c.agenda}
+                  </div>
+                )}
                 <p className="font-mono text-[10.5px] tracking-[0.24em] text-white/75 mt-1">
                   {c.theme.toUpperCase()}
                 </p>

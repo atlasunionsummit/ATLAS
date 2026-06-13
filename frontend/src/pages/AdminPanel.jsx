@@ -24,6 +24,7 @@ import {
   getDiscountCodes,
   saveDiscountCode,
   deleteDiscountCode,
+  getGoogleLogins,
 } from "@/lib/atlasApi";
 import { MATRIX_DATA } from "@/lib/matrixData";
 import { toast } from "sonner";
@@ -62,17 +63,17 @@ export default function AdminPanel() {
   const [registrations, setRegistrations] = useState([]);
   const [payments, setPayments] = useState([]);
   const [events, setEvents] = useState([]);
-  const [settings, setSettings] = useState({});
   const [broadcasts, setBroadcasts] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
   const [discountCodes, setDiscountCodes] = useState([]);
+  const [googleLogins, setGoogleLogins] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch all mock data
   const refreshData = async () => {
     setLoading(true);
     try {
-      const [d, r, p, e, s, b, l, dc] = await Promise.all([
+      const [d, r, p, e, s, b, l, dc, gl] = await Promise.all([
         getDelegates(),
         getRegistrations(),
         getPayments(),
@@ -81,6 +82,7 @@ export default function AdminPanel() {
         getBroadcastHistory(),
         getActivityLogs(),
         getDiscountCodes(),
+        getGoogleLogins(),
       ]);
       setDelegates(d);
       setRegistrations(r);
@@ -90,6 +92,7 @@ export default function AdminPanel() {
       setBroadcasts(b);
       setActivityLogs(l);
       setDiscountCodes(dc);
+      setGoogleLogins(gl);
     } catch (err) {
       toast.error("DATA FETCH FAILED");
     } finally {
@@ -280,6 +283,7 @@ export default function AdminPanel() {
                   <AtlasPlusManager
                     registrations={registrations}
                     delegates={delegates}
+                    payments={payments}
                     onUpdateDelegates={async (newDelegates) => {
                       setDelegates(newDelegates);
                       await saveDelegates(newDelegates);
@@ -288,8 +292,15 @@ export default function AdminPanel() {
                       setRegistrations(newRegs);
                       await saveRegistrations(newRegs);
                     }}
+                    onUpdatePayments={async (newPayments) => {
+                      setPayments(newPayments);
+                      await savePayments(newPayments);
+                    }}
                     onRefresh={refreshData}
                   />
+                )}
+                {activeTab === "google_logins" && (
+                  <GoogleLoginsViewer googleLogins={googleLogins} />
                 )}
               </motion.div>
             </AnimatePresence>
@@ -533,6 +544,7 @@ function AdminSidebar({ activeTab, setActiveTab, isOpen, setIsOpen, onLogout, us
     { id: "passes", label: "10 E-PASSPORTS", icon: "🎟️" },
     { id: "discounts", label: "11 DISCOUNTS", icon: "🏷️" },
     { id: "atlas_plus", label: "12 ATLAS PLUS", icon: "✨" },
+    { id: "google_logins", label: "13 GOOGLE LOGINS", icon: "🔐" },
   ];
 
   return (
@@ -951,43 +963,77 @@ function DelegateManager({ delegates, onUpdate, onRefresh }) {
             <h3 className="font-display text-white text-2xl mt-1">UPDATE RECORD</h3>
 
             <form onSubmit={handleEditSubmit} className="mt-6 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <Field
-                  label="FULL NAME"
+              <div>
+                <label className="classified-label text-white/50 text-[9px]">FULL NAME</label>
+                <input
+                  required
                   value={editingDelegate.full_name}
-                  onChange={(v) => setEditingDelegate({ ...editingDelegate, full_name: v })}
-                />
-                <Field
-                  label="CALLSIGN"
-                  value={editingDelegate.nickname}
-                  onChange={(v) => setEditingDelegate({ ...editingDelegate, nickname: v })}
+                  onChange={(e) => setEditingDelegate({ ...editingDelegate, full_name: e.target.value })}
+                  className="w-full mt-1 bg-black/40 border border-white/10 rounded px-3 py-2 text-white font-mono text-[11px]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field
-                  label="COUNTRY"
-                  value={editingDelegate.country}
-                  onChange={(v) => setEditingDelegate({ ...editingDelegate, country: v })}
-                />
-                <Field
-                  label="CITY OF RESIDENCE"
-                  value={editingDelegate.city_of_residence}
-                  onChange={(v) => setEditingDelegate({ ...editingDelegate, city_of_residence: v })}
-                />
+                <div>
+                  <label className="classified-label text-white/50 text-[9px]">CALLSIGN / NICKNAME</label>
+                  <input
+                    value={editingDelegate.nickname || ""}
+                    onChange={(e) => setEditingDelegate({ ...editingDelegate, nickname: e.target.value })}
+                    className="w-full mt-1 bg-black/40 border border-white/10 rounded px-3 py-2 text-white font-mono text-[11px]"
+                  />
+                </div>
+                <div>
+                  <label className="classified-label text-white/50 text-[9px]">EMAIL / GOOGLE LOGIN</label>
+                  <input
+                    type="email"
+                    required
+                    value={editingDelegate.email || ""}
+                    onChange={(e) => setEditingDelegate({ ...editingDelegate, email: e.target.value })}
+                    className="w-full mt-1 bg-black/40 border border-white/10 rounded px-3 py-2 text-[var(--atlas-cyan)] font-mono text-[11px]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="classified-label text-white/50 text-[9px]">COUNTRY</label>
+                  <input
+                    value={editingDelegate.country || ""}
+                    onChange={(e) => setEditingDelegate({ ...editingDelegate, country: e.target.value })}
+                    className="w-full mt-1 bg-black/40 border border-white/10 rounded px-3 py-2 text-white font-mono text-[11px]"
+                  />
+                </div>
+                <div>
+                  <label className="classified-label text-white/50 text-[9px]">CITY OF RESIDENCE</label>
+                  <input
+                    value={editingDelegate.city_of_residence || ""}
+                    onChange={(e) => setEditingDelegate({ ...editingDelegate, city_of_residence: e.target.value })}
+                    className="w-full mt-1 bg-black/40 border border-white/10 rounded px-3 py-2 text-white font-mono text-[11px]"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="classified-label text-white/50 text-[10px]">COMMITTEE</label>
+                <label className="classified-label text-white/50 text-[9px]">COMMITTEE</label>
                 <select
                   value={editingDelegate.committee}
                   onChange={(e) => setEditingDelegate({ ...editingDelegate, committee: e.target.value })}
-                  className="w-full bg-transparent border-b border-white/10 focus:border-[var(--atlas-gold)] py-2 outline-none text-white text-xs"
+                  className="w-full mt-1 bg-black/40 border border-white/10 rounded px-3 py-2 text-white font-mono text-[11px]"
                 >
                   {COMMITTEES.map((c) => (
                     <option key={c} value={c} className="bg-[var(--atlas-black)]">{c}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="classified-label text-[var(--atlas-gold)] text-[9px]">PORTFOLIO ASSIGNMENT</label>
+                <input
+                  value={editingDelegate.portfolio || ""}
+                  onChange={(e) => setEditingDelegate({ ...editingDelegate, portfolio: e.target.value })}
+                  placeholder="e.g. USA, UK, Reuters..."
+                  className="w-full mt-1 bg-black/40 border border-[var(--atlas-gold)]/40 rounded px-3 py-2 text-white font-mono text-[11px] focus:border-[var(--atlas-gold)] outline-none"
+                />
               </div>
 
               <div className="flex gap-3 pt-4 border-t border-white/5">
@@ -1267,71 +1313,120 @@ function PaymentTracker({ payments, onUpdate, onRefresh }) {
       )}
 
       {/* Receipt Preview Modal */}
-      {invoicePay && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setInvoicePay(null)} />
-          <div className="relative w-full max-w-[420px] bg-[#0c0514] rounded-lg p-6 border border-[var(--atlas-gold)]/30 text-xs tracking-wider">
-            {/* Holographic digital invoice receipt */}
-            <div className="text-center space-y-1">
-              <span className="text-[9px] text-[var(--atlas-gold)] tracking-[0.3em] font-bold">ATLAS UNION SUMMIT 2026</span>
-              <h4 className="font-display text-white text-lg font-bold">OFFICIAL PAYMENT INVOICE</h4>
-              <p className="text-white/40 text-[9px]">{new Date(invoicePay.timestamp).toLocaleString()}</p>
-            </div>
+      <AnimatePresence>
+        {invoicePay && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 print:p-0 print:bg-white"
+          >
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-md print:hidden" onClick={() => setInvoicePay(null)} />
+            
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="relative w-full max-w-[420px] rounded-2xl p-[1px] overflow-hidden group print:rounded-none print:max-w-none print:shadow-none"
+            >
+              {/* Animated Glowing Border */}
+              <div className="absolute inset-[-50%] animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#00000000_0%,#00000000_50%,var(--atlas-cyan)_75%,var(--atlas-gold)_100%)] opacity-70 group-hover:opacity-100 transition-opacity duration-500 print:hidden" />
+              
+              {/* Receipt Content Container */}
+              <div className="relative bg-[#0a0510]/95 backdrop-blur-xl rounded-2xl p-8 border border-white/10 shadow-2xl h-full w-full print:bg-white print:border-none print:text-black">
+                
+                {/* Holographic noise overlay */}
+                <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none print:hidden" style={{ backgroundImage: "url('https://grainy-gradients.vercel.app/noise.svg')" }}></div>
 
-            <div className="h-[1px] border-b border-dashed border-white/20 my-4" />
+                {/* Close Button */}
+                <button 
+                  onClick={() => setInvoicePay(null)} 
+                  className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors print:hidden bg-white/5 rounded-full p-1"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
 
-            <div className="space-y-2.5 font-mono">
-              <div className="flex justify-between">
-                <span className="text-white/50">INVOICE REF</span>
-                <span className="text-white font-semibold">{invoicePay.id}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-white/50">OPERATOR NAME</span>
-                <span className="text-white font-semibold">{invoicePay.delegate_name.toUpperCase()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-white/50">EMAIL</span>
-                <span className="text-white">{invoicePay.email}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-white/50">TRANSACTION UTR</span>
-                <span className="text-[var(--atlas-gold)] font-bold">{invoicePay.utr_number}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-white/50">TICKET DETAILS</span>
-                <span className="text-white">{invoicePay.package_name}</span>
-              </div>
-              <div className="h-[1px] border-b border-dashed border-white/20 my-3" />
-              <div className="flex justify-between text-sm">
-                <span className="text-white font-bold">TOTAL PAID</span>
-                <span className="text-[var(--atlas-cyan)] font-bold">₹{invoicePay.price}.00</span>
-              </div>
-              <div className="flex justify-between text-[9px]">
-                <span className="text-white/50">STATUS STATUS</span>
-                <span className="text-emerald-400 font-bold uppercase">{invoicePay.status}</span>
-              </div>
-            </div>
+                {/* Header */}
+                <div className="text-center space-y-2 relative z-10 mb-8 mt-2">
+                  <div className="flex justify-center mb-4">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--atlas-gold)] to-[var(--atlas-cyan)] p-[1px] print:border print:border-gray-800">
+                      <div className="w-full h-full rounded-full bg-[#0a0510] flex items-center justify-center print:bg-white">
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--atlas-gold)] to-[var(--atlas-cyan)] font-display text-xl print:text-black">A</span>
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-[var(--atlas-cyan)] tracking-[0.4em] font-bold uppercase print:text-gray-600">ATLAS UNION SUMMIT</span>
+                  <h4 className="font-display text-white text-2xl tracking-wide print:text-black">OFFICIAL INVOICE</h4>
+                  <p className="text-white/40 text-[10px] font-mono print:text-gray-500">{new Date(invoicePay.timestamp).toLocaleString()}</p>
+                </div>
 
-            <div className="h-[1px] border-b border-dashed border-white/20 my-4" />
+                <div className="relative h-[1px] w-full my-6 print:bg-gray-300">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent print:hidden" />
+                </div>
 
-            <div className="text-center text-[9px] text-white/30 leading-relaxed font-mono">
-              ◇ DIGITAL RECEIPTS ARCHIVED ON DELHI COMMAND CIRCUITS ◇<br />
-              This document serves as verification of summit access.
-            </div>
+                {/* Data Grid */}
+                <div className="space-y-4 font-mono text-xs relative z-10">
+                  <div className="flex justify-between items-center group/item">
+                    <span className="text-white/40 group-hover/item:text-white/60 transition-colors print:text-gray-500">INVOICE REF</span>
+                    <span className="text-white font-semibold tracking-wider print:text-black">{invoicePay.id}</span>
+                  </div>
+                  <div className="flex justify-between items-center group/item">
+                    <span className="text-white/40 group-hover/item:text-white/60 transition-colors print:text-gray-500">OPERATOR NAME</span>
+                    <span className="text-[var(--atlas-gold)] font-bold truncate max-w-[60%] text-right print:text-black">{invoicePay.delegate_name.toUpperCase()}</span>
+                  </div>
+                  <div className="flex justify-between items-center group/item">
+                    <span className="text-white/40 group-hover/item:text-white/60 transition-colors print:text-gray-500">EMAIL</span>
+                    <span className="text-white truncate max-w-[70%] text-right print:text-black">{invoicePay.email}</span>
+                  </div>
+                  <div className="flex justify-between items-center group/item">
+                    <span className="text-white/40 group-hover/item:text-white/60 transition-colors print:text-gray-500">TRANSACTION UTR</span>
+                    <span className="text-[var(--atlas-cyan)] font-mono tracking-widest print:text-black">{invoicePay.utr_number}</span>
+                  </div>
+                  <div className="flex justify-between items-center group/item">
+                    <span className="text-white/40 group-hover/item:text-white/60 transition-colors print:text-gray-500">TICKET TIER</span>
+                    <span className="text-white bg-white/5 px-2 py-0.5 rounded border border-white/10 print:border-gray-300 print:text-black">{invoicePay.package_name}</span>
+                  </div>
+                  
+                  <div className="relative h-[1px] w-full my-4 print:bg-gray-300">
+                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent print:hidden" />
+                  </div>
+                  
+                  <div className="flex justify-between items-end">
+                    <div className="space-y-1">
+                      <span className="text-white/40 text-[10px] block print:text-gray-500">TOTAL AMOUNT</span>
+                      <span className="text-emerald-400 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1.5 print:text-black">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse print:hidden" />
+                        {invoicePay.status}
+                      </span>
+                    </div>
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--atlas-gold)] to-[var(--atlas-cyan)] font-display text-3xl print:text-black">
+                      ₹{invoicePay.price}.00
+                    </span>
+                  </div>
+                </div>
 
-            <div className="mt-6">
-              <button
-                onClick={() => {
-                  window.print();
-                }}
-                className="btn-atlas w-full text-center py-2"
-              >
-                PRINT RECEIPT
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                <div className="relative h-[1px] w-full mt-8 mb-6 print:bg-gray-300">
+                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent print:hidden" />
+                </div>
+
+                <div className="text-center text-[9px] text-white/30 leading-relaxed font-mono relative z-10 print:text-gray-400">
+                  ◇ DIGITAL RECEIPTS ARCHIVED ON DELHI COMMAND CIRCUITS ◇<br />
+                  This document serves as verification of summit access.
+                </div>
+
+                <div className="mt-8 print:hidden relative z-10">
+                  <button
+                    onClick={() => window.print()}
+                    className="w-full text-center py-3 bg-gradient-to-r from-[var(--atlas-gold)]/10 to-[var(--atlas-cyan)]/10 hover:from-[var(--atlas-gold)]/20 hover:to-[var(--atlas-cyan)]/20 border border-white/10 rounded-lg text-white font-mono text-xs tracking-widest transition-all duration-300 shadow-[0_0_20px_rgba(0,0,0,0.5)] hover:shadow-[0_0_25px_rgba(0,195,255,0.2)]"
+                  >
+                    PRINT / DOWNLOAD RECEIPT
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -1341,6 +1436,7 @@ function PaymentTracker({ payments, onUpdate, onRefresh }) {
 // ----------------------------------------------------
 function RegistrationAuditor({ registrations, delegates, payments, emailTemplateConf, emailTemplateRej, onRefresh }) {
   const [viewId, setViewId] = useState(null);
+  const [viewData, setViewData] = useState(null);
 
   const handleApprove = async (reg) => {
     if (confirm(`Approve registration for ${reg.full_name}? This adds them to delegates and creates a payment transaction.`)) {
@@ -1445,16 +1541,24 @@ function RegistrationAuditor({ registrations, delegates, payments, emailTemplate
                   <div><span className="text-white/45">Committee:</span> {reg.committee}</div>
                   {reg.past_experience && <div><span className="text-white/45">Exp:</span> {reg.past_experience}</div>}
                   {reg.dietary_instructions && <div><span className="text-white/45">Diet:</span> {reg.dietary_instructions}</div>}
-                  <div className="mt-2 text-[var(--atlas-gold)] font-semibold border-t border-white/5 pt-2 flex justify-between items-center">
+                  <div className="mt-2 text-[var(--atlas-gold)] font-semibold border-t border-white/5 pt-2 flex flex-wrap gap-2 justify-between items-center">
                     <span>UTR: {reg.utr_number}</span>
-                    {reg.id_proof_base64 && (
+                    <div className="flex gap-2">
                       <button 
-                        onClick={() => setViewId(reg.id_proof_base64)}
-                        className="text-[9px] px-2 py-1 bg-white/10 hover:bg-white/20 rounded border border-white/20 text-white transition-colors"
+                        onClick={() => setViewData(reg)}
+                        className="text-[9px] px-2 py-1 bg-[var(--atlas-purple)]/20 hover:bg-[var(--atlas-purple)]/40 rounded border border-[var(--atlas-cyan)]/30 text-[var(--atlas-cyan)] transition-colors tracking-widest"
                       >
-                        VIEW ID
+                        VIEW DATA
                       </button>
-                    )}
+                      {reg.id_proof_base64 && (
+                        <button 
+                          onClick={() => setViewId(reg.id_proof_base64)}
+                          className="text-[9px] px-2 py-1 bg-white/10 hover:bg-white/20 rounded border border-white/20 text-white transition-colors"
+                        >
+                          VIEW ID
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1488,6 +1592,109 @@ function RegistrationAuditor({ registrations, delegates, payments, emailTemplate
               <button onClick={() => setViewId(null)} className="text-white/50 hover:text-white">✕</button>
             </div>
             <img src={viewId} alt="ID Proof" className="w-full h-auto rounded border border-white/10 max-h-[70vh] object-contain bg-black/40" />
+          </div>
+        </div>
+      )}
+
+      {/* Full Data Viewer Modal */}
+      {viewData && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setViewData(null)} />
+          <div className="relative w-full max-w-3xl glass-strong rounded-xl p-6 border border-[var(--atlas-cyan)]/30 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/10">
+              <div>
+                <span className="classified-label text-[var(--atlas-cyan)] text-xs block mb-1">/ RAW REGISTRATION DATA</span>
+                <h3 className="font-display text-white text-2xl">{viewData.full_name}</h3>
+                <span className="text-white/40 text-[10px] font-mono">{viewData.registration_id}</span>
+              </div>
+              <button onClick={() => setViewData(null)} className="text-white/50 hover:text-white bg-white/5 rounded-full p-2">✕</button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm font-mono">
+              {/* Left Column: Delegate Info */}
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-[var(--atlas-gold)] border-b border-[var(--atlas-gold)]/30 pb-2 mb-3 tracking-widest text-[11px] font-bold">OPERATOR PROFILE</h4>
+                  <div className="space-y-2 text-white/80">
+                    <div className="flex justify-between"><span className="text-white/40">Full Name:</span> <span>{viewData.full_name}</span></div>
+                    <div className="flex justify-between"><span className="text-white/40">Email:</span> <span>{viewData.email}</span></div>
+                    <div className="flex justify-between"><span className="text-white/40">Phone:</span> <span>{viewData.phone_number}</span></div>
+                    <div className="flex justify-between"><span className="text-white/40">Country:</span> <span>{viewData.country}</span></div>
+                    <div className="flex justify-between"><span className="text-white/40">City:</span> <span>{viewData.city_of_residence}</span></div>
+                    <div className="flex justify-between"><span className="text-white/40">School/Org:</span> <span className="text-right">{viewData.school_university}</span></div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-[var(--atlas-cyan)] border-b border-[var(--atlas-cyan)]/30 pb-2 mb-3 tracking-widest text-[11px] font-bold">ASSIGNMENT PREFERENCES</h4>
+                  <div className="space-y-2 text-white/80">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-white/40">Committee:</span> 
+                      <span className="bg-black/30 p-2 rounded border border-white/5">{viewData.committee}</span>
+                    </div>
+                    {viewData.portfolio_1 && (
+                      <div className="flex justify-between"><span className="text-white/40">Portfolio Pref 1:</span> <span className="text-right">{viewData.portfolio_1}</span></div>
+                    )}
+                    {viewData.portfolio_2 && (
+                      <div className="flex justify-between"><span className="text-white/40">Portfolio Pref 2:</span> <span className="text-right">{viewData.portfolio_2}</span></div>
+                    )}
+                    {viewData.portfolio_3 && (
+                      <div className="flex justify-between"><span className="text-white/40">Portfolio Pref 3:</span> <span className="text-right">{viewData.portfolio_3}</span></div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Financial & Aux Info */}
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-purple-400 border-b border-purple-400/30 pb-2 mb-3 tracking-widest text-[11px] font-bold">FINANCIAL CLEARANCE</h4>
+                  <div className="space-y-2 text-white/80 bg-purple-900/10 p-3 rounded border border-purple-500/20">
+                    <div className="flex justify-between"><span className="text-white/40">Package:</span> <span>{viewData.package_name}</span></div>
+                    <div className="flex justify-between"><span className="text-white/40">Category:</span> <span>{viewData.package_category}</span></div>
+                    <div className="flex justify-between"><span className="text-white/40">Price:</span> <span className="text-[var(--atlas-gold)] font-bold">₹{viewData.package_price}</span></div>
+                    <div className="flex justify-between"><span className="text-white/40">Transaction UTR:</span> <span className="text-[var(--atlas-cyan)]">{viewData.utr_number}</span></div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-emerald-400 border-b border-emerald-400/30 pb-2 mb-3 tracking-widest text-[11px] font-bold">ADDITIONAL CONTEXT</h4>
+                  <div className="space-y-3 text-white/80">
+                    {viewData.past_experience && (
+                      <div className="flex flex-col gap-1">
+                        <span className="text-white/40">Past Experience:</span> 
+                        <span className="bg-black/30 p-2 rounded border border-white/5 text-[11px] leading-relaxed">{viewData.past_experience}</span>
+                      </div>
+                    )}
+                    {viewData.dietary_instructions && (
+                      <div className="flex justify-between"><span className="text-white/40">Dietary Needs:</span> <span>{viewData.dietary_instructions}</span></div>
+                    )}
+                    {viewData.referral_code && (
+                      <div className="flex justify-between"><span className="text-white/40">Referral Code:</span> <span>{viewData.referral_code}</span></div>
+                    )}
+                  </div>
+                </div>
+
+                {viewData.id_proof_base64 && (
+                  <div>
+                    <h4 className="text-red-400 border-b border-red-400/30 pb-2 mb-3 tracking-widest text-[11px] font-bold">IDENTITY VERIFICATION</h4>
+                    <img 
+                      src={viewData.id_proof_base64} 
+                      alt="ID Proof" 
+                      className="w-full h-auto rounded border border-white/20 object-contain bg-black max-h-48 cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => setViewId(viewData.id_proof_base64)}
+                    />
+                    <p className="text-[9px] text-white/40 mt-2 text-center">Click image to enlarge</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="mt-8 pt-4 border-t border-white/10 flex gap-3 justify-end">
+               <button onClick={() => setViewData(null)} className="px-6 py-2 border border-white/20 rounded text-white/70 hover:bg-white/10 text-xs font-mono tracking-widest transition-colors">
+                  CLOSE VIEWER
+               </button>
+            </div>
           </div>
         </div>
       )}
@@ -2592,17 +2799,38 @@ function PortfolioMatrixAdmin({ delegates }) {
 // ----------------------------------------------------
 // Tab Component: AtlasPlusManager
 // ----------------------------------------------------
-function AtlasPlusManager({ delegates, registrations, onUpdateDelegates, onUpdateRegistrations, onRefresh }) {
+// ----------------------------------------------------
+function AtlasPlusManager({ delegates, registrations, payments, onUpdateDelegates, onUpdateRegistrations, onUpdatePayments, onRefresh }) {
   const pendingRegs = registrations.filter(r => r.status === "pending_verification").map(r => ({ ...r, source: 'registration', unifiedId: r.registration_id }));
   const allDelegates = delegates.map(d => ({ ...d, source: 'delegate', unifiedId: d.id }));
-  
-  const combined = [...pendingRegs, ...allDelegates].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  const combined = [...pendingRegs, ...allDelegates]
+    .filter(p => p.committee !== "Coachella (Simulated Crisis)")
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   const toggleAtlasPlus = (person) => {
     const isNowPlus = !person.is_atlas_plus;
     if (person.source === 'delegate') {
-      const updated = delegates.map(d => d.id === person.unifiedId ? { ...d, is_atlas_plus: isNowPlus } : d);
+      const updatedDelegate = { ...person, is_atlas_plus: isNowPlus, upgrade_pending: false };
+      const updated = delegates.map(d => d.id === person.unifiedId ? updatedDelegate : d);
       onUpdateDelegates(updated);
+
+      // Generate payment if they are upgrading
+      if (isNowPlus) {
+        const newPayment = {
+          id: `TXN-${Math.floor(10000 + Math.random() * 90000)}`,
+          delegate_name: person.full_name,
+          email: person.email,
+          category: "ATLAS PLUS UPGRADE",
+          package_name: "Atlas Plus Tier",
+          price: 2000,
+          utr_number: person.upgrade_utr || "MANUAL_UPGRADE",
+          status: "paid",
+          timestamp: new Date().toISOString(),
+        };
+        const updatedPayments = [newPayment, ...payments];
+        onUpdatePayments(updatedPayments);
+        toast.success("PAYMENT RECORDED", { description: "Atlas Plus transaction logged." });
+      }
     } else {
       const updated = registrations.map(r => r.registration_id === person.unifiedId ? { ...r, is_atlas_plus: isNowPlus } : r);
       onUpdateRegistrations(updated);
@@ -2650,6 +2878,77 @@ function AtlasPlusManager({ delegates, registrations, onUpdateDelegates, onUpdat
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------
+// Tab Component: GoogleLoginsViewer
+// ----------------------------------------------------
+function GoogleLoginsViewer({ googleLogins }) {
+  return (
+    <div className="space-y-6">
+      <div className="border-b border-white/5 pb-4 flex justify-between items-end">
+        <div>
+          <span className="classified-label text-[var(--atlas-cyan)] text-xs block">
+            / SECURITY & IDENTITY
+          </span>
+          <h3 className="font-display text-white text-2xl">GOOGLE AUTH LOGS</h3>
+          <p className="text-white/40 text-[10px] mt-1 font-mono">View raw Google authentication events from Atlas systems.</p>
+        </div>
+        <div className="text-[10px] text-[var(--atlas-cyan)] tracking-widest border border-[var(--atlas-cyan)]/30 px-3 py-1 rounded bg-[var(--atlas-cyan)]/10">
+          {googleLogins.length} LOGINS RECORDED
+        </div>
+      </div>
+
+      <div className="bg-black/40 border border-white/10 rounded-xl overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs font-mono whitespace-nowrap">
+            <thead>
+              <tr className="bg-white/5 text-white/50 border-b border-white/10 text-[10px] tracking-widest">
+                <th className="px-6 py-4 font-normal">TIMESTAMP</th>
+                <th className="px-6 py-4 font-normal">USER PROFILE</th>
+                <th className="px-6 py-4 font-normal">EMAIL ADDRESS</th>
+                <th className="px-6 py-4 font-normal">FIREBASE UID</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {googleLogins.map((log) => (
+                <tr key={log._id} className="hover:bg-white/[0.02] transition-colors">
+                  <td className="px-6 py-4 text-white/50">
+                    {new Date(log.timestamp).toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      {log.photoURL ? (
+                        <img src={log.photoURL} alt="Profile" className="w-6 h-6 rounded-full border border-white/20" />
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
+                          <span className="text-[8px] text-white/50">?</span>
+                        </div>
+                      )}
+                      <span className="text-white font-semibold">{log.displayName || "Unknown User"}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-[var(--atlas-cyan)]">
+                    {log.email}
+                  </td>
+                  <td className="px-6 py-4 text-white/30 text-[10px]">
+                    {log.uid}
+                  </td>
+                </tr>
+              ))}
+              {googleLogins.length === 0 && (
+                <tr>
+                  <td colSpan="4" className="px-6 py-8 text-center text-white/30 tracking-widest">
+                    NO LOGIN EVENTS RECORDED
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
