@@ -2824,6 +2824,26 @@ function PortfolioMatrixAdmin({ delegates, onUpdateDelegates }) {
     setSelectedPortfolio(prev => ({ ...prev, assignedDelegates: newlyAssigned }));
   };
 
+  const handlePortfolioClick = (committee, item, maxAllowed, currentCount, committeeDelegates) => {
+    try {
+      const assigned = committeeDelegates.filter(d => {
+        if (!d) return false;
+        const port = d.portfolio || d.portfolio_country;
+        return port === item.country;
+      });
+      setSelectedPortfolio({
+        committee,
+        item,
+        maxAllowed,
+        currentCount,
+        assignedDelegates: assigned
+      });
+    } catch (err) {
+      toast.error("Error opening portfolio: " + err.message);
+      console.error(err);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto h-full flex flex-col relative">
       <div className="flex justify-between items-center shrink-0">
@@ -2874,13 +2894,8 @@ function PortfolioMatrixAdmin({ delegates, onUpdateDelegates }) {
                   return (
                     <button
                       key={item.country}
-                      onClick={() => setSelectedPortfolio({
-                        committee,
-                        item,
-                        maxAllowed,
-                        currentCount,
-                        assignedDelegates: committeeDelegates.filter(d => (d.portfolio || d.portfolio_country) === item.country)
-                      })}
+                      type="button"
+                      onClick={() => handlePortfolioClick(committee, item, maxAllowed, currentCount, committeeDelegates)}
                       className={`text-[9px] sm:text-[10px] font-mono py-2 px-2 rounded border border-transparent whitespace-normal break-words text-left transition-colors cursor-pointer ${bgClass}`}
                       title={item.country}
                     >
