@@ -897,7 +897,7 @@ function DelegateManager({ delegates, onUpdate, onRefresh }) {
               <tr className="border-b border-white/10 bg-white/[0.02] text-white/50 text-[10px]">
                 <th className="p-4 font-semibold">DELEGATE ID</th>
                 <th className="p-4 font-semibold">NAME</th>
-                <th className="p-4 font-semibold">COMMITTEE</th>
+                <th className="p-4 font-semibold">COMMITTEE / PORTFOLIO</th>
                 <th className="p-4 font-semibold">COUNTRY</th>
                 <th className="p-4 font-semibold">CITY</th>
                 <th className="p-4 font-semibold">STATUS</th>
@@ -919,8 +919,13 @@ function DelegateManager({ delegates, onUpdate, onRefresh }) {
                       <span className="text-white font-medium block">{d.full_name}</span>
                       {d.nickname && <span className="text-white/40 text-[9.5px]">"{d.nickname}"</span>}
                     </td>
-                    <td className="p-4 max-w-[200px] truncate">{d.committee}</td>
-                    <td className="p-4 text-[var(--atlas-gold)]">{d.country}</td>
+                    <td className="p-4 max-w-[200px] truncate">
+                      <span className="block">{d.committee}</span>
+                      <span className="text-[var(--atlas-gold)] text-[9.5px] mt-0.5 block truncate">
+                        {d.portfolio || d.portfolio_country || "UNASSIGNED"}
+                      </span>
+                    </td>
+                    <td className="p-4 text-white/80">{d.country}</td>
                     <td className="p-4 text-white/60">{d.city_of_residence}</td>
                     <td className="p-4">
                       <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] uppercase">
