@@ -2764,8 +2764,14 @@ function PortfolioMatrixAdmin({ delegates }) {
           const committeeDelegates = delegates.filter(d => d.committee === committee);
           const occupiedMap = {};
           committeeDelegates.forEach(d => {
-            if (d.portfolio_country) occupiedMap[d.portfolio_country] = true;
+            if (d.portfolio_country) {
+              occupiedMap[d.portfolio_country] = (occupiedMap[d.portfolio_country] || 0) + 1;
+            }
           });
+
+          let maxAllowed = 1;
+          if (committee.includes("IPL")) maxAllowed = 3;
+          else if (committee.includes("UNSC")) maxAllowed = 2;
 
           return (
             <div key={committee} className="glass rounded border border-white/5 p-4 flex flex-col max-h-[400px]">
@@ -2774,7 +2780,8 @@ function PortfolioMatrixAdmin({ delegates }) {
               </span>
               <div className="grid grid-cols-2 gap-2 overflow-y-auto pr-1 scrollbar-thin">
                 {countries.map(item => {
-                  const isOccupied = occupiedMap[item.country] || item.status.toLowerCase() === "occupied";
+                  const currentCount = occupiedMap[item.country] || 0;
+                  const isOccupied = currentCount >= maxAllowed || item.status.toLowerCase() === "occupied";
                   let bgClass = "bg-white/5 hover:bg-white/10 text-white/80";
                   if (isOccupied) bgClass = "bg-red-500/20 text-red-200 border-red-500/20";
                   

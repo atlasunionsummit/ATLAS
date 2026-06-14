@@ -83,7 +83,9 @@ export default function AccessDialog({ open, onClose }) {
     getDelegates().then(delegates => {
       const occ = {};
       delegates.forEach(d => {
-        if (d.portfolio_country) occ[d.portfolio_country] = true;
+        if (d.portfolio_country) {
+          occ[d.portfolio_country] = (occ[d.portfolio_country] || 0) + 1;
+        }
       });
       setOccupiedMap(occ);
     }).catch(console.error);
@@ -660,7 +662,13 @@ export default function AccessDialog({ open, onClose }) {
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[350px] overflow-y-auto pr-2 scrollbar-thin">
                         {currentMatrix.map((item) => {
                           const isOpen = item.status.toLowerCase() === "open";
-                          const isOccupied = occupiedMap[item.country] || item.status.toLowerCase() === "occupied" || item.status.toLowerCase() === "alloted" || item.status.toLowerCase() === "reserved";
+                          
+                          let maxAllowed = 1;
+                          if (form.committee.includes("IPL")) maxAllowed = 3;
+                          else if (form.committee.includes("UNSC")) maxAllowed = 2;
+                          
+                          const currentCount = occupiedMap[item.country] || 0;
+                          const isOccupied = currentCount >= maxAllowed || item.status.toLowerCase() === "occupied" || item.status.toLowerCase() === "alloted" || item.status.toLowerCase() === "reserved";
                           const isSelected = form.portfolio_country === item.country;
 
                           let bgClass = "bg-white text-black hover:bg-white/90";
