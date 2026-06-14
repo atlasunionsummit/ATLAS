@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   getActivityLogs,
@@ -2825,12 +2826,14 @@ function PortfolioMatrixAdmin({ delegates, onUpdateDelegates }) {
   };
 
   const handlePortfolioClick = (committee, item, maxAllowed, currentCount, committeeDelegates) => {
+    console.log("PORTFOLIO BUTTON CLICKED:", item.country);
     try {
       const assigned = committeeDelegates.filter(d => {
         if (!d) return false;
         const port = d.portfolio || d.portfolio_country;
         return port === item.country;
       });
+      console.log("Found assigned delegates:", assigned.length);
       setSelectedPortfolio({
         committee,
         item,
@@ -2838,6 +2841,7 @@ function PortfolioMatrixAdmin({ delegates, onUpdateDelegates }) {
         currentCount,
         assignedDelegates: assigned
       });
+      console.log("State set to selectedPortfolio!");
     } catch (err) {
       toast.error("Error opening portfolio: " + err.message);
       console.error(err);
