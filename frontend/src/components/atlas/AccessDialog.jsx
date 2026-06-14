@@ -679,12 +679,17 @@ export default function AccessDialog({ open, onClose }) {
                             <button
                               key={item.country}
                               type="button"
-                              disabled={!isOpen}
+                              disabled={isOccupied}
                               onClick={() => setForm({ ...form, portfolio_country: item.country })}
-                              className={`text-[10px] sm:text-xs font-mono py-2.5 px-3 rounded border border-transparent transition-all truncate text-left ${bgClass}`}
+                              className={`text-[10px] sm:text-xs font-mono py-2.5 px-3 rounded border border-transparent transition-all text-left flex flex-col justify-center min-h-[44px] ${bgClass}`}
                               title={item.country}
                             >
-                              {item.country}
+                              <span className="truncate w-full">{item.country}</span>
+                              {maxAllowed > 1 && currentCount > 0 && (
+                                <span className="block mt-0.5 text-[8.5px] opacity-75 font-semibold truncate w-full">
+                                  {currentCount} OUT OF {maxAllowed}
+                                </span>
+                              )}
                             </button>
                           );
                         })}

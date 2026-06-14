@@ -272,7 +272,13 @@ export default function AdminPanel() {
                   />
                 )}
                 {activeTab === "matrix" && (
-                  <PortfolioMatrixAdmin delegates={delegates} />
+                  <PortfolioMatrixAdmin 
+                    delegates={delegates} 
+                    onUpdateDelegates={async (newDelegates) => {
+                      setDelegates(newDelegates);
+                      await saveDelegates(newDelegates);
+                    }}
+                  />
                 )}
                 {activeTab === "discounts" && (
                   <DiscountCodeManager
@@ -576,8 +582,8 @@ function AdminSidebar({ activeTab, setActiveTab, isOpen, setIsOpen, onLogout, us
               setIsOpen(false);
             }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded font-mono text-[11px] tracking-widest text-left transition-all ${activeTab === tab.id
-                ? "bg-[var(--atlas-gold)]/10 text-[var(--atlas-gold)] border-l-2 border-[var(--atlas-gold)]"
-                : "text-white/55 hover:text-white hover:bg-white/[0.02]"
+              ? "bg-[var(--atlas-gold)]/10 text-[var(--atlas-gold)] border-l-2 border-[var(--atlas-gold)]"
+              : "text-white/55 hover:text-white hover:bg-white/[0.02]"
               }`}
           >
             <span>{tab.icon}</span>
@@ -1069,10 +1075,10 @@ function DelegateManager({ delegates, onUpdate, onRefresh }) {
               <h3 className="font-display text-white text-2xl uppercase">{viewingDelegate.full_name}</h3>
               <button onClick={() => setViewingDelegate(null)} className="text-white/50 hover:text-white">✕</button>
             </div>
-            
+
             <div className="flex-grow overflow-y-auto pr-2 scrollbar-thin space-y-4 font-mono text-xs">
               {Object.entries(viewingDelegate).map(([key, value]) => {
-                if(key === 'id_proof_base64' && value) {
+                if (key === 'id_proof_base64' && value) {
                   return (
                     <div key={key} className="flex flex-col border-b border-white/5 pb-3">
                       <span className="text-white/40 uppercase mb-1">{key.replace(/_/g, ' ')}</span>
@@ -1232,10 +1238,10 @@ function PaymentTracker({ payments, onUpdate, onRefresh }) {
                     <td className="p-4">
                       <span
                         className={`px-2 py-0.5 rounded text-[9px] uppercase border ${p.status === "paid"
-                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                            : p.status === "refunded"
-                              ? "bg-red-500/10 text-red-400 border-red-500/20"
-                              : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                          : p.status === "refunded"
+                            ? "bg-red-500/10 text-red-400 border-red-500/20"
+                            : "bg-amber-500/10 text-amber-400 border-amber-500/20"
                           }`}
                       >
                         {p.status}
@@ -1328,7 +1334,7 @@ function PaymentTracker({ payments, onUpdate, onRefresh }) {
             className="fixed inset-0 z-[200] flex items-center justify-center p-4 print:p-0 print:bg-white"
           >
             <div className="absolute inset-0 bg-black/80 backdrop-blur-md print:hidden" onClick={() => setInvoicePay(null)} />
-            
+
             <motion.div
               initial={{ scale: 0.95, y: 20 }}
               animate={{ scale: 1, y: 0 }}
@@ -1337,19 +1343,19 @@ function PaymentTracker({ payments, onUpdate, onRefresh }) {
             >
               {/* Animated Glowing Border */}
               <div className="absolute inset-[-50%] animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#00000000_0%,#00000000_50%,var(--atlas-cyan)_75%,var(--atlas-gold)_100%)] opacity-70 group-hover:opacity-100 transition-opacity duration-500 print:hidden" />
-              
+
               {/* Receipt Content Container */}
               <div className="relative bg-[#0a0510]/95 backdrop-blur-xl rounded-2xl p-8 border border-white/10 shadow-2xl h-full w-full print:bg-white print:border-none print:text-black">
-                
+
                 {/* Holographic noise overlay */}
                 <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none print:hidden" style={{ backgroundImage: "url('https://grainy-gradients.vercel.app/noise.svg')" }}></div>
 
                 {/* Close Button */}
-                <button 
-                  onClick={() => setInvoicePay(null)} 
+                <button
+                  onClick={() => setInvoicePay(null)}
                   className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors print:hidden bg-white/5 rounded-full p-1"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
                 </button>
 
                 {/* Header */}
@@ -1392,11 +1398,11 @@ function PaymentTracker({ payments, onUpdate, onRefresh }) {
                     <span className="text-white/40 group-hover/item:text-white/60 transition-colors print:text-gray-500">TICKET TIER</span>
                     <span className="text-white bg-white/5 px-2 py-0.5 rounded border border-white/10 print:border-gray-300 print:text-black">{invoicePay.package_name}</span>
                   </div>
-                  
+
                   <div className="relative h-[1px] w-full my-4 print:bg-gray-300">
-                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent print:hidden" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent print:hidden" />
                   </div>
-                  
+
                   <div className="flex justify-between items-end">
                     <div className="space-y-1">
                       <span className="text-white/40 text-[10px] block print:text-gray-500">TOTAL AMOUNT</span>
@@ -1412,7 +1418,7 @@ function PaymentTracker({ payments, onUpdate, onRefresh }) {
                 </div>
 
                 <div className="relative h-[1px] w-full mt-8 mb-6 print:bg-gray-300">
-                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent print:hidden" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent print:hidden" />
                 </div>
 
                 <div className="text-center text-[9px] text-white/30 leading-relaxed font-mono relative z-10 print:text-gray-400">
@@ -1550,14 +1556,14 @@ function RegistrationAuditor({ registrations, delegates, payments, emailTemplate
                   <div className="mt-2 text-[var(--atlas-gold)] font-semibold border-t border-white/5 pt-2 flex flex-wrap gap-2 justify-between items-center">
                     <span>UTR: {reg.utr_number}</span>
                     <div className="flex gap-2">
-                      <button 
+                      <button
                         onClick={() => setViewData(reg)}
                         className="text-[9px] px-2 py-1 bg-[var(--atlas-purple)]/20 hover:bg-[var(--atlas-purple)]/40 rounded border border-[var(--atlas-cyan)]/30 text-[var(--atlas-cyan)] transition-colors tracking-widest"
                       >
                         VIEW DATA
                       </button>
                       {reg.id_proof_base64 && (
-                        <button 
+                        <button
                           onClick={() => setViewId(reg.id_proof_base64)}
                           className="text-[9px] px-2 py-1 bg-white/10 hover:bg-white/20 rounded border border-white/20 text-white transition-colors"
                         >
@@ -1615,7 +1621,7 @@ function RegistrationAuditor({ registrations, delegates, payments, emailTemplate
               </div>
               <button onClick={() => setViewData(null)} className="text-white/50 hover:text-white bg-white/5 rounded-full p-2">✕</button>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm font-mono">
               {/* Left Column: Delegate Info */}
               <div className="space-y-6">
@@ -1635,7 +1641,7 @@ function RegistrationAuditor({ registrations, delegates, payments, emailTemplate
                   <h4 className="text-[var(--atlas-cyan)] border-b border-[var(--atlas-cyan)]/30 pb-2 mb-3 tracking-widest text-[11px] font-bold">ASSIGNMENT PREFERENCES</h4>
                   <div className="space-y-2 text-white/80">
                     <div className="flex flex-col gap-1">
-                      <span className="text-white/40">Committee:</span> 
+                      <span className="text-white/40">Committee:</span>
                       <span className="bg-black/30 p-2 rounded border border-white/5">{viewData.committee}</span>
                     </div>
                     {viewData.portfolio_1 && (
@@ -1668,7 +1674,7 @@ function RegistrationAuditor({ registrations, delegates, payments, emailTemplate
                   <div className="space-y-3 text-white/80">
                     {viewData.past_experience && (
                       <div className="flex flex-col gap-1">
-                        <span className="text-white/40">Past Experience:</span> 
+                        <span className="text-white/40">Past Experience:</span>
                         <span className="bg-black/30 p-2 rounded border border-white/5 text-[11px] leading-relaxed">{viewData.past_experience}</span>
                       </div>
                     )}
@@ -1684,9 +1690,9 @@ function RegistrationAuditor({ registrations, delegates, payments, emailTemplate
                 {viewData.id_proof_base64 && (
                   <div>
                     <h4 className="text-red-400 border-b border-red-400/30 pb-2 mb-3 tracking-widest text-[11px] font-bold">IDENTITY VERIFICATION</h4>
-                    <img 
-                      src={viewData.id_proof_base64} 
-                      alt="ID Proof" 
+                    <img
+                      src={viewData.id_proof_base64}
+                      alt="ID Proof"
                       className="w-full h-auto rounded border border-white/20 object-contain bg-black max-h-48 cursor-pointer hover:opacity-80 transition-opacity"
                       onClick={() => setViewId(viewData.id_proof_base64)}
                     />
@@ -1695,11 +1701,11 @@ function RegistrationAuditor({ registrations, delegates, payments, emailTemplate
                 )}
               </div>
             </div>
-            
+
             <div className="mt-8 pt-4 border-t border-white/10 flex gap-3 justify-end">
-               <button onClick={() => setViewData(null)} className="px-6 py-2 border border-white/20 rounded text-white/70 hover:bg-white/10 text-xs font-mono tracking-widest transition-colors">
-                  CLOSE VIEWER
-               </button>
+              <button onClick={() => setViewData(null)} className="px-6 py-2 border border-white/20 rounded text-white/70 hover:bg-white/10 text-xs font-mono tracking-widest transition-colors">
+                CLOSE VIEWER
+              </button>
             </div>
           </div>
         </div>
@@ -2391,8 +2397,8 @@ export function PassLedgerAndScanner({ delegates, onRefresh }) {
           <button
             onClick={() => setSubTab("ledger")}
             className={`px-4 py-2 border font-mono text-xs tracking-wider transition-all rounded ${subTab === "ledger"
-                ? "bg-[var(--atlas-gold)]/15 border-[var(--atlas-gold)] text-[var(--atlas-gold)] font-bold"
-                : "border-white/5 text-white/60 hover:text-white"
+              ? "bg-[var(--atlas-gold)]/15 border-[var(--atlas-gold)] text-[var(--atlas-gold)] font-bold"
+              : "border-white/5 text-white/60 hover:text-white"
               }`}
           >
             🎟️ DIGITAL PASS LEDGER
@@ -2400,8 +2406,8 @@ export function PassLedgerAndScanner({ delegates, onRefresh }) {
           <button
             onClick={() => setSubTab("scanner")}
             className={`px-4 py-2 border font-mono text-xs tracking-wider transition-all rounded ${subTab === "scanner"
-                ? "bg-[var(--atlas-cyan)]/15 border-[var(--atlas-cyan)] text-[var(--atlas-cyan)] font-bold"
-                : "border-white/5 text-white/60 hover:text-white"
+              ? "bg-[var(--atlas-cyan)]/15 border-[var(--atlas-cyan)] text-[var(--atlas-cyan)] font-bold"
+              : "border-white/5 text-white/60 hover:text-white"
               }`}
           >
             📹 VENUE CHECK-IN SCANNER
@@ -2484,10 +2490,10 @@ export function PassLedgerAndScanner({ delegates, onRefresh }) {
                         <td className="p-4">
                           <span
                             className={`px-2 py-0.5 rounded text-[9px] uppercase border ${p.status === "active"
-                                ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
-                                : p.status === "used"
-                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                  : "bg-red-500/10 text-red-400 border-red-500/20"
+                              ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
+                              : p.status === "used"
+                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                : "bg-red-500/10 text-red-400 border-red-500/20"
                               }`}
                           >
                             {p.status}
@@ -2656,14 +2662,14 @@ export function PassLedgerAndScanner({ delegates, onRefresh }) {
                   <div className="space-y-4">
                     {/* Visual Pass Card details */}
                     <div className={`p-4 rounded border flex flex-col gap-3 font-mono text-xs ${scannedPass.status === "revoked"
-                        ? "bg-red-500/5 border-red-500/20"
-                        : "bg-emerald-500/5 border-emerald-500/20"
+                      ? "bg-red-500/5 border-red-500/20"
+                      : "bg-emerald-500/5 border-emerald-500/20"
                       }`}>
                       <div className="flex justify-between items-center">
                         <span className="text-[var(--atlas-cyan)] font-bold">{scannedPass.pass_id}</span>
                         <span className={`px-2 py-0.5 rounded text-[8.5px] uppercase border ${scannedPass.status === "revoked"
-                            ? "bg-red-500/10 text-red-400 border-red-500/20"
-                            : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                          ? "bg-red-500/10 text-red-400 border-red-500/20"
+                          : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                           }`}>
                           {scannedPass.status.toUpperCase()}
                         </span>
@@ -2750,9 +2756,76 @@ export function PassLedgerAndScanner({ delegates, onRefresh }) {
 // ----------------------------------------------------
 // Component: PortfolioMatrixAdmin
 // ----------------------------------------------------
-function PortfolioMatrixAdmin({ delegates }) {
+function PortfolioMatrixAdmin({ delegates, onUpdateDelegates }) {
+  const [selectedPortfolio, setSelectedPortfolio] = useState(null);
+  const [assignEmail, setAssignEmail] = useState("");
+
+  const handleRevoke = (delegateId) => {
+    if (!window.confirm("Are you sure you want to revoke this portfolio assignment?")) return;
+    const updated = delegates.map(d => {
+      if (d.id === delegateId) {
+        return { ...d, portfolio: "", portfolio_country: "" };
+      }
+      return d;
+    });
+    onUpdateDelegates(updated);
+    toast.success("PORTFOLIO REVOKED");
+    // Update the selected portfolio's assigned delegates list in the modal state
+    setSelectedPortfolio(prev => ({
+      ...prev,
+      assignedDelegates: prev.assignedDelegates.filter(d => d.id !== delegateId)
+    }));
+  };
+
+  const handleManualAssign = (e) => {
+    e.preventDefault();
+    if (!assignEmail.trim()) return;
+
+    const email = assignEmail.trim().toLowerCase();
+    const existingDelegate = delegates.find(d => d.email && d.email.toLowerCase() === email);
+    
+    let updatedDelegates = [...delegates];
+
+    if (existingDelegate) {
+      if (existingDelegate.portfolio_country || existingDelegate.portfolio) {
+        if (!window.confirm("This user already has a portfolio assigned. Overwrite?")) return;
+      }
+      updatedDelegates = updatedDelegates.map(d => {
+        if (d.id === existingDelegate.id) {
+          return { ...d, committee: selectedPortfolio.committee, portfolio: selectedPortfolio.item.country, portfolio_country: selectedPortfolio.item.country };
+        }
+        return d;
+      });
+      toast.success("PORTFOLIO ALLOTED TO EXISTING DELEGATE");
+    } else {
+      // Create a stub delegate
+      const stub = {
+        id: `STUB-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+        email: email,
+        full_name: "Pending Registration",
+        committee: selectedPortfolio.committee,
+        portfolio_country: selectedPortfolio.item.country,
+        portfolio: selectedPortfolio.item.country,
+        status: "alloted",
+        timestamp: new Date().toISOString()
+      };
+      updatedDelegates.push(stub);
+      toast.success("PORTFOLIO ALLOTED TO NEW EMAIL (PENDING REGISTRATION)");
+    }
+
+    onUpdateDelegates(updatedDelegates);
+    setAssignEmail("");
+    
+    // Refresh modal delegates
+    const newlyAssigned = updatedDelegates.filter(d => 
+      d.committee === selectedPortfolio.committee && 
+      (d.portfolio === selectedPortfolio.item.country || d.portfolio_country === selectedPortfolio.item.country)
+    );
+    setSelectedPortfolio(prev => ({ ...prev, assignedDelegates: newlyAssigned }));
+  };
+
   return (
-    <div className="space-y-6 max-w-7xl mx-auto h-full flex flex-col">
+    <div className="space-y-6 max-w-7xl mx-auto h-full flex flex-col relative">
       <div className="flex justify-between items-center shrink-0">
         <div>
           <h2 className="text-2xl font-display tracking-wider">PORTFOLIO MATRIX TRACKER</h2>
@@ -2769,8 +2842,9 @@ function PortfolioMatrixAdmin({ delegates }) {
           const committeeDelegates = delegates.filter(d => d.committee === committee);
           const occupiedMap = {};
           committeeDelegates.forEach(d => {
-            if (d.portfolio_country) {
-              occupiedMap[d.portfolio_country] = (occupiedMap[d.portfolio_country] || 0) + 1;
+            const port = d.portfolio || d.portfolio_country;
+            if (port) {
+              occupiedMap[port] = (occupiedMap[port] || 0) + 1;
             }
           });
 
@@ -2780,24 +2854,43 @@ function PortfolioMatrixAdmin({ delegates }) {
 
           return (
             <div key={committee} className="glass rounded border border-white/5 p-4 flex flex-col max-h-[400px]">
-              <span className="classified-label text-[var(--atlas-cyan)] text-[10px] block mb-3 border-b border-white/5 pb-2 truncate shrink-0">
-                / {committee.toUpperCase()}
-              </span>
+              <div className="flex justify-between items-center mb-3 border-b border-white/5 pb-2">
+                <span className="classified-label text-[var(--atlas-cyan)] text-[10px] truncate shrink-0">
+                  / {committee.toUpperCase()}
+                </span>
+                {maxAllowed > 1 && (
+                  <span className="text-[8px] font-mono tracking-widest text-[var(--atlas-gold)] bg-[var(--atlas-gold)]/10 px-1.5 py-0.5 rounded">
+                    MAX {maxAllowed}/PORTFOLIO
+                  </span>
+                )}
+              </div>
               <div className="grid grid-cols-2 gap-2 overflow-y-auto pr-1 scrollbar-thin">
                 {countries.map(item => {
                   const currentCount = occupiedMap[item.country] || 0;
                   const isOccupied = currentCount >= maxAllowed || item.status.toLowerCase() === "occupied";
                   let bgClass = "bg-white/5 hover:bg-white/10 text-white/80";
-                  if (isOccupied) bgClass = "bg-red-500/20 text-red-200 border-red-500/20";
+                  if (isOccupied) bgClass = "bg-red-500/20 hover:bg-red-500/30 text-red-200 border-red-500/20";
                   
                   return (
-                    <div
+                    <button
                       key={item.country}
-                      className={`text-[9px] sm:text-[10px] font-mono py-2 px-2 rounded border border-transparent whitespace-normal break-words text-left transition-colors ${bgClass}`}
+                      onClick={() => setSelectedPortfolio({
+                        committee,
+                        item,
+                        maxAllowed,
+                        currentCount,
+                        assignedDelegates: committeeDelegates.filter(d => (d.portfolio || d.portfolio_country) === item.country)
+                      })}
+                      className={`text-[9px] sm:text-[10px] font-mono py-2 px-2 rounded border border-transparent whitespace-normal break-words text-left transition-colors cursor-pointer ${bgClass}`}
                       title={item.country}
                     >
                       {item.country}
-                    </div>
+                      {maxAllowed > 1 && currentCount > 0 && (
+                        <span className="block mt-1 text-[8px] opacity-70">
+                          {currentCount} OUT OF {maxAllowed}
+                        </span>
+                      )}
+                    </button>
                   );
                 })}
               </div>
@@ -2877,7 +2970,7 @@ function AtlasPlusManager({ delegates, registrations, payments, onUpdateDelegate
               <h4 className="font-display text-white text-lg truncate">{person.full_name}</h4>
               <p className="text-[10px] text-white/50 font-mono truncate">{person.committee}</p>
             </div>
-            
+
             <div className="mt-4 pt-3 border-t border-white/5 flex justify-between items-center">
               <span className={`text-[10px] font-mono tracking-widest ${person.is_atlas_plus ? 'text-[var(--atlas-gold)] font-bold' : 'text-white/30'}`}>
                 {person.is_atlas_plus ? '★ ATLAS PLUS ACTIVE' : 'STANDARD ACCESS'}
@@ -2901,7 +2994,7 @@ function AtlasPlusManager({ delegates, registrations, payments, onUpdateDelegate
 // ----------------------------------------------------
 function GoogleLoginsViewer({ googleLogins }) {
   const logins = Array.isArray(googleLogins) ? googleLogins : [];
-  
+
   return (
     <div className="space-y-6">
       <div className="border-b border-white/5 pb-4 flex justify-between items-end">
