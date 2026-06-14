@@ -63,6 +63,7 @@ export default function AdminPanel() {
   const [registrations, setRegistrations] = useState([]);
   const [payments, setPayments] = useState([]);
   const [events, setEvents] = useState([]);
+  const [settings, setSettings] = useState({});
   const [broadcasts, setBroadcasts] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
   const [discountCodes, setDiscountCodes] = useState([]);
