@@ -7,6 +7,7 @@ import "@/App.css";
 import LoadingScreen from "@/components/atlas/LoadingScreen";
 import AdminPanel from "@/pages/AdminPanel";
 import DelegateDashboard from "@/pages/DelegateDashboard";
+import CoachellaDashboard from "@/pages/CoachellaDashboard";
 import DelegatePassportPage from "@/pages/DelegatePassportPage";
 import Navbar from "@/components/atlas/Navbar";
 import StatusOverlay from "@/components/atlas/StatusOverlay";
@@ -62,6 +63,11 @@ function Home({ setAccessOpen }) {
         description: "Authorized command session initialized.",
       });
       navigate("/admin");
+    } else if (user.committee === "Coachella (Simulated Crisis)") {
+      toast.success("VERIFICATION COMPLETED", {
+        description: `Welcome to Coachella, ${user.full_name}`,
+      });
+      navigate("/coachella");
     } else {
       toast.success("VERIFICATION COMPLETED", {
         description: `Welcome back, Operator ${user.full_name}`,
@@ -146,6 +152,7 @@ function App() {
           <Route path="/" element={<Home setAccessOpen={setAccessOpen} />} />
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/dashboard" element={<DelegateDashboard onRequestAccess={() => setAccessOpen(true)} />} />
+          <Route path="/coachella" element={<CoachellaDashboard onRequestAccess={() => setAccessOpen(true)} />} />
           <Route path="/passport" element={<DelegatePassportPage />} />
         </Routes>
         <AccessDialog open={accessOpen} onClose={() => setAccessOpen(false)} />

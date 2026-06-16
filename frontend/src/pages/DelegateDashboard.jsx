@@ -15,6 +15,7 @@ import {
   saveDelegateTasks
 } from "@/lib/atlasApi";
 import { toast } from "sonner";
+import CoachellaDashboard, { UrgentSafetyContact } from "@/pages/CoachellaDashboard";
 
 export default function DelegateDashboard({ onRequestAccess }) {
   const navigate = useNavigate();
@@ -216,6 +217,7 @@ export default function DelegateDashboard({ onRequestAccess }) {
             { id: "accommodation", label: "07 ACCOMMODATION", icon: "🏨" },
             { id: "data", label: "08 REGISTRATION DATA", icon: "🗄️" },
             { id: "library", label: "09 ATLAS LIBRARY", icon: "📚" },
+            { id: "safety", label: "10 URGENT SAFETY CONTACT", icon: "🚨" },
           ].filter(tab => !(tab.id === "atlasplus" && delegate?.committee === "Coachella (Simulated Crisis)"))
           .map((tab) => (
             <button
@@ -524,6 +526,9 @@ export default function DelegateDashboard({ onRequestAccess }) {
                     </p>
                   </div>
                 </div>
+              )}
+              {activeTab === "safety" && (
+                <UrgentSafetyContact delegate={delegate} />
               )}
             </motion.div>
           </AnimatePresence>
