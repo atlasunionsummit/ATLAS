@@ -210,14 +210,15 @@ export default function DelegateDashboard({ onRequestAccess }) {
           {[
             { id: "profile", label: "01 OPERATOR DOSSIER", icon: "👤" },
             { id: "agenda", label: "02 ACCOUNTING TASKS", icon: "📅" },
-            { id: "messaging", label: "03 ENCRYPTED CHAT", icon: "💬" },
-            { id: "notes", label: "04 SECURE NOTES", icon: "📝" },
-            { id: "ai", label: "05 COMMAND AI", icon: "🤖" },
-            { id: "atlasplus", label: "06 ATLAS PLUS", icon: "✨" },
-            { id: "accommodation", label: "07 ACCOMMODATION", icon: "🏨" },
-            { id: "data", label: "08 REGISTRATION DATA", icon: "🗄️" },
-            { id: "library", label: "09 ATLAS LIBRARY", icon: "📚" },
-            { id: "safety", label: "10 URGENT SAFETY CONTACT", icon: "🚨" },
+            { id: "announcements", label: "03 COMMAND DISPATCHES", icon: "📢" },
+            { id: "messaging", label: "04 ENCRYPTED CHAT", icon: "💬" },
+            { id: "notes", label: "05 SECURE NOTES", icon: "📝" },
+            { id: "ai", label: "06 COMMAND AI", icon: "🤖" },
+            { id: "atlasplus", label: "07 ATLAS PLUS", icon: "✨" },
+            { id: "accommodation", label: "08 ACCOMMODATION", icon: "🏨" },
+            { id: "data", label: "09 REGISTRATION DATA", icon: "🗄️" },
+            { id: "library", label: "10 ATLAS LIBRARY", icon: "📚" },
+            { id: "safety", label: "11 URGENT SAFETY CONTACT", icon: "🚨" },
           ].filter(tab => !(tab.id === "atlasplus" && delegate?.committee === "Coachella (Simulated Crisis)"))
           .map((tab) => (
             <button
@@ -295,6 +296,9 @@ export default function DelegateDashboard({ onRequestAccess }) {
                 <RestrictedOverlay delegate={delegate} onRequestAccess={onRequestAccess}>
                   <AccountingCalendar delegate={delegate} />
                 </RestrictedOverlay>
+              )}
+              {activeTab === "announcements" && (
+                <AnnouncementsDesk delegate={delegate} />
               )}
               {activeTab === "messaging" && (
                 <EncryptedChat delegate={delegate} />
@@ -543,7 +547,18 @@ export default function DelegateDashboard({ onRequestAccess }) {
 // ----------------------------------------------------
 function ProfileDesk({ delegate, onUpdate }) {
   const [form, setForm] = useState({ ...delegate });
+  const [passData, setPassData] = useState(null);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    import("@/lib/atlasApi").then(({ getPassByEmail }) => {
+      getPassByEmail(delegate.email).then((pass) => {
+        if (pass) {
+          setPassData(pass);
+        }
+      });
+    });
+  }, [delegate.email]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -585,11 +600,23 @@ function ProfileDesk({ delegate, onUpdate }) {
 
   return (
     <div className="space-y-6 max-w-[600px]">
-      <div className="border-b border-white/5 pb-4">
-        <span className="classified-label text-[var(--atlas-gold)] text-xs block">
-          / OPERATOR CREDENTIALS
-        </span>
-        <h3 className="font-display text-white text-2xl">DOSSIER SETTINGS</h3>
+      <div className="border-b border-white/5 pb-4 flex items-start justify-between">
+        <div>
+          <span className="classified-label text-[var(--atlas-gold)] text-xs block">
+            / OPERATOR CREDENTIALS
+          </span>
+          <h3 className="font-display text-white text-2xl">DOSSIER SETTINGS</h3>
+        </div>
+        {passData && (
+          <a
+            href={`/p/${passData.pass_id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-atlas !px-4 !py-2 !text-[10px] shrink-0"
+          >
+            VIEW E-PASSPORT <span>↗</span>
+          </a>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="glass rounded border border-white/5 p-6 space-y-5">
@@ -828,6 +855,69 @@ function AccountingCalendar({ delegate }) {
             ))
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------
+// Tab Sub-component: AnnouncementsDesk (Command Dispatches)
+// ----------------------------------------------------
+function AnnouncementsDesk() {
+  const [announcements, setAnnouncements] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAnnouncements = async () => {
+      try {
+        const data = await getBroadcastHistory();
+        setAnnouncements(data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+      } catch (err) {
+        console.error("Failed to load announcements:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAnnouncements();
+    const interval = setInterval(fetchAnnouncements, 15000); // Check for new updates every 15s
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading) return <div className="text-white/50 text-xs font-mono">FETCHING DISPATCHES...</div>;
+
+  return (
+    <div className="space-y-6 max-w-4xl">
+      <div className="border-b border-white/5 pb-4">
+        <span className="classified-label text-[var(--atlas-cyan)] text-xs block">
+          / COMMAND DISPATCHES
+        </span>
+        <h3 className="font-display text-white text-2xl uppercase">EVENT ANNOUNCEMENTS</h3>
+        <p className="text-white/50 text-xs font-mono mt-1">Live updates broadcasted from the Secretariat Command Center.</p>
+      </div>
+
+      <div className="space-y-4">
+        {announcements.length === 0 ? (
+          <div className="glass rounded border border-white/5 p-8 text-center text-white/30 text-xs font-mono">
+            NO DISPATCHES AVAILABLE
+          </div>
+        ) : (
+          announcements.map(a => (
+            <div key={a.id} className="glass rounded border border-[var(--atlas-cyan)]/20 p-5 relative overflow-hidden">
+              <div className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--atlas-cyan)] opacity-50" />
+              <div className="flex justify-between items-start mb-2">
+                <h4 className="font-display text-white text-lg tracking-wider">{a.subject}</h4>
+                <span className="text-[10px] text-white/40 font-mono shrink-0 ml-4">
+                  {new Date(a.timestamp).toLocaleString()}
+                </span>
+              </div>
+              <p className="text-white/70 text-sm font-mono leading-relaxed whitespace-pre-wrap">{a.body}</p>
+              <div className="mt-4 pt-3 border-t border-white/5 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--atlas-cyan)] animate-pulse" />
+                <span className="text-[9px] font-mono text-[var(--atlas-cyan)] tracking-widest font-bold">VERIFIED SENDER: COMMAND SECRETARIAT</span>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

@@ -1041,12 +1041,25 @@ function DelegateManager({ delegates, onUpdate, onRefresh }) {
 
               <div>
                 <label className="classified-label text-[var(--atlas-gold)] text-[9px]">PORTFOLIO ASSIGNMENT</label>
-                <input
-                  value={editingDelegate.portfolio || ""}
-                  onChange={(e) => setEditingDelegate({ ...editingDelegate, portfolio: e.target.value })}
-                  placeholder="e.g. USA, UK, Reuters..."
-                  className="w-full mt-1 bg-black/40 border border-[var(--atlas-gold)]/40 rounded px-3 py-2 text-white font-mono text-[11px] focus:border-[var(--atlas-gold)] outline-none"
-                />
+                {MATRIX_DATA[editingDelegate.committee] ? (
+                  <select
+                    value={editingDelegate.portfolio || ""}
+                    onChange={(e) => setEditingDelegate({ ...editingDelegate, portfolio: e.target.value, portfolio_country: e.target.value })}
+                    className="w-full mt-1 bg-black/40 border border-[var(--atlas-gold)]/40 rounded px-3 py-2 text-white font-mono text-[11px] focus:border-[var(--atlas-gold)] outline-none"
+                  >
+                    <option value="" className="bg-[var(--atlas-black)]">-- Select Portfolio --</option>
+                    {MATRIX_DATA[editingDelegate.committee].map(item => (
+                      <option key={item.country} value={item.country} className="bg-[var(--atlas-black)]">{item.country}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    value={editingDelegate.portfolio || ""}
+                    onChange={(e) => setEditingDelegate({ ...editingDelegate, portfolio: e.target.value, portfolio_country: e.target.value })}
+                    placeholder="e.g. USA, UK, Reuters..."
+                    className="w-full mt-1 bg-black/40 border border-[var(--atlas-gold)]/40 rounded px-3 py-2 text-white font-mono text-[11px] focus:border-[var(--atlas-gold)] outline-none"
+                  />
+                )}
               </div>
 
               <div className="flex gap-3 pt-4 border-t border-white/5">
@@ -2825,6 +2838,51 @@ function PortfolioMatrixAdmin({ delegates, onUpdateDelegates }) {
     setSelectedPortfolio(prev => ({ ...prev, assignedDelegates: newlyAssigned }));
   };
 
+  const handleToggleClose = () => {
+    const isClosed = selectedPortfolio.assignedDelegates.some(d => d.email === "closed@atlas.com");
+    if (isClosed) {
+      // Reopen: remove all closed stubs for this portfolio
+      const updatedDelegates = delegates.filter(d => 
+        !(d.email === "closed@atlas.com" && d.committee === selectedPortfolio.committee && (d.portfolio === selectedPortfolio.item.country || d.portfolio_country === selectedPortfolio.item.country))
+      );
+      onUpdateDelegates(updatedDelegates);
+      toast.success("REGISTRATION REOPENED");
+      setSelectedPortfolio(prev => ({
+        ...prev,
+        assignedDelegates: prev.assignedDelegates.filter(d => d.email !== "closed@atlas.com")
+      }));
+    } else {
+      // Close: add stubs for remaining slots
+      const emptySlots = selectedPortfolio.maxAllowed - selectedPortfolio.assignedDelegates.length;
+      if (emptySlots <= 0) {
+        toast.error("Portfolio is already full.");
+        return;
+      }
+      let updatedDelegates = [...delegates];
+      const newStubs = [];
+      for (let i = 0; i < emptySlots; i++) {
+        const stub = {
+          id: `CLOSED-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+          email: "closed@atlas.com",
+          full_name: "[REGISTRATION CLOSED]",
+          committee: selectedPortfolio.committee,
+          portfolio_country: selectedPortfolio.item.country,
+          portfolio: selectedPortfolio.item.country,
+          status: "closed",
+          timestamp: new Date().toISOString()
+        };
+        updatedDelegates.push(stub);
+        newStubs.push(stub);
+      }
+      onUpdateDelegates(updatedDelegates);
+      toast.success("REGISTRATION CLOSED");
+      setSelectedPortfolio(prev => ({
+        ...prev,
+        assignedDelegates: [...prev.assignedDelegates, ...newStubs]
+      }));
+    }
+  };
+
   const handlePortfolioClick = (committee, item, maxAllowed, currentCount, committeeDelegates) => {
     console.log("PORTFOLIO BUTTON CLICKED:", item.country);
     try {
@@ -2917,6 +2975,107 @@ function PortfolioMatrixAdmin({ delegates, onUpdateDelegates }) {
           );
         })}
       </div>
+
+      {/* Interactive Modal for Selected Portfolio */}
+      <AnimatePresence>
+        {selectedPortfolio && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-[#0a0212]/95 border border-[var(--atlas-cyan)]/30 rounded-xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col"
+            >
+              <div className="p-4 border-b border-white/10 flex justify-between items-start bg-white/[0.02]">
+                <div>
+                  <span className="text-[10px] text-[var(--atlas-cyan)] font-mono tracking-widest block mb-1 uppercase">
+                    {selectedPortfolio.committee}
+                  </span>
+                  <h3 className="font-display text-white text-xl">
+                    {selectedPortfolio.item.country}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] text-white/50 font-mono">
+                      {selectedPortfolio.assignedDelegates.length} OF {selectedPortfolio.maxAllowed} SLOTS OCCUPIED
+                    </span>
+                    {(selectedPortfolio.item.status.toLowerCase() === "occupied" || selectedPortfolio.assignedDelegates.some(d => d.email === "closed@atlas.com")) && (
+                      <span className="text-[8px] bg-red-500/20 text-red-400 border border-red-500/30 px-1.5 py-0.5 rounded font-mono">CLOSED</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleToggleClose}
+                    className="text-[9px] font-mono tracking-widest border px-2 py-1 rounded transition-colors bg-white/5 hover:bg-white/10 text-white/70 border-white/20"
+                  >
+                    {selectedPortfolio.assignedDelegates.some(d => d.email === "closed@atlas.com") ? "REOPEN" : "CLOSE PORTFOLIO"}
+                  </button>
+                  <button
+                    onClick={() => setSelectedPortfolio(null)}
+                    className="text-white/40 hover:text-white transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-5 flex-1 overflow-y-auto space-y-6">
+                <div>
+                  <h4 className="font-mono text-[10px] text-white/50 tracking-widest mb-3 uppercase">Current Assignees</h4>
+                  {selectedPortfolio.assignedDelegates.length === 0 ? (
+                    <div className="text-[10px] text-white/30 font-mono border border-white/5 bg-white/[0.02] rounded p-3 text-center">
+                      NO DELEGATES ASSIGNED
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {selectedPortfolio.assignedDelegates.map(d => (
+                        <div key={d.id} className="flex items-center justify-between bg-black/40 border border-white/10 rounded p-3">
+                          <div className="min-w-0 flex-1 pr-3">
+                            <p className="text-white font-display text-sm truncate">{d.full_name}</p>
+                            <p className="text-[var(--atlas-cyan)] font-mono text-[9px] truncate mt-0.5">{d.email}</p>
+                          </div>
+                          <button
+                            onClick={() => handleRevoke(d.id)}
+                            className="text-[9px] text-red-400 border border-red-500/30 px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 transition-colors shrink-0"
+                          >
+                            REVOKE
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t border-white/5 pt-5">
+                  <h4 className="font-mono text-[10px] text-white/50 tracking-widest mb-3 uppercase">Manual Assignment</h4>
+                  <form onSubmit={handleManualAssign} className="flex gap-2">
+                    <input
+                      type="email"
+                      value={assignEmail}
+                      onChange={e => setAssignEmail(e.target.value)}
+                      placeholder="Enter delegate email..."
+                      className="flex-1 bg-black/40 border border-white/15 focus:border-[var(--atlas-gold)] outline-none py-2 px-3 font-mono text-[11px] text-white rounded placeholder:text-white/30"
+                      disabled={selectedPortfolio.assignedDelegates.length >= selectedPortfolio.maxAllowed}
+                    />
+                    <button
+                      type="submit"
+                      disabled={!assignEmail || selectedPortfolio.assignedDelegates.length >= selectedPortfolio.maxAllowed}
+                      className="bg-[var(--atlas-gold)] text-black font-mono text-[10px] font-bold px-4 py-2 rounded tracking-wider hover:bg-[#d4ae4a] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      ASSIGN
+                    </button>
+                  </form>
+                  {selectedPortfolio.assignedDelegates.length >= selectedPortfolio.maxAllowed && (
+                    <p className="text-red-400 text-[9px] font-mono mt-2 tracking-widest">
+                      MAXIMUM CAPACITY REACHED
+                    </p>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -2934,8 +3093,14 @@ function AtlasPlusManager({ delegates, registrations, payments, onUpdateDelegate
 
   const toggleAtlasPlus = (person) => {
     const isNowPlus = !person.is_atlas_plus;
+    
+    // Create clean object without UI-only fields
+    const cleanPerson = { ...person };
+    delete cleanPerson.source;
+    delete cleanPerson.unifiedId;
+    
     if (person.source === 'delegate') {
-      const updatedDelegate = { ...person, is_atlas_plus: isNowPlus, upgrade_pending: false };
+      const updatedDelegate = { ...cleanPerson, is_atlas_plus: isNowPlus, upgrade_pending: false };
       const updated = delegates.map(d => d.id === person.unifiedId ? updatedDelegate : d);
       onUpdateDelegates(updated);
 
@@ -2957,7 +3122,8 @@ function AtlasPlusManager({ delegates, registrations, payments, onUpdateDelegate
         toast.success("PAYMENT RECORDED", { description: "Atlas Plus transaction logged." });
       }
     } else {
-      const updated = registrations.map(r => r.registration_id === person.unifiedId ? { ...r, is_atlas_plus: isNowPlus } : r);
+      const updatedRegistration = { ...cleanPerson, is_atlas_plus: isNowPlus, upgrade_pending: false };
+      const updated = registrations.map(r => r.registration_id === person.unifiedId ? updatedRegistration : r);
       onUpdateRegistrations(updated);
     }
     toast.success("ATLAS PLUS UPDATED", { description: `${person.full_name} is now ${isNowPlus ? 'GRANTED' : 'REVOKED'} Atlas Plus.` });
@@ -2988,6 +3154,13 @@ function AtlasPlusManager({ delegates, registrations, payments, onUpdateDelegate
               </div>
               <h4 className="font-display text-white text-lg truncate">{person.full_name}</h4>
               <p className="text-[10px] text-white/50 font-mono truncate">{person.committee}</p>
+              
+              {person.upgrade_utr && (
+                <div className="mt-2 bg-black/40 border border-white/10 rounded p-2 text-[10px] font-mono">
+                  <span className="text-[var(--atlas-gold)] tracking-widest block mb-0.5 uppercase">UTR TRANSACTION ID</span> 
+                  <span className="text-white break-all">{person.upgrade_utr}</span>
+                </div>
+              )}
             </div>
 
             <div className="mt-4 pt-3 border-t border-white/5 flex justify-between items-center">
@@ -2996,7 +3169,7 @@ function AtlasPlusManager({ delegates, registrations, payments, onUpdateDelegate
               </span>
               <button
                 onClick={() => toggleAtlasPlus(person)}
-                className={`text-[9px] px-3 py-1.5 rounded border font-mono tracking-wider transition-colors ${person.is_atlas_plus ? 'border-red-500/30 text-red-400 hover:bg-red-500/10' : 'border-[var(--atlas-gold)]/50 text-[var(--atlas-gold)] hover:bg-[var(--atlas-gold)]/10'}`}
+                className={`text-[9px] px-3 py-1.5 rounded border font-mono tracking-wider transition-colors shrink-0 ${person.is_atlas_plus ? 'border-red-500/30 text-red-400 hover:bg-red-500/10' : 'border-[var(--atlas-gold)]/50 text-[var(--atlas-gold)] hover:bg-[var(--atlas-gold)]/10'}`}
               >
                 {person.is_atlas_plus ? 'REVOKE' : 'GRANT PLUS'}
               </button>

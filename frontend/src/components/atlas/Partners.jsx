@@ -2,11 +2,16 @@ import { motion } from "framer-motion";
 
 const PARTNERS = [
   {
-    category: "Grand Sponsors",
+    category: "IIT Delhi and D.U Ecosystem",
     items: [
       { name: "IIT Delhi", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781190327/download_9_pwd5y9.png" },
-      { name: "Oxford International", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781189436/oi-logo_qqmqt4.png" },
       { name: "Hindu College", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781366106/download_6_nr6knj.jpg" }
+    ]
+  },
+  {
+    category: "Educational Partner",
+    items: [
+      { name: "Oxford International", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781189436/oi-logo_qqmqt4.png" }
     ]
   },
   {
