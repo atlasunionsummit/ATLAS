@@ -56,7 +56,7 @@ export default function Passport({ delegateUser, onOpenRegistration }) {
         expires: "31 DEC 2026",
         seal: delegateUser.utr_number || "5B1B2A004D08",
         status: "APPROVED",
-        qr_url: `https://api.qrserver.com/v1/create-qr-code/?size=240x240&bgcolor=08000F&color=C9A44C&data=AUS::${delegateUser.id}`,
+        qr_url: `https://api.qrserver.com/v1/create-qr-code/?size=240x240&bgcolor=08000F&color=C9A44C&data=https://atlasunionsummit.com/p/${delegateUser.id}`,
         signature: "AUS/2026",
       });
       setShowRegisterPromo(false);

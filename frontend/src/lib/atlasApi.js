@@ -686,6 +686,20 @@ export const getPassByEmail = async (email) => {
   }
 };
 
+export const getPassById = async (passId) => {
+  try {
+    const q = query(collection(db, "passes"), where("pass_id", "==", passId));
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      return snap.docs[0].data();
+    }
+    return null;
+  } catch (e) {
+    console.error("Failed to fetch pass by ID:", e);
+    return null;
+  }
+};
+
 export const savePass = async (passData) => {
   try {
     const docRef = doc(db, "passes", passData.email.toLowerCase());

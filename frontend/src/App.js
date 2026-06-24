@@ -9,6 +9,7 @@ import AdminPanel from "@/pages/AdminPanel";
 import DelegateDashboard from "@/pages/DelegateDashboard";
 import CoachellaDashboard from "@/pages/CoachellaDashboard";
 import DelegatePassportPage from "@/pages/DelegatePassportPage";
+import StandalonePassPage from "@/pages/StandalonePassPage";
 import Navbar from "@/components/atlas/Navbar";
 import StatusOverlay from "@/components/atlas/StatusOverlay";
 import Hero from "@/components/atlas/Hero";
@@ -154,6 +155,7 @@ function App() {
           <Route path="/dashboard" element={<DelegateDashboard onRequestAccess={() => setAccessOpen(true)} />} />
           <Route path="/coachella" element={<CoachellaDashboard onRequestAccess={() => setAccessOpen(true)} />} />
           <Route path="/passport" element={<DelegatePassportPage />} />
+          <Route path="/p/:id" element={<StandalonePassPage />} />
         </Routes>
         <AccessDialog open={accessOpen} onClose={() => setAccessOpen(false)} />
       </BrowserRouter>

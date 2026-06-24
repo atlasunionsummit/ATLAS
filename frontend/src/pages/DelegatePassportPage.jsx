@@ -143,7 +143,7 @@ export default function DelegatePassportPage() {
 
 
   const qrURL = pass
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=240x240&bgcolor=08000F&color=C9A44C&data=PASS::${pass.pass_id}`
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=240x240&bgcolor=08000F&color=C9A44C&data=https://atlasunionsummit.com/p/${pass.pass_id}`
     : "";
 
   return (
