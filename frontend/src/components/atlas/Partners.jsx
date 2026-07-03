@@ -4,14 +4,14 @@ const PARTNERS = [
   {
     category: "IIT Delhi and D.U Ecosystem",
     items: [
-      { name: "IIT Delhi", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781190327/download_9_pwd5y9.png" },
-      { name: "Hindu College", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781366106/download_6_nr6knj.jpg" }
+      { name: "IIT Delhi" },
+      { name: "DELHI UNIVERSITIES" }
     ]
   },
   {
     category: "Educational Partner",
     items: [
-      { name: "Oxford International", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781189436/oi-logo_qqmqt4.png" }
+      { name: "University Of Oxford", logo: "https://res.cloudinary.com/no4hgx4g/image/upload/f_auto,q_auto/Oxford-University-rectangle-logo_yda7wc" }
     ]
   },
   {
@@ -33,7 +33,7 @@ const PARTNERS = [
   {
     category: "International Academic Outreach",
     items: [
-      { name: "University of Oxford", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781278693/Screenshot_2026-06-12_205531_opyeq3.png" },
+      { name: "University Of Oxford", logo: "https://res.cloudinary.com/no4hgx4g/image/upload/f_auto,q_auto/Oxford-University-rectangle-logo_yda7wc" },
       { name: "Tomsk State University", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781189412/download_1_cvneph.jpg" },
       { name: "Far Eastern Federal University", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781189380/download_2_b7ou7n.jpg" },
       { name: "Novosibirsk State University", logo: "https://res.cloudinary.com/dgdgulrae/image/upload/q_auto/f_auto/v1781189373/download_3_lfgbqe.jpg" },
@@ -96,21 +96,25 @@ export default function Partners() {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ delay: i * 0.05 }}
-                    className="glass-strong rounded-xl border border-white/10 p-5 sm:p-6 flex flex-col items-center text-center transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_15px_30px_rgba(0,0,0,0.6)] hover:border-[var(--atlas-gold)]/40 group relative overflow-hidden"
+                    className="glass-strong rounded-xl border border-white/10 p-5 sm:p-6 flex flex-col items-center justify-center text-center transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_15px_30px_rgba(0,0,0,0.6)] hover:border-[var(--atlas-gold)]/40 group relative overflow-hidden"
                   >
                     <div className="absolute inset-0 bg-gradient-to-br from-[var(--atlas-gold)]/0 to-[var(--atlas-gold)]/0 group-hover:from-[var(--atlas-gold)]/5 group-hover:to-transparent transition-all duration-500" />
                     
-                    <div className="w-20 h-20 sm:w-16 sm:h-16 md:w-24 md:h-24 rounded-lg overflow-hidden bg-white/90 shadow-inner flex items-center justify-center mb-5 shrink-0 transform transition-transform duration-300 group-hover:scale-105 border border-white/20">
-                      <img 
-                        src={partner.logo} 
-                        alt={partner.name} 
-                        className="w-full h-full object-contain p-2 md:p-3 drop-shadow-sm"
-                        onError={(e) => {
-                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partner.name)}&background=140b1e&color=fff`;
-                        }}
-                      />
-                    </div>
-                    <h4 className="font-display tracking-widest text-xs md:text-[13px] text-white uppercase drop-shadow-sm relative z-10 group-hover:text-[var(--atlas-gold)] transition-colors">
+                    {partner.logo && (
+                      <div className="w-20 h-20 sm:w-16 sm:h-16 md:w-24 md:h-24 rounded-lg overflow-hidden bg-white/90 shadow-inner flex items-center justify-center mb-5 shrink-0 transform transition-transform duration-300 group-hover:scale-105 border border-white/20">
+                        <img 
+                          src={partner.logo} 
+                          alt={partner.name} 
+                          className="w-full h-full object-contain p-1 drop-shadow-sm"
+                          onError={(e) => {
+                            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partner.name)}&background=140b1e&color=fff`;
+                          }}
+                        />
+                      </div>
+                    )}
+                    <h4 className={`font-display tracking-widest uppercase drop-shadow-sm relative z-10 transition-colors ${
+                      partner.logo ? "text-white group-hover:text-[var(--atlas-gold)] text-xs md:text-[13px]" : "text-[var(--atlas-gold)] text-2xl md:text-3xl lg:text-4xl leading-[1.1] px-2"
+                    }`}>
                       {partner.name}
                     </h4>
                     {partner.desc && (

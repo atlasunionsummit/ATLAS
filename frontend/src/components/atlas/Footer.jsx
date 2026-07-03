@@ -28,26 +28,37 @@ export default function Footer({ onRequestAccess }) {
           {[
             {
               title: "CIRCUIT",
-              items: ["Ecosystem", "Committees", "Operations", "Passport"],
+              items: [
+                { label: "Ecosystem", id: "ecosystem" },
+                { label: "Committees", id: "committees" },
+                { label: "Operations", id: "operation-red" },
+                { label: "Passport", id: "passport" },
+              ],
             },
             {
               title: "ARCHIVES",
-              items: ["FAQ", "Classified Reveals", "Partners", "Press"],
-            },
-            {
-              title: "REGISTRATION",
-              items: ["NIC · 85", "NIC · 8500", "AUVREO INTL", "MSME · GOI"],
-            },
+              items: [
+                { label: "FAQ", id: "faq" },
+                { label: "Partners", id: "partners" },
+                { label: "Press", id: "press" },
+              ],
+            }
           ].map((col) => (
             <div key={col.title}>
               <p className="classified-label text-[var(--atlas-gold)]">{col.title}</p>
               <ul className="mt-4 space-y-2">
                 {col.items.map((i) => (
                   <li
-                    key={i}
+                    key={i.label}
+                    onClick={() => {
+                      if (i.id === "press") {
+                        return alert("Press Kit & Media Archives will be available soon.");
+                      }
+                      document.getElementById(i.id)?.scrollIntoView({ behavior: 'smooth' });
+                    }}
                     className="font-mono text-[12px] tracking-[0.18em] text-white/65 hover:text-white transition-colors cursor-pointer"
                   >
-                    ↗ {i}
+                    ↗ {i.label}
                   </li>
                 ))}
               </ul>

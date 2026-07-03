@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ATLAS } from "@/constants/testIds";
-import { generatePassport } from "@/lib/atlasApi";
+import { generatePassport, saveGuestPassport } from "@/lib/atlasApi";
 import { toast } from "sonner";
 import { ATLAS_LOGO_CLEAN } from "@/lib/atlasAssets";
 
@@ -115,10 +115,11 @@ export default function Passport({ delegateUser, onOpenRegistration }) {
         expires: "31 DEC 2026",
         seal: "UNVERIFIED",
         status: "USELESS",
-        qr_url: `https://api.qrserver.com/v1/create-qr-code/?size=240x240&bgcolor=08000F&color=C9A44C&data=AUS::GUEST::${randNum}`,
+        qr_url: `https://api.qrserver.com/v1/create-qr-code/?size=240x240&bgcolor=08000F&color=C9A44C&data=https://atlasunionsummit.com/p/AUS-${randNum}-GUEST`,
         signature: "GUEST/AUS",
       };
 
+      await saveGuestPassport(guestPassport);
       localStorage.setItem("aus_guest_passport", JSON.stringify(guestPassport));
       setPassport(guestPassport);
       setShowRegisterPromo(true);

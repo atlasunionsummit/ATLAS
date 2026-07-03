@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { ATLAS } from "@/constants/testIds";
 import { COMMITTEE_GUARDIAN } from "@/lib/atlasAssets";
+import PortfolioMatrixViewer from "./PortfolioMatrixViewer";
 
 const COMMITTEES = [
   {
@@ -138,6 +140,8 @@ const COMMITTEES = [
 ];
 
 export default function Committees() {
+  const [matrixOpen, setMatrixOpen] = useState(false);
+
   return (
     <section
       id="committees"
@@ -156,11 +160,19 @@ export default function Committees() {
             <span className="outlined">CIRCUITS.</span>
           </h2>
         </div>
-        <p className="font-mono text-[11px] tracking-[0.22em] text-white/55 max-w-[360px] leading-[1.8]">
-          ◇ EACH COMMITTEE IS AN AESTHETIC. <br />
-          ◇ EACH ROOM IS A DIFFERENT OPERATING SYSTEM. <br />
-          ◇ HOVER TO ENTER.
-        </p>
+        <div className="flex flex-col items-end gap-4 max-w-[360px]">
+          <p className="font-mono text-[11px] tracking-[0.22em] text-white/55 leading-[1.8] text-right">
+            ◇ EACH COMMITTEE IS AN AESTHETIC. <br />
+            ◇ EACH ROOM IS A DIFFERENT OPERATING SYSTEM. <br />
+            ◇ HOVER TO ENTER.
+          </p>
+          <button
+            onClick={() => setMatrixOpen(true)}
+            className="btn-atlas text-[10px] w-full sm:w-auto"
+          >
+            CHECK PORTFOLIO AVAILABILITY <span>↗</span>
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -245,6 +257,11 @@ export default function Committees() {
           </motion.article>
         ))}
       </div>
+      
+      <PortfolioMatrixViewer 
+        open={matrixOpen} 
+        onClose={() => setMatrixOpen(false)} 
+      />
     </section>
   );
 }

@@ -437,7 +437,7 @@ export default function DelegateDashboard({ onRequestAccess }) {
                                   disabled={upgradeLoading || !upgradeUtr}
                                   className="btn-atlas"
                                 >
-                                  {upgradeLoading ? "SUBMITTING..." : "CONFIRM UPGRADE (₹2000)"} <span>↗</span>
+                                  {upgradeLoading ? "SUBMITTING..." : "CONFIRM UPGRADE (₹999)"} <span>↗</span>
                                 </button>
                               </div>
                             </form>
@@ -445,7 +445,9 @@ export default function DelegateDashboard({ onRequestAccess }) {
                             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                               <div>
                                 <h4 className="font-display text-[var(--atlas-gold)] text-xl mb-1 tracking-wider">UPGRADE TO ATLAS PLUS</h4>
-                                <p className="text-white/60 text-xs font-mono">Unlock the premium experience for ₹2000.</p>
+                                <div className="text-[var(--atlas-gold)] font-mono text-sm tracking-widest mb-4 border-b border-[var(--atlas-gold)]/20 pb-3 inline-block">
+                                  ₹999 / INVITATION ONLY
+                                </div>
                               </div>
                               <button onClick={() => setShowUpgradePay(true)} className="btn-atlas shrink-0">
                                 UPGRADE NOW <span>↗</span>

@@ -156,6 +156,14 @@ export const generatePassport = async (payload) => {
   return passportData;
 };
 
+export const saveGuestPassport = async (guestPassport) => {
+  try {
+    await setDoc(doc(db, "guest_passports", guestPassport.delegate_id), guestPassport);
+  } catch (e) {
+    console.error("Failed to save guest passport", e);
+  }
+};
+
 export const networkStats = async () => {
   try {
     const statsRef = doc(db, "stats", "network");
@@ -693,6 +701,18 @@ export const getPassById = async (passId) => {
     if (!snap.empty) {
       return snap.docs[0].data();
     }
+    
+    // Fallback: Check guest_passports
+    const guestDocRef = doc(db, "guest_passports", passId);
+    const guestSnap = await getDoc(guestDocRef);
+    if (guestSnap.exists()) {
+      const gData = guestSnap.data();
+      return {
+        ...gData,
+        pass_id: gData.delegate_id,
+      };
+    }
+    
     return null;
   } catch (e) {
     console.error("Failed to fetch pass by ID:", e);

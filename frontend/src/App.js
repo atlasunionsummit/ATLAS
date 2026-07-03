@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { Toaster, toast } from "sonner";
-import { Analytics } from "@vercel/analytics/react";
 import "@/App.css";
 
 import LoadingScreen from "@/components/atlas/LoadingScreen";
@@ -17,7 +16,6 @@ import Ecosystem from "@/components/atlas/Ecosystem";
 import Committees from "@/components/atlas/Committees";
 import SignatureCollection from "@/components/atlas/SignatureCollection";
 import OperationRed from "@/components/atlas/OperationRed";
-import ClassifiedArchives from "@/components/atlas/ClassifiedArchives";
 import Passport from "@/components/atlas/Passport";
 import Timeline from "@/components/atlas/Timeline";
 import Partners from "@/components/atlas/Partners";
@@ -110,7 +108,6 @@ function Home({ setAccessOpen }) {
         <Committees />
         <SignatureCollection />
         <OperationRed />
-        <ClassifiedArchives />
         <Passport delegateUser={delegateUser} onOpenRegistration={() => setAccessOpen(true)} />
         <Timeline />
         <Partners />
@@ -159,7 +156,7 @@ function App() {
         </Routes>
         <AccessDialog open={accessOpen} onClose={() => setAccessOpen(false)} />
       </BrowserRouter>
-      <Analytics />
+      {/* <Analytics /> */}
     </>
   );
 }

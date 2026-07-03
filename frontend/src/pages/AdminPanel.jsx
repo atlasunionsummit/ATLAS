@@ -275,9 +275,14 @@ export default function AdminPanel() {
                 {activeTab === "matrix" && (
                   <PortfolioMatrixAdmin 
                     delegates={delegates} 
+                    registrations={registrations}
                     onUpdateDelegates={async (newDelegates) => {
                       setDelegates(newDelegates);
                       await saveDelegates(newDelegates);
+                    }}
+                    onUpdateRegistrations={async (newRegs) => {
+                      setRegistrations(newRegs);
+                      await saveRegistrations(newRegs);
                     }}
                   />
                 )}
@@ -1689,7 +1694,7 @@ function RegistrationAuditor({ registrations, delegates, payments, emailTemplate
                     {viewData.past_experience && (
                       <div className="flex flex-col gap-1">
                         <span className="text-white/40">Past Experience:</span>
-                        <span className="bg-black/30 p-2 rounded border border-white/5 text-[11px] leading-relaxed">{viewData.past_experience}</span>
+                        <span className="bg-black/30 p-2 rounded border border-white/5 text-[11px] leading-relaxed whitespace-pre-wrap">{viewData.past_experience}</span>
                       </div>
                     )}
                     {viewData.dietary_instructions && (
@@ -2770,24 +2775,36 @@ export function PassLedgerAndScanner({ delegates, onRefresh }) {
 // ----------------------------------------------------
 // Component: PortfolioMatrixAdmin
 // ----------------------------------------------------
-function PortfolioMatrixAdmin({ delegates, onUpdateDelegates }) {
+function PortfolioMatrixAdmin({ delegates, registrations = [], onUpdateDelegates, onUpdateRegistrations }) {
   const [selectedPortfolio, setSelectedPortfolio] = useState(null);
   const [assignEmail, setAssignEmail] = useState("");
 
-  const handleRevoke = (delegateId) => {
+  const handleRevoke = (assigneeId, isRegistration = false) => {
     if (!window.confirm("Are you sure you want to revoke this portfolio assignment?")) return;
-    const updated = delegates.map(d => {
-      if (d.id === delegateId) {
-        return { ...d, portfolio: "", portfolio_country: "" };
-      }
-      return d;
-    });
-    onUpdateDelegates(updated);
+    
+    if (isRegistration && onUpdateRegistrations) {
+      const updated = registrations.map(r => {
+        if (r.id === assigneeId) {
+          return { ...r, portfolio: "", portfolio_country: "", portfolio_1: "" };
+        }
+        return r;
+      });
+      onUpdateRegistrations(updated);
+    } else {
+      const updated = delegates.map(d => {
+        if (d.id === assigneeId) {
+          return { ...d, portfolio: "", portfolio_country: "" };
+        }
+        return d;
+      });
+      onUpdateDelegates(updated);
+    }
+
     toast.success("PORTFOLIO REVOKED");
     // Update the selected portfolio's assigned delegates list in the modal state
     setSelectedPortfolio(prev => ({
       ...prev,
-      assignedDelegates: prev.assignedDelegates.filter(d => d.id !== delegateId)
+      assignedDelegates: prev.assignedDelegates.filter(d => d.id !== assigneeId)
     }));
   };
 
@@ -2922,9 +2939,12 @@ function PortfolioMatrixAdmin({ delegates, onUpdateDelegates }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 overflow-y-auto pr-2 scrollbar-thin flex-1 pb-10">
         {Object.entries(MATRIX_DATA).map(([committee, countries]) => {
           const committeeDelegates = delegates.filter(d => d.committee === committee);
+          const committeeRegistrations = registrations.filter(r => r.committee === committee && r.status === "pending_verification");
+          const allCommitteeAssignees = [...committeeDelegates, ...committeeRegistrations];
+          
           const occupiedMap = {};
-          committeeDelegates.forEach(d => {
-            const port = d.portfolio || d.portfolio_country;
+          allCommitteeAssignees.forEach(d => {
+            const port = d.portfolio || d.portfolio_country || d.portfolio_1;
             if (port) {
               occupiedMap[port] = (occupiedMap[port] || 0) + 1;
             }
@@ -2957,7 +2977,7 @@ function PortfolioMatrixAdmin({ delegates, onUpdateDelegates }) {
                     <button
                       key={item.country}
                       type="button"
-                      onClick={() => handlePortfolioClick(committee, item, maxAllowed, currentCount, committeeDelegates)}
+                      onClick={() => handlePortfolioClick(committee, item, maxAllowed, currentCount, allCommitteeAssignees)}
                       className={`text-[9px] sm:text-[10px] font-mono py-2 px-2 rounded border border-transparent whitespace-normal break-words text-left transition-colors cursor-pointer ${bgClass}`}
                       title={item.country}
                     >
@@ -3028,20 +3048,45 @@ function PortfolioMatrixAdmin({ delegates, onUpdateDelegates }) {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {selectedPortfolio.assignedDelegates.map(d => (
-                        <div key={d.id} className="flex items-center justify-between bg-black/40 border border-white/10 rounded p-3">
-                          <div className="min-w-0 flex-1 pr-3">
-                            <p className="text-white font-display text-sm truncate">{d.full_name}</p>
-                            <p className="text-[var(--atlas-cyan)] font-mono text-[9px] truncate mt-0.5">{d.email}</p>
+                      {selectedPortfolio.assignedDelegates.map(d => {
+                        const isRegistration = d.status === "pending_verification";
+                        const isStub = d.id && d.id.toString().startsWith("STUB-");
+                        const isClosed = d.email === "closed@atlas.com";
+                        
+                        let badgeText = "APPROVED";
+                        let badgeColor = "bg-green-500/20 text-green-300 border-green-500/30";
+                        
+                        if (isRegistration) {
+                          badgeText = "PENDING";
+                          badgeColor = "bg-yellow-500/20 text-yellow-300 border-yellow-500/30";
+                        } else if (isStub) {
+                          badgeText = "PRE-ALLOTTED";
+                          badgeColor = "bg-[var(--atlas-gold)]/20 text-[var(--atlas-gold)] border-[var(--atlas-gold)]/30";
+                        } else if (isClosed) {
+                          badgeText = "CLOSED SLOT";
+                          badgeColor = "bg-red-500/20 text-red-300 border-red-500/30";
+                        }
+
+                        return (
+                          <div key={d.id} className="flex items-center justify-between bg-black/40 border border-white/10 rounded p-3">
+                            <div className="min-w-0 flex-1 pr-3">
+                              <div className="flex items-center gap-2">
+                                <p className="text-white font-display text-sm truncate">{d.full_name}</p>
+                                <span className={`text-[8px] font-mono px-1.5 py-0.5 rounded border ${badgeColor} whitespace-nowrap`}>
+                                  {badgeText}
+                                </span>
+                              </div>
+                              <p className="text-[var(--atlas-cyan)] font-mono text-[9px] truncate mt-0.5">{d.email}</p>
+                            </div>
+                            <button
+                              onClick={() => handleRevoke(d.id, isRegistration)}
+                              className="text-[9px] text-red-400 border border-red-500/30 px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 transition-colors shrink-0"
+                            >
+                              REVOKE
+                            </button>
                           </div>
-                          <button
-                            onClick={() => handleRevoke(d.id)}
-                            className="text-[9px] text-red-400 border border-red-500/30 px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 transition-colors shrink-0"
-                          >
-                            REVOKE
-                          </button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>

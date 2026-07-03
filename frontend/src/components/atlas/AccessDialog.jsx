@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { registerUser, getDiscountCodes, getDelegates } from "@/lib/atlasApi";
 import { MATRIX_DATA } from "@/lib/matrixData";
 import { toast } from "sonner";
+import PortfolioMatrixViewer from "./PortfolioMatrixViewer";
 
 const COMMITTEES = [
   "UNSC (United Nations Security Council)",
@@ -37,9 +38,6 @@ const PACKAGES = {
   ],
   "School delegation": [
     { name: "Early Bird", price: 1699 },
-  ],
-  "For festival": [
-    { name: "Early Bird", price: 299 },
   ],
   "For concert": [
     { name: "Early Bird", price: 999 },
@@ -78,17 +76,35 @@ export default function AccessDialog({ open, onClose }) {
   const [registrationResult, setRegistrationResult] = useState(null);
   const [timeLeft, setTimeLeft] = useState("");
 
+  const [liveDelegates, setLiveDelegates] = useState([]);
+  const [matrixOpen, setMatrixOpen] = useState(false); // To control standalone matrix dialog
+
   useEffect(() => {
     getDiscountCodes().then(setActiveDiscountCodes).catch(console.error);
-    getDelegates().then(delegates => {
-      const occ = {};
-      delegates.forEach(d => {
-        if (d.portfolio_country) {
-          occ[d.portfolio_country] = (occ[d.portfolio_country] || 0) + 1;
-        }
-      });
-      setOccupiedMap(occ);
-    }).catch(console.error);
+    Promise.all([getDelegates(), import("@/lib/atlasApi").then(m => m.getRegistrations())])
+      .then(([delegates, registrations]) => {
+        setLiveDelegates(delegates);
+        const occ = {};
+        
+        // Count from approved delegates and stubs
+        delegates.forEach(d => {
+          const port = d.portfolio || d.portfolio_country;
+          if (port) {
+            occ[port] = (occ[port] || 0) + 1;
+          }
+        });
+        
+        // Count from pending registrations
+        const pendingRegs = registrations.filter(r => r.status === "pending_verification");
+        pendingRegs.forEach(r => {
+          const port = r.portfolio_country || r.portfolio || r.portfolio_1;
+          if (port) {
+            occ[port] = (occ[port] || 0) + 1;
+          }
+        });
+
+        setOccupiedMap(occ);
+      }).catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -365,6 +381,7 @@ export default function AccessDialog({ open, onClose }) {
   const currentMatrix = MATRIX_DATA[form.committee] || [];
 
   return (
+    <Fragment>
     <AnimatePresence>
       {open && (
         <motion.div
@@ -617,9 +634,18 @@ export default function AccessDialog({ open, onClose }) {
                         <p className="font-mono text-[9px] tracking-widest text-white/40 w-full sm:w-auto text-center sm:text-left">
                           * MANDATORY FIELD DOSSIERS
                         </p>
-                        <button type="submit" className="btn-atlas w-full sm:w-auto justify-center">
-                          NEXT STEP <span>↗</span>
-                        </button>
+                        <div className="flex items-center gap-3 w-full sm:w-auto">
+                          <button
+                            type="button"
+                            onClick={() => setMatrixOpen(true)}
+                            className="px-6 py-3 border border-[var(--atlas-cyan)]/30 rounded text-white/70 hover:bg-[var(--atlas-cyan)]/10 text-[10px] font-mono tracking-widest transition-colors w-full sm:w-auto"
+                          >
+                            VIEW LIVE MATRIX
+                          </button>
+                          <button type="submit" className="btn-atlas w-full sm:w-auto justify-center">
+                            NEXT STEP <span>↗</span>
+                          </button>
+                        </div>
                       </div>
                     </form>
                   </motion.div>
@@ -668,18 +694,31 @@ export default function AccessDialog({ open, onClose }) {
                           else if (form.committee.includes("UNSC")) maxAllowed = 2;
                           
                           const currentCount = occupiedMap[item.country] || 0;
-                          const isOccupied = currentCount >= maxAllowed || item.status.toLowerCase() === "occupied" || item.status.toLowerCase() === "alloted" || item.status.toLowerCase() === "reserved";
+                          let isOccupied = currentCount >= maxAllowed || item.status.toLowerCase() === "occupied" || item.status.toLowerCase() === "alloted" || item.status.toLowerCase() === "reserved";
+                          
+                          // Allow selection if the user is pre-allotted this exact portfolio
+                          const isPreAllottedToUser = liveDelegates.some(d => 
+                            d.id.startsWith("STUB-") && 
+                            form.email && d.email && d.email.toLowerCase() === form.email.toLowerCase() && 
+                            (d.portfolio === item.country || d.portfolio_country === item.country)
+                          );
+                          
+                          if (isPreAllottedToUser) {
+                            isOccupied = false; // Override occupancy for the rightful owner
+                          }
+
                           const isSelected = form.portfolio_country === item.country;
 
                           let bgClass = "bg-white text-black hover:bg-white/90";
-                          if (isOccupied) bgClass = "bg-red-500/20 text-red-200 border-red-500/20 opacity-50 cursor-not-allowed";
+                          if (isPreAllottedToUser) bgClass = "bg-emerald-500/20 text-emerald-200 border-emerald-500/40 hover:bg-emerald-500/30";
+                          if (isOccupied && !isPreAllottedToUser) bgClass = "bg-red-500/20 text-red-200 border-red-500/20 opacity-50 cursor-not-allowed";
                           if (isSelected) bgClass = "bg-[var(--atlas-gold)] text-black border-[var(--atlas-gold)] shadow-[0_0_15px_rgba(201,164,76,0.5)]";
 
                           return (
                             <button
                               key={item.country}
                               type="button"
-                              disabled={isOccupied}
+                              disabled={isOccupied && !isPreAllottedToUser}
                               onClick={() => setForm({ ...form, portfolio_country: item.country })}
                               className={`text-[10px] sm:text-xs font-mono py-2.5 px-3 rounded border border-transparent transition-all text-left flex flex-col justify-center min-h-[44px] ${bgClass}`}
                               title={item.country}
@@ -989,7 +1028,7 @@ export default function AccessDialog({ open, onClose }) {
                           <div className="flex justify-between mt-1">
                             <span className="text-white/55">ADD-ON</span>
                             <span className="text-[var(--atlas-gold)] font-bold">
-                              ATLAS PLUS (+₹2000)
+                              ATLAS PLUS (+₹999)
                             </span>
                           </div>
                         )}
@@ -1123,6 +1162,8 @@ export default function AccessDialog({ open, onClose }) {
         </motion.div>
       )}
     </AnimatePresence>
+    <PortfolioMatrixViewer open={matrixOpen} onClose={() => setMatrixOpen(false)} />
+    </Fragment>
   );
 }
 

@@ -71,6 +71,14 @@ export default function StandalonePassPage() {
             </div>
           </div>
         )}
+        
+        {(pass.status === "USELESS" || pass.status === "UNVERIFIED") && (
+          <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none select-none">
+            <div className="border-[3px] border-red-600/40 text-red-600/40 font-mono text-3xl font-bold tracking-[0.25em] px-4 py-2 rounded -rotate-[15deg] uppercase">
+              UNVERIFIED
+            </div>
+          </div>
+        )}
 
         <div className="absolute inset-0 p-5 flex flex-col justify-between">
           {/* header */}
