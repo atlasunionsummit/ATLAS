@@ -284,6 +284,21 @@ export const getRegistrations = async () => {
   }
 };
 
+export const subscribeToRegistrations = (callback) => {
+  try {
+    return onSnapshot(collection(db, "registrations"), (snap) => {
+      const regs = [];
+      snap.forEach((doc) => {
+        regs.push(doc.data());
+      });
+      callback(regs.sort((a, b) => b.timestamp.localeCompare(a.timestamp)));
+    });
+  } catch (e) {
+    console.error("Failed to subscribe to registrations:", e);
+    return () => {};
+  }
+};
+
 export const getDiscountCodes = async () => {
   try {
     const snap = await getDocs(collection(db, "discount_codes"));
@@ -355,6 +370,21 @@ export const getDelegates = async () => {
   }
 };
 
+export const subscribeToDelegates = (callback) => {
+  try {
+    return onSnapshot(collection(db, "delegates"), (snap) => {
+      const delegates = [];
+      snap.forEach((doc) => {
+        delegates.push(doc.data());
+      });
+      callback(delegates.sort((a, b) => b.timestamp.localeCompare(a.timestamp)));
+    });
+  } catch (e) {
+    console.error("Failed to subscribe to delegates:", e);
+    return () => {};
+  }
+};
+
 export const saveDelegates = async (delegates) => {
   try {
     const snap = await getDocs(collection(db, "delegates"));
@@ -373,6 +403,7 @@ export const saveDelegates = async (delegates) => {
     }
   } catch (e) {
     console.error("Failed to sync delegates:", e);
+    throw e;
   }
 };
 
@@ -467,6 +498,9 @@ export const getConferenceSettings = async () => {
       dates: "October 16 - 18, 2026",
       venue: "IIT Delhi (TBD)",
       registration_fee: "₹1,499 - ₹2,799",
+      early_bird_price: 1899,
+      regular_price: 2299,
+      atlas_plus_price: 999,
       email_template_confirmation: "Dear [NAME],\n\nYour operator credentials for the Atlas Union Summit 2026 have been approved!\n\nCommittee: [COMMITTEE]\nRegistration ID: [ID]\nStatus: APPROVED\n\nPlease present this email or your holographic Operator Passport at the check-in terminal on arrival.\n\nOperational Clearance,\nAtlas Command Group",
       email_template_rejection: "Dear [NAME],\n\nWe regret to inform you that your operator registration for the Atlas Union Summit 2026 has been declined.\n\nReason: Information Verification Failed.\n\nNote: If payment was processed, a 100% refund will be credited back within 5 business days.\n\nSecurity Operations,\nAtlas Command Group"
     };
@@ -506,6 +540,30 @@ export const getBroadcastHistory = async () => {
   } catch (e) {
     console.error("Failed to load broadcasts:", e);
     return [];
+  }
+};
+
+export const addBroadcast = async (broadcast) => {
+  try {
+    await setDoc(doc(db, "broadcasts", broadcast.id), broadcast);
+  } catch (e) {
+    console.error("Failed to add broadcast:", e);
+    throw e;
+  }
+};
+
+export const subscribeToBroadcasts = (callback) => {
+  try {
+    return onSnapshot(collection(db, "broadcasts"), (snap) => {
+      const broadcasts = [];
+      snap.forEach((doc) => {
+        broadcasts.push(doc.data());
+      });
+      callback(broadcasts.sort((a, b) => b.timestamp.localeCompare(a.timestamp)));
+    });
+  } catch (e) {
+    console.error("Failed to subscribe to broadcasts:", e);
+    return () => {};
   }
 };
 

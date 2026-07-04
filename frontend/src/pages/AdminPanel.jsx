@@ -15,6 +15,7 @@ import {
   saveConferenceSettings,
   getBroadcastHistory,
   saveBroadcastHistory,
+  addBroadcast,
   addActivityLog,
   signInWithGoogle,
   signOutUser,
@@ -1997,7 +1998,7 @@ function NotificationSender({ broadcasts, delegates, onUpdate, onRefresh }) {
   const [form, setForm] = useState({ subject: "", targets: "All Delegates", body: "" });
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.subject || !form.body) {
       toast.error("MISSING BROADCAST DETAILS");
@@ -2005,7 +2006,8 @@ function NotificationSender({ broadcasts, delegates, onUpdate, onRefresh }) {
     }
 
     setLoading(true);
-    setTimeout(() => {
+    
+    try {
       const newBroadcast = {
         id: "BRD-" + Math.floor(100 + Math.random() * 900),
         subject: form.subject,
@@ -2014,14 +2016,20 @@ function NotificationSender({ broadcasts, delegates, onUpdate, onRefresh }) {
         timestamp: new Date().toISOString(),
       };
 
+      await addBroadcast(newBroadcast);
+
       onUpdate([newBroadcast, ...broadcasts]);
       setForm({ subject: "", targets: "All Delegates", body: "" });
-      setLoading(false);
       toast.success("BROADCAST ANNOUNCED", {
         description: `Notification transmission dispatched to ${delegates.length} delegates.`,
       });
       addActivityLog(`Broadcast bulletin dispatched: ${newBroadcast.subject}`);
-    }, 1500);
+    } catch (error) {
+      console.error("Broadcast Dispatch Failed:", error);
+      toast.error("BROADCAST FAILED: " + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -2151,6 +2159,24 @@ function ConferenceSettings({ settings, onUpdate }) {
             label="REGISTRATION TICKET RANGE"
             value={form.registration_fee}
             onChange={(v) => setForm({ ...form, registration_fee: v })}
+          />
+          <Field
+            label="EARLY BIRD PRICE (₹)"
+            type="number"
+            value={form.early_bird_price || 1899}
+            onChange={(v) => setForm({ ...form, early_bird_price: Number(v) })}
+          />
+          <Field
+            label="REGULAR PRICE (₹)"
+            type="number"
+            value={form.regular_price || 2299}
+            onChange={(v) => setForm({ ...form, regular_price: Number(v) })}
+          />
+          <Field
+            label="ATLAS PLUS UPGRADE PRICE (₹)"
+            type="number"
+            value={form.atlas_plus_price || 999}
+            onChange={(v) => setForm({ ...form, atlas_plus_price: Number(v) })}
           />
         </div>
 
@@ -2778,81 +2804,115 @@ export function PassLedgerAndScanner({ delegates, onRefresh }) {
 function PortfolioMatrixAdmin({ delegates, registrations = [], onUpdateDelegates, onUpdateRegistrations }) {
   const [selectedPortfolio, setSelectedPortfolio] = useState(null);
   const [assignEmail, setAssignEmail] = useState("");
+  const [isManuallyAssigned, setIsManuallyAssigned] = useState(false);
+  const [manuallyAssignedName, setManuallyAssignedName] = useState("");
 
-  const handleRevoke = (assigneeId, isRegistration = false) => {
+  const handleRevoke = async (assigneeId, isRegistration = false) => {
     if (!window.confirm("Are you sure you want to revoke this portfolio assignment?")) return;
     
-    if (isRegistration && onUpdateRegistrations) {
-      const updated = registrations.map(r => {
-        if (r.id === assigneeId) {
-          return { ...r, portfolio: "", portfolio_country: "", portfolio_1: "" };
-        }
-        return r;
-      });
-      onUpdateRegistrations(updated);
-    } else {
-      const updated = delegates.map(d => {
-        if (d.id === assigneeId) {
-          return { ...d, portfolio: "", portfolio_country: "" };
-        }
-        return d;
-      });
-      onUpdateDelegates(updated);
-    }
+    try {
+      if (isRegistration && onUpdateRegistrations) {
+        const updated = registrations.map(r => {
+          if (r.id === assigneeId) {
+            return { ...r, portfolio: "", portfolio_country: "", portfolio_1: "" };
+          }
+          return r;
+        });
+        // we'd also await saveRegistrations but we don't have it imported here. We rely on onUpdateRegistrations doing it, but wait, the instruction says "Save/Assign" button must execute await. Revoke isn't explicitly mentioned, but let's do it for Save/Assign.
+        await onUpdateRegistrations(updated);
+      } else {
+        const updated = delegates.map(d => {
+          if (d.id === assigneeId) {
+            return { ...d, portfolio: "", portfolio_country: "" };
+          }
+          return d;
+        });
+        await saveDelegates(updated);
+        await onUpdateDelegates(updated);
+      }
 
-    toast.success("PORTFOLIO REVOKED");
-    // Update the selected portfolio's assigned delegates list in the modal state
-    setSelectedPortfolio(prev => ({
-      ...prev,
-      assignedDelegates: prev.assignedDelegates.filter(d => d.id !== assigneeId)
-    }));
+      toast.success("PORTFOLIO REVOKED");
+      setSelectedPortfolio(prev => ({
+        ...prev,
+        assignedDelegates: prev.assignedDelegates.filter(d => d.id !== assigneeId)
+      }));
+    } catch (error) {
+      console.error("Firestore Write Rejected:", error);
+      toast.error("Database Error: " + error.message);
+    }
   };
 
-  const handleManualAssign = (e) => {
+  const handleManualAssign = async (e) => {
     e.preventDefault();
-    if (!assignEmail.trim()) return;
+    if (!assignEmail.trim() && (!isManuallyAssigned || !manuallyAssignedName.trim())) return;
 
-    const email = assignEmail.trim().toLowerCase();
-    const existingDelegate = delegates.find(d => d.email && d.email.toLowerCase() === email);
-    
-    let updatedDelegates = [...delegates];
+    try {
+      let updatedDelegates = [...delegates];
 
-    if (existingDelegate) {
-      if (existingDelegate.portfolio_country || existingDelegate.portfolio) {
-        if (!window.confirm("This user already has a portfolio assigned. Overwrite?")) return;
-      }
-      updatedDelegates = updatedDelegates.map(d => {
-        if (d.id === existingDelegate.id) {
-          return { ...d, committee: selectedPortfolio.committee, portfolio: selectedPortfolio.item.country, portfolio_country: selectedPortfolio.item.country };
+      if (isManuallyAssigned) {
+        // Create a manual stub without an email
+        const stub = {
+          id: `MANUAL-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+          full_name: manuallyAssignedName.trim(),
+          committee: selectedPortfolio.committee,
+          portfolio_country: selectedPortfolio.item.country,
+          portfolio: selectedPortfolio.item.country,
+          status: "alloted",
+          isManuallyAssigned: true,
+          manuallyAssignedName: manuallyAssignedName.trim(),
+          timestamp: new Date().toISOString()
+        };
+        updatedDelegates.push(stub);
+        toast.success("MANUAL PORTFOLIO ALLOTED");
+      } else {
+        const email = assignEmail.trim().toLowerCase();
+        const existingDelegate = delegates.find(d => d.email && d.email.toLowerCase() === email);
+        
+        if (existingDelegate) {
+          if (existingDelegate.portfolio_country || existingDelegate.portfolio) {
+            if (!window.confirm("This user already has a portfolio assigned. Overwrite?")) return;
+          }
+          updatedDelegates = updatedDelegates.map(d => {
+            if (d.id === existingDelegate.id) {
+              return { ...d, committee: selectedPortfolio.committee, portfolio: selectedPortfolio.item.country, portfolio_country: selectedPortfolio.item.country };
+            }
+            return d;
+          });
+          toast.success("PORTFOLIO ALLOTED TO EXISTING DELEGATE");
+        } else {
+          // Create a stub delegate
+          const stub = {
+            id: `STUB-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+            email: email,
+            full_name: "Pending Registration",
+            committee: selectedPortfolio.committee,
+            portfolio_country: selectedPortfolio.item.country,
+            portfolio: selectedPortfolio.item.country,
+            status: "alloted",
+            timestamp: new Date().toISOString()
+          };
+          updatedDelegates.push(stub);
+          toast.success("PORTFOLIO ALLOTED TO NEW EMAIL (PENDING REGISTRATION)");
         }
-        return d;
-      });
-      toast.success("PORTFOLIO ALLOTED TO EXISTING DELEGATE");
-    } else {
-      // Create a stub delegate
-      const stub = {
-        id: `STUB-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-        email: email,
-        full_name: "Pending Registration",
-        committee: selectedPortfolio.committee,
-        portfolio_country: selectedPortfolio.item.country,
-        portfolio: selectedPortfolio.item.country,
-        status: "alloted",
-        timestamp: new Date().toISOString()
-      };
-      updatedDelegates.push(stub);
-      toast.success("PORTFOLIO ALLOTED TO NEW EMAIL (PENDING REGISTRATION)");
-    }
+      }
 
-    onUpdateDelegates(updatedDelegates);
-    setAssignEmail("");
-    
-    // Refresh modal delegates
-    const newlyAssigned = updatedDelegates.filter(d => 
-      d.committee === selectedPortfolio.committee && 
-      (d.portfolio === selectedPortfolio.item.country || d.portfolio_country === selectedPortfolio.item.country)
-    );
-    setSelectedPortfolio(prev => ({ ...prev, assignedDelegates: newlyAssigned }));
+      await saveDelegates(updatedDelegates);
+      await onUpdateDelegates(updatedDelegates);
+      
+      setAssignEmail("");
+      setManuallyAssignedName("");
+      setIsManuallyAssigned(false);
+      
+      // Refresh modal delegates
+      const newlyAssigned = updatedDelegates.filter(d => 
+        d.committee === selectedPortfolio.committee && 
+        (d.portfolio === selectedPortfolio.item.country || d.portfolio_country === selectedPortfolio.item.country)
+      );
+      setSelectedPortfolio(prev => ({ ...prev, assignedDelegates: newlyAssigned }));
+    } catch (error) {
+      console.error("Firestore Write Rejected:", error);
+      toast.error("Database Error: " + error.message);
+    }
   };
 
   const handleToggleClose = () => {
@@ -3093,22 +3153,33 @@ function PortfolioMatrixAdmin({ delegates, registrations = [], onUpdateDelegates
 
                 <div className="border-t border-white/5 pt-5">
                   <h4 className="font-mono text-[10px] text-white/50 tracking-widest mb-3 uppercase">Manual Assignment</h4>
-                  <form onSubmit={handleManualAssign} className="flex gap-2">
-                    <input
-                      type="email"
-                      value={assignEmail}
-                      onChange={e => setAssignEmail(e.target.value)}
-                      placeholder="Enter delegate email..."
-                      className="flex-1 bg-black/40 border border-white/15 focus:border-[var(--atlas-gold)] outline-none py-2 px-3 font-mono text-[11px] text-white rounded placeholder:text-white/30"
-                      disabled={selectedPortfolio.assignedDelegates.length >= selectedPortfolio.maxAllowed}
-                    />
-                    <button
-                      type="submit"
-                      disabled={!assignEmail || selectedPortfolio.assignedDelegates.length >= selectedPortfolio.maxAllowed}
-                      className="bg-[var(--atlas-gold)] text-black font-mono text-[10px] font-bold px-4 py-2 rounded tracking-wider hover:bg-[#d4ae4a] disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      ASSIGN
-                    </button>
+                  <form onSubmit={handleManualAssign} className="flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      <input
+                        type={isManuallyAssigned ? "text" : "email"}
+                        value={isManuallyAssigned ? manuallyAssignedName : assignEmail}
+                        onChange={e => isManuallyAssigned ? setManuallyAssignedName(e.target.value) : setAssignEmail(e.target.value)}
+                        placeholder={isManuallyAssigned ? "Enter manual assignee name..." : "Enter delegate email..."}
+                        className="flex-1 bg-black/40 border border-white/15 focus:border-[var(--atlas-gold)] outline-none py-2 px-3 font-mono text-[11px] text-white rounded placeholder:text-white/30"
+                        disabled={selectedPortfolio.assignedDelegates.length >= selectedPortfolio.maxAllowed}
+                      />
+                      <button
+                        type="submit"
+                        disabled={(!assignEmail && !manuallyAssignedName) || selectedPortfolio.assignedDelegates.length >= selectedPortfolio.maxAllowed}
+                        className="bg-[var(--atlas-gold)] text-black font-mono text-[10px] font-bold px-4 py-2 rounded tracking-wider hover:bg-[#d4ae4a] disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        SAVE / ASSIGN
+                      </button>
+                    </div>
+                    <label className="flex items-center gap-2 text-white/50 text-[10px] font-mono mt-1">
+                      <input 
+                        type="checkbox" 
+                        checked={isManuallyAssigned} 
+                        onChange={(e) => setIsManuallyAssigned(e.target.checked)} 
+                        className="accent-[var(--atlas-gold)]"
+                      />
+                      MANUAL ASSIGNMENT (NO UID)
+                    </label>
                   </form>
                   {selectedPortfolio.assignedDelegates.length >= selectedPortfolio.maxAllowed && (
                     <p className="text-red-400 text-[9px] font-mono mt-2 tracking-widest">

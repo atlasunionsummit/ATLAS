@@ -78,12 +78,31 @@ export default function AccessDialog({ open, onClose }) {
 
   const [liveDelegates, setLiveDelegates] = useState([]);
   const [matrixOpen, setMatrixOpen] = useState(false); // To control standalone matrix dialog
+  const [packages, setPackages] = useState(PACKAGES);
 
   useEffect(() => {
     getDiscountCodes().then(setActiveDiscountCodes).catch(console.error);
-    Promise.all([getDelegates(), import("@/lib/atlasApi").then(m => m.getRegistrations())])
-      .then(([delegates, registrations]) => {
+    Promise.all([
+      getDelegates(), 
+      import("@/lib/atlasApi").then(m => m.getRegistrations()),
+      import("@/lib/atlasApi").then(m => m.getConferenceSettings())
+    ])
+      .then(([delegates, registrations, settings]) => {
         setLiveDelegates(delegates);
+        
+        if (settings) {
+          setPackages({
+            "Model United Nations": [
+              { name: "Early Bird", price: settings.early_bird_price || 1899 },
+            ],
+            "School delegation": [
+              { name: "Early Bird", price: settings.early_bird_price ? settings.early_bird_price - 100 : 1799 },
+            ],
+            "For concert": [
+              { name: "Early Bird", price: 999 },
+            ],
+          });
+        }
         const occ = {};
         
         // Count from approved delegates and stubs
@@ -153,7 +172,7 @@ export default function AccessDialog({ open, onClose }) {
     }
   }, [open]);
 
-  const selectedPackage = PACKAGES[selectedCategory][selectedPkgIndex];
+  const selectedPackage = packages[selectedCategory]?.[selectedPkgIndex] || packages["Model United Nations"][0];
 
   // Calculate dynamic price based on discount codes
   const isLegacyDiscount = form.referralCode.toUpperCase() === "ATLASUNIONSUMMIT2026";
@@ -324,6 +343,14 @@ export default function AccessDialog({ open, onClose }) {
 
       const result = await registerUser(payload);
       setRegistrationResult(result);
+      
+      // Trigger Welcome Email (Non-blocking)
+      fetch("/api/email/welcome", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ delegate_payload: { ...payload, registration_id: result.registration_id } })
+      }).catch(err => console.error("Welcome email trigger failed:", err));
+
       toast.success("TRANSMISSION COMPLETED", {
         description: `Ref ID: ${result.registration_id}`,
       });

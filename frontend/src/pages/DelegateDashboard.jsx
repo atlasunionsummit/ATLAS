@@ -7,6 +7,7 @@ import {
   getDelegateNotes,
   saveDelegateNotes,
   getBroadcastHistory,
+  subscribeToBroadcasts,
   sendChatMessage,
   subscribeToChat,
   getAIChatHistory,
@@ -52,34 +53,28 @@ export default function DelegateDashboard({ onRequestAccess }) {
   useEffect(() => {
     if (!delegate) return;
 
-    const checkBroadcasts = async () => {
-      try {
-        const broadcasts = await getBroadcastHistory();
-        // Check for any notification that we haven't shown yet
+    const unsubscribe = subscribeToBroadcasts((broadcasts) => {
+      setNotifications(prev => {
+        // Filter out notifications that we have already shown
         const newAlerts = broadcasts.filter(b => !shownNotifications.has(b.id));
         if (newAlerts.length > 0) {
-          setNotifications(prev => [...prev, ...newAlerts]);
           newAlerts.forEach(b => {
-            // Mark as shown
-            setShownNotifications(prev => {
-              const updated = new Set(prev);
+            setShownNotifications(shown => {
+              const updated = new Set(shown);
               updated.add(b.id);
               return updated;
             });
-            // Show toast
             toast.info("COMMAND BROADCAST RECEIVED", {
               description: b.subject,
             });
           });
+          return [...prev, ...newAlerts];
         }
-      } catch (err) {
-        console.error("Failed to load broadcasts:", err);
-      }
-    };
+        return prev;
+      });
+    });
 
-    checkBroadcasts();
-    const interval = setInterval(checkBroadcasts, 8000);
-    return () => clearInterval(interval);
+    return () => unsubscribe();
   }, [delegate, shownNotifications]);
 
   const handleLogout = () => {
@@ -1219,7 +1214,7 @@ function AIChatbot({ delegate }) {
     await saveAIChatHistory(delegate.id, updated);
 
     try {
-      const apiKey = process.env.REACT_APP_GROQ_API_KEY;
+      const apiKey = process.env.NEXT_PUBLIC_GROQ_API_KEY;
       if (!apiKey) {
         throw new Error("Missing Groq API Key");
       }

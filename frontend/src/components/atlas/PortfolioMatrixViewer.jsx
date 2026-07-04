@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getDelegates, getRegistrations } from "@/lib/atlasApi";
+import { subscribeToDelegates, subscribeToRegistrations } from "@/lib/atlasApi";
 import { MATRIX_DATA } from "@/lib/matrixData";
 import { toast } from "sonner";
 
@@ -9,39 +9,54 @@ export default function PortfolioMatrixViewer({ open, onClose }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let unsubDelegates = null;
+    let unsubRegistrations = null;
+
     if (open) {
       setLoading(true);
-      Promise.all([getDelegates(), getRegistrations()])
-        .then(([delegates, registrations]) => {
-          const occ = {};
-          
-          // Count from approved delegates and stubs
-          delegates.forEach(d => {
-            const port = d.portfolio || d.portfolio_country;
-            if (port) {
-              occ[port] = (occ[port] || 0) + 1;
-            }
-          });
-          
-          // Count from pending registrations
-          const pendingRegs = registrations.filter(r => r.status === "pending_verification");
-          pendingRegs.forEach(r => {
-            const port = r.portfolio_country || r.portfolio || r.portfolio_1;
-            if (port) {
-              occ[port] = (occ[port] || 0) + 1;
-            }
-          });
+      
+      let currentDelegates = [];
+      let currentRegistrations = [];
 
-          setOccupiedMap(occ);
-        })
-        .catch(err => {
-          console.error(err);
-          toast.error("Failed to load live matrix data.");
-        })
-        .finally(() => {
-          setLoading(false);
+      const calculateOccupancy = () => {
+        const occ = {};
+        
+        // Count from approved delegates and stubs
+        currentDelegates.forEach(d => {
+          const port = d.portfolio || d.portfolio_country;
+          if (port) {
+            occ[port] = (occ[port] || 0) + 1;
+          }
         });
+        
+        // Count from pending registrations
+        const pendingRegs = currentRegistrations.filter(r => r.status === "pending_verification");
+        pendingRegs.forEach(r => {
+          const port = r.portfolio_country || r.portfolio || r.portfolio_1;
+          if (port) {
+            occ[port] = (occ[port] || 0) + 1;
+          }
+        });
+
+        setOccupiedMap(occ);
+        setLoading(false);
+      };
+
+      unsubDelegates = subscribeToDelegates((delegates) => {
+        currentDelegates = delegates;
+        calculateOccupancy();
+      });
+
+      unsubRegistrations = subscribeToRegistrations((registrations) => {
+        currentRegistrations = registrations;
+        calculateOccupancy();
+      });
     }
+
+    return () => {
+      if (unsubDelegates) unsubDelegates();
+      if (unsubRegistrations) unsubRegistrations();
+    };
   }, [open]);
 
   return (
