@@ -265,6 +265,16 @@ export default function AdminPanel() {
                       setSettings(newSettings);
                       await saveConferenceSettings(newSettings);
                     }}
+                    delegates={delegates}
+                    registrations={registrations}
+                    onUpdateDelegates={async (newDelegates) => {
+                      setDelegates(newDelegates);
+                      await saveDelegates(newDelegates);
+                    }}
+                    onUpdateRegistrations={async (newRegs) => {
+                      setRegistrations(newRegs);
+                      await saveRegistrations(newRegs);
+                    }}
                   />
                 )}
                 {activeTab === "passes" && (
@@ -1097,17 +1107,50 @@ function DelegateManager({ delegates, onUpdate, onRefresh }) {
             </div>
 
             <div className="flex-grow overflow-y-auto pr-2 scrollbar-thin space-y-4 font-mono text-xs">
+
+              {/* Highlighted Purchase Info */}
+              <div className="bg-[var(--atlas-gold)]/10 border border-[var(--atlas-gold)]/30 rounded p-4 mb-4">
+                <span className="text-[var(--atlas-gold)] text-[10px] tracking-widest block mb-2 font-bold">/ PURCHASED PACKAGE & PORTFOLIO</span>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-white/50 text-[9px] block">PORTFOLIO ASSIGNMENT</span>
+                    <span className="text-white text-sm">{viewingDelegate.portfolio || viewingDelegate.portfolio_country || "UNASSIGNED"}</span>
+                  </div>
+                  <div>
+                    <span className="text-white/50 text-[9px] block">TICKET PACKAGE</span>
+                    <span className="text-[var(--atlas-cyan)] text-sm">{viewingDelegate.package_name || "Standard (Legacy)"}</span>
+                  </div>
+                  {viewingDelegate.package_price && (
+                    <div>
+                      <span className="text-white/50 text-[9px] block">AMOUNT PAID</span>
+                      <span className="text-emerald-400 text-sm">₹{viewingDelegate.package_price}</span>
+                    </div>
+                  )}
+                  {viewingDelegate.is_atlas_plus && (
+                    <div>
+                      <span className="text-white/50 text-[9px] block">ADDON</span>
+                      <span className="text-[var(--atlas-gold)] text-sm font-bold border border-[var(--atlas-gold)]/50 px-2 py-0.5 rounded inline-block mt-1">ATLAS PLUS</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Raw Data Dump */}
+              <span className="text-white/30 text-[10px] tracking-widest block mt-4 border-b border-white/5 pb-2">/ COMPLETE SYSTEM DATA</span>
               {Object.entries(viewingDelegate).map(([key, value]) => {
                 if (key === 'id_proof_base64' && value) {
                   return (
-                    <div key={key} className="flex flex-col border-b border-white/5 pb-3">
+                    <div key={key} className="flex flex-col border-b border-white/5 pb-3 pt-2">
                       <span className="text-white/40 uppercase mb-1">{key.replace(/_/g, ' ')}</span>
                       <img src={value} alt="ID" className="max-w-[200px] h-auto rounded border border-white/10" />
                     </div>
                   )
                 }
+                // Skip displaying redundant highlighted keys in the raw dump to keep it clean
+                if (['portfolio', 'portfolio_country', 'package_name', 'package_price', 'is_atlas_plus'].includes(key)) return null;
+
                 return (
-                  <div key={key} className="flex flex-col border-b border-white/5 pb-3">
+                  <div key={key} className="flex flex-col border-b border-white/5 pb-3 pt-2">
                     <span className="text-white/40 uppercase mb-1">{key.replace(/_/g, ' ')}</span>
                     <span className="text-white break-all">{String(value)}</span>
                   </div>
@@ -1664,6 +1707,12 @@ function RegistrationAuditor({ registrations, delegates, payments, emailTemplate
                       <span className="text-white/40">Committee:</span>
                       <span className="bg-black/30 p-2 rounded border border-white/5">{viewData.committee}</span>
                     </div>
+                    {(viewData.portfolio_country || viewData.portfolio) && (
+                      <div className="flex justify-between border border-[var(--atlas-gold)]/40 bg-[var(--atlas-gold)]/10 p-2 rounded mt-2">
+                        <span className="text-[var(--atlas-gold)] font-bold text-[10px]">LOCKED PORTFOLIO:</span> 
+                        <span className="text-right text-[var(--atlas-gold)] font-bold">{viewData.portfolio_country || viewData.portfolio}</span>
+                      </div>
+                    )}
                     {viewData.portfolio_1 && (
                       <div className="flex justify-between"><span className="text-white/40">Portfolio Pref 1:</span> <span className="text-right">{viewData.portfolio_1}</span></div>
                     )}
@@ -2116,14 +2165,41 @@ function NotificationSender({ broadcasts, delegates, onUpdate, onRefresh }) {
 // ----------------------------------------------------
 // Tab Component: ConferenceSettings
 // ----------------------------------------------------
-function ConferenceSettings({ settings, onUpdate }) {
+function ConferenceSettings({ settings, onUpdate, delegates, registrations, onUpdateDelegates, onUpdateRegistrations }) {
   const [form, setForm] = useState(settings);
+  const [wiping, setWiping] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     onUpdate(form);
     toast.success("SYSTEM SETTINGS SAVED");
     addActivityLog("Conference settings and email templates updated");
+  };
+
+  const handleWipePortfolios = async () => {
+    const check = window.prompt("WARNING: This will unassign ALL portfolios across all delegates and registrations.\nType 'WIPE' to confirm:");
+    if (check !== 'WIPE') {
+      toast.error("Wipe cancelled.");
+      return;
+    }
+    setWiping(true);
+    try {
+      if (delegates && delegates.length > 0) {
+        const updatedDelegates = delegates.map(d => ({ ...d, portfolio: "", portfolio_country: "" }));
+        await onUpdateDelegates(updatedDelegates);
+      }
+      if (registrations && registrations.length > 0) {
+        const updatedRegs = registrations.map(r => ({ ...r, portfolio: "", portfolio_country: "" }));
+        await onUpdateRegistrations(updatedRegs);
+      }
+      toast.success("ALL PORTFOLIOS UNASSIGNED");
+      addActivityLog("Administrator triggered a global wipe of all assigned portfolios.");
+    } catch (e) {
+      toast.error("Failed to wipe portfolios");
+      console.error(e);
+    } finally {
+      setWiping(false);
+    }
   };
 
   return (
@@ -2173,6 +2249,24 @@ function ConferenceSettings({ settings, onUpdate }) {
             onChange={(v) => setForm({ ...form, regular_price: Number(v) })}
           />
           <Field
+            label="SCHOOL DELEGATION DISCOUNT (₹)"
+            type="number"
+            value={form.school_discount !== undefined ? form.school_discount : 100}
+            onChange={(v) => setForm({ ...form, school_discount: Number(v) })}
+          />
+          <Field
+            label="FESTIVAL PASS PRICE (₹)"
+            type="number"
+            value={form.festival_price || 1099}
+            onChange={(v) => setForm({ ...form, festival_price: Number(v) })}
+          />
+          <Field
+            label="CONCERT PASS PRICE (₹)"
+            type="number"
+            value={form.concert_price || 999}
+            onChange={(v) => setForm({ ...form, concert_price: Number(v) })}
+          />
+          <Field
             label="ATLAS PLUS UPGRADE PRICE (₹)"
             type="number"
             value={form.atlas_plus_price || 999}
@@ -2207,6 +2301,23 @@ function ConferenceSettings({ settings, onUpdate }) {
           </button>
         </div>
       </form>
+
+      {/* DANGER ZONE */}
+      <div className="max-w-[650px] glass rounded border border-red-500/20 p-6 space-y-4">
+        <span className="classified-label text-red-500 text-[10px] block border-b border-red-500/20 pb-2">
+          / DANGER ZONE: PORTFOLIO WIPER
+        </span>
+        <p className="text-[10px] text-white/50 leading-relaxed font-mono">
+          Clicking the button below will permanently remove the `portfolio` and `portfolio_country` properties from ALL pending registrations and approved delegates. Their names, emails, and payment statuses will remain intact. This is irreversible.
+        </p>
+        <button
+          onClick={handleWipePortfolios}
+          disabled={wiping}
+          className="w-full py-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-mono text-[11px] font-bold border border-red-500/30 rounded tracking-widest transition-colors"
+        >
+          {wiping ? "WIPING ALL PORTFOLIOS..." : "DANGER: UNASSIGN ALL PORTFOLIOS"}
+        </button>
+      </div>
     </div>
   );
 }

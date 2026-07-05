@@ -1,6 +1,6 @@
 import { useState, useEffect, Fragment } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { registerUser, getDiscountCodes, getDelegates } from "@/lib/atlasApi";
+import { registerUser, getDiscountCodes } from "@/lib/atlasApi";
 import { MATRIX_DATA } from "@/lib/matrixData";
 import { toast } from "sonner";
 import PortfolioMatrixViewer from "./PortfolioMatrixViewer";
@@ -80,50 +80,120 @@ export default function AccessDialog({ open, onClose }) {
   const [matrixOpen, setMatrixOpen] = useState(false); // To control standalone matrix dialog
   const [packages, setPackages] = useState(PACKAGES);
 
+  // Fetch settings once on mount
   useEffect(() => {
-    getDiscountCodes().then(setActiveDiscountCodes).catch(console.error);
-    Promise.all([
-      getDelegates(), 
-      import("@/lib/atlasApi").then(m => m.getRegistrations()),
-      import("@/lib/atlasApi").then(m => m.getConferenceSettings())
-    ])
-      .then(([delegates, registrations, settings]) => {
-        setLiveDelegates(delegates);
-        
+    async function loadSettings() {
+      try {
+        const settings = await getConferenceSettings();
         if (settings) {
           setPackages({
             "Model United Nations": [
               { name: "Early Bird", price: settings.early_bird_price || 1899 },
             ],
             "School delegation": [
-              { name: "Early Bird", price: settings.early_bird_price ? settings.early_bird_price - 100 : 1799 },
+              { name: "Early Bird", price: (settings.early_bird_price || 1899) - (settings.school_discount !== undefined ? settings.school_discount : 100) },
+            ],
+            "For festival": [
+              { name: "Early Bird", price: settings.festival_price || 1099 },
             ],
             "For concert": [
-              { name: "Early Bird", price: 999 },
+              { name: "Early Bird", price: settings.concert_price || 999 },
             ],
           });
         }
-        const occ = {};
-        
-        // Count from approved delegates and stubs
-        delegates.forEach(d => {
-          const port = d.portfolio || d.portfolio_country;
-          if (port) {
-            occ[port] = (occ[port] || 0) + 1;
-          }
-        });
-        
-        // Count from pending registrations
-        const pendingRegs = registrations.filter(r => r.status === "pending_verification");
-        pendingRegs.forEach(r => {
-          const port = r.portfolio_country || r.portfolio || r.portfolio_1;
-          if (port) {
-            occ[port] = (occ[port] || 0) + 1;
-          }
-        });
+      } catch (err) {
+        console.error("Failed to load settings:", err);
+      }
+    }
+    loadSettings();
+  }, []);
 
-        setOccupiedMap(occ);
-      }).catch(console.error);
+  const handleCashfreePayment = async () => {
+    setLoading(true);
+    try {
+      const orderId = `AUS-ORD-${Date.now()}`;
+      const payload = {
+        ...form,
+        package_name: selectedPackage.name,
+        package_category: selectedCategory,
+        package_price: payPrice,
+        registration_id: orderId,
+        status: "pending_verification",
+        timestamp: new Date().toISOString(),
+      };
+
+      // Save to localStorage so VerifyPayment.jsx can retrieve it upon return
+      localStorage.setItem("pending_delegate_payload", JSON.stringify(payload));
+      if (form.referralCode) {
+        localStorage.setItem("pending_coupon_code", form.referralCode);
+      } else {
+        localStorage.removeItem("pending_coupon_code");
+      }
+
+      // Fetch Session ID
+      const res = await fetch("/api/payment/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          order_amount: payPrice,
+          order_id: orderId,
+          customer_details: {
+            customer_id: `CUST_${Date.now()}`,
+            customer_phone: form.phone_number,
+            customer_email: form.email,
+            customer_name: form.full_name
+          },
+          order_meta: {
+            return_url: `${window.location.origin}/verify?order_id=${orderId}`
+          },
+          delegate_payload: payload,
+          coupon_code: form.referralCode || null
+        })
+      });
+
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to initiate Cashfree payment");
+      }
+
+      // Load SDK if not loaded
+      if (!window.Cashfree) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = "https://sdk.cashfree.com/pg/v3/cashfree.js";
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+
+      // Initialize Checkout
+      const cashfree = window.Cashfree({ mode: "production" });
+      cashfree.checkout({
+        paymentSessionId: data.payment_session_id,
+        redirectTarget: "_self"
+      });
+
+    } catch (e) {
+      console.error(e);
+      toast.error("PAYMENT GATEWAY ERROR", { description: e.message });
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    getDiscountCodes().then(setActiveDiscountCodes).catch(console.error);
+    fetch("/api/public/occupied-portfolios")
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch portfolios");
+        return res.json();
+      })
+      .then(data => {
+        if (data.occupiedMap) setOccupiedMap(data.occupiedMap);
+        if (data.stubDelegates) setLiveDelegates(data.stubDelegates);
+      })
+      .catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -720,7 +790,7 @@ export default function AccessDialog({ open, onClose }) {
                           if (form.committee.includes("IPL")) maxAllowed = 3;
                           else if (form.committee.includes("UNSC")) maxAllowed = 2;
                           
-                          const currentCount = occupiedMap[item.country] || 0;
+                          const currentCount = (occupiedMap[form.committee] && occupiedMap[form.committee][item.country]) || 0;
                           let isOccupied = currentCount >= maxAllowed || item.status.toLowerCase() === "occupied" || item.status.toLowerCase() === "alloted" || item.status.toLowerCase() === "reserved";
                           
                           // Allow selection if the user is pre-allotted this exact portfolio
@@ -1069,75 +1139,25 @@ export default function AccessDialog({ open, onClose }) {
                       </div>
                     </div>
 
-                    {/* UPI QR Code Block */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center border-t border-white/5 pt-6">
-                      <div className="flex flex-col items-center justify-center p-4 bg-[#08000f]/80 rounded border border-[var(--atlas-gold)]/20 relative">
-                        <div className="absolute top-2 left-2 text-[8px] font-mono tracking-widest text-[var(--atlas-gold)]">
-                          SCAN ME
-                        </div>
-                        <img
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&bgcolor=08000F&color=C9A44C&data=${encodeURIComponent(`upi://pay?pa=9140738627@axl&pn=Atlas&am=${payPrice}&cu=INR`)}`}
-                          alt="Golden UPI QR Code"
-                          className="w-[180px] h-[180px] object-contain rounded-sm shadow-[0_0_15px_rgba(201,164,76,0.3)]"
-                        />
-                        <span className="font-mono text-[9px] tracking-widest text-[var(--atlas-gold)]/60 mt-3">
-                          ATLAS SECURE QR
-                        </span>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div>
-                          <span className="classified-label text-white/55 text-[10px]">
-                            PAY VIA UPI ID
+                    {/* Cashfree Automation Block */}
+                    <div className="border-t border-white/5 pt-8 mt-4 flex flex-col items-center">
+                      <div className="w-full max-w-md space-y-4">
+                        <button
+                          type="button"
+                          onClick={handleCashfreePayment}
+                          disabled={loading}
+                          className="w-full py-4 bg-gradient-to-r from-[var(--atlas-gold)] to-[#947126] text-black font-display text-lg tracking-widest font-bold rounded shadow-[0_0_20px_rgba(201,164,76,0.3)] hover:shadow-[0_0_30px_rgba(201,164,76,0.5)] transition-all transform hover:scale-[1.02]"
+                        >
+                          {loading ? "INITIALIZING SECURE GATEWAY..." : "PAY SECURELY VIA CASHFREE ↗"}
+                        </button>
+                        
+                        <div className="flex items-center justify-center gap-3">
+                          <span className="font-mono text-[9px] tracking-wider text-white/45 flex items-center gap-1.5">
+                            🛡️ 256-BIT END-TO-END ENCRYPTED CHECKOUT
                           </span>
-                          <div className="flex items-center gap-2 mt-1.5">
-                            <code className="bg-black/40 border border-white/10 rounded px-3 py-2 text-white font-mono text-[13px] flex-grow tracking-wider">
-                              9140738627@axl
-                            </code>
-                            <button
-                              onClick={copyUPI}
-                              className="px-3 py-2 rounded border border-[var(--atlas-gold)] text-[var(--atlas-gold)] hover:bg-[var(--atlas-gold)]/10 font-mono text-xs tracking-wider transition-colors"
-                            >
-                              COPY
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="text-white/60 text-xs leading-[1.6]">
-                          👉 Scan the QR code or pay using the UPI ID. Once the transaction is completed, retrieve the <span className="text-white font-bold">12-digit UTR/Transaction ID</span> from your bank app history and enter it below.
                         </div>
                       </div>
                     </div>
-
-                    {/* UTR Input Form */}
-                    <form onSubmit={handleRegisterSubmit} className="border-t border-white/5 pt-5 space-y-4">
-                      <div>
-                        <label className="classified-label text-[var(--atlas-gold)] text-[10.5px]">
-                          ENTER 12-DIGIT TRANSACTION UTR ID *
-                        </label>
-                        <input
-                          required
-                          value={utr}
-                          onChange={(e) => setUtr(e.target.value)}
-                          placeholder="e.g. 306712495810"
-                          maxLength={16}
-                          className="w-full mt-2 bg-transparent border-b border-white/15 focus:border-[var(--atlas-gold)] outline-none py-3 font-mono text-base tracking-[0.2em] text-white placeholder:text-white/20 text-center"
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between gap-4 flex-wrap pt-3">
-                        <span className="font-mono text-[9px] tracking-wider text-white/45 flex items-center gap-1.5">
-                          🛡️ 256-BIT END-TO-END ENCRYPTED CHECKOUT
-                        </span>
-                        <button
-                          type="submit"
-                          disabled={loading}
-                          className="btn-atlas !w-full sm:!w-auto text-center"
-                        >
-                          {loading ? "TRANSMITTING PROOF…" : "SUBMIT REGISTRATION"} <span>↗</span>
-                        </button>
-                      </div>
-                    </form>
                   </motion.div>
                 )}
 

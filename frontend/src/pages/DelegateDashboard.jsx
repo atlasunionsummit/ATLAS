@@ -17,6 +17,7 @@ import {
 } from "@/lib/atlasApi";
 import { toast } from "sonner";
 import CoachellaDashboard, { UrgentSafetyContact } from "@/pages/CoachellaDashboard";
+import PortfolioMatrixViewer from "@/components/atlas/PortfolioMatrixViewer";
 
 export default function DelegateDashboard({ onRequestAccess }) {
   const navigate = useNavigate();
@@ -214,6 +215,7 @@ export default function DelegateDashboard({ onRequestAccess }) {
             { id: "data", label: "09 REGISTRATION DATA", icon: "🗄️" },
             { id: "library", label: "10 ATLAS LIBRARY", icon: "📚" },
             { id: "safety", label: "11 URGENT SAFETY CONTACT", icon: "🚨" },
+            { id: "matrix", label: "12 PORTFOLIO MATRIX", icon: "🗺️" },
           ].filter(tab => !(tab.id === "atlasplus" && delegate?.committee === "Coachella (Simulated Crisis)"))
           .map((tab) => (
             <button
@@ -530,6 +532,9 @@ export default function DelegateDashboard({ onRequestAccess }) {
               )}
               {activeTab === "safety" && (
                 <UrgentSafetyContact delegate={delegate} />
+              )}
+              {activeTab === "matrix" && (
+                <PortfolioMatrixViewer open={true} onClose={() => setActiveTab("profile")} />
               )}
             </motion.div>
           </AnimatePresence>
@@ -1214,7 +1219,7 @@ function AIChatbot({ delegate }) {
     await saveAIChatHistory(delegate.id, updated);
 
     try {
-      const apiKey = process.env.NEXT_PUBLIC_GROQ_API_KEY;
+      const apiKey = process.env.REACT_APP_GROQ_API_KEY;
       if (!apiKey) {
         throw new Error("Missing Groq API Key");
       }

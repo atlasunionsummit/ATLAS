@@ -1,18 +1,5 @@
-import { initializeApp } from "firebase/app";
-import { getFirestore, doc, runTransaction, increment } from "firebase/firestore";
+import { db } from '../utils/firebaseAdmin.js';
 import { sendBrevoEmail } from '../utils/brevo.js';
-
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyAseJWjdl-_264T6RlZjVsqRtP-71l6z-M",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "atlasunionsummit-9ac21.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "atlasunionsummit-9ac21",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "atlasunionsummit-9ac21.firebasestorage.app",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "286476979504",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:286476979504:web:7588da332bfe13a16c4cf5"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -22,7 +9,18 @@ export default async function handler(req, res) {
   const { order_id, delegate_payload, coupon_code } = req.body;
 
   try {
-    // 1. Verify with Cashfree
+    // 1. Check Idempotency (Prevent Replay Attacks)
+    const existingOrderQuery = await db.collection('delegates')
+      .where('payment_order_id', '==', order_id)
+      .limit(1)
+      .get();
+      
+    if (!existingOrderQuery.empty) {
+      // Order has already been processed successfully
+      return res.status(200).json({ success: true, message: 'Transaction already processed successfully' });
+    }
+
+    // 2. Verify with Cashfree
     const response = await fetch(`https://api.cashfree.com/pg/orders/${order_id}`, {
       method: 'GET',
       headers: {
@@ -39,23 +37,19 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: 'Order not paid', status: data.order_status });
     }
 
-    // 2. Execute Firestore Transaction
-    await runTransaction(db, async (transaction) => {
-      // 2a. Lock Portfolio Slot
-      // Note: This assumes a 'portfolios' collection exists with portfolio_id as key.
-      // If we don't have a portfolio collection natively, we will update a global counter document.
-      // For phase 4 UNSC double delegation schema, we check slotsFilled and maxSlots.
+    // 3. Execute Firestore Transaction via Admin SDK
+    await db.runTransaction(async (transaction) => {
+      // 3a. Lock Portfolio Slot
       const portfolioId = delegate_payload.portfolio || delegate_payload.portfolio_country;
       if (portfolioId) {
-        const portfolioRef = doc(db, "portfolios", portfolioId);
+        const portfolioRef = db.collection("portfolios").doc(portfolioId);
         const portfolioSnap = await transaction.get(portfolioRef);
         
         let maxSlots = 1;
-        if (delegate_payload.committee.includes("IPL")) maxSlots = 3;
-        if (delegate_payload.committee.includes("UNSC")) maxSlots = 2;
+        if (delegate_payload.committee && delegate_payload.committee.includes("IPL")) maxSlots = 3;
+        if (delegate_payload.committee && delegate_payload.committee.includes("UNSC")) maxSlots = 2;
 
-        if (!portfolioSnap.exists()) {
-          // Initialize if it doesn't exist
+        if (!portfolioSnap.exists) {
           transaction.set(portfolioRef, { slotsFilled: 1, maxSlots: maxSlots });
         } else {
           const currentFilled = portfolioSnap.data().slotsFilled || 0;
@@ -66,9 +60,9 @@ export default async function handler(req, res) {
         }
       }
 
-      // 2b. Create Delegate Record
+      // 3b. Create Delegate Record
       const newDelegateId = `AUS-DEL-${Date.now()}`;
-      const delegateRef = doc(db, "delegates", newDelegateId);
+      const delegateRef = db.collection("delegates").doc(newDelegateId);
       transaction.set(delegateRef, {
         ...delegate_payload,
         id: newDelegateId,
@@ -77,13 +71,11 @@ export default async function handler(req, res) {
         timestamp: new Date().toISOString()
       });
 
-      // 2c. Increment Coupon Usage
+      // 3c. Increment Coupon Usage
       if (coupon_code) {
-        // Querying inside transaction can be tricky with Web SDK if we don't have the doc ID.
-        // We will assume the coupon ID is the code string for simplicity.
-        const couponRef = doc(db, "discount_codes", coupon_code);
+        const couponRef = db.collection("discount_codes").doc(coupon_code);
         const couponSnap = await transaction.get(couponRef);
-        if (couponSnap.exists()) {
+        if (couponSnap.exists) {
           const currentTimesUsed = couponSnap.data().timesUsed || 0;
           const maxUses = couponSnap.data().maxUses || 9999;
           if (currentTimesUsed < maxUses) {
@@ -93,8 +85,8 @@ export default async function handler(req, res) {
       }
     });
 
-    // 3. Trigger Brevo Email
-    const isAtlasPlus = delegate_payload.committee === "Simulation Corps (Premium)" || 
+    // 4. Trigger Brevo Email
+    const isAtlasPlus = (delegate_payload.committee && delegate_payload.committee === "Simulation Corps (Premium)") || 
                         delegate_payload.is_atlas_plus || 
                         (delegate_payload.package_name && delegate_payload.package_name.includes("ATLAS PLUS"));
 
@@ -104,7 +96,6 @@ export default async function handler(req, res) {
     }
 
     if (templateId) {
-      // We don't await this so it doesn't block the response to Cashfree/Client
       sendBrevoEmail({
         toEmail: delegate_payload.email,
         toName: delegate_payload.full_name || delegate_payload.nickname || "Delegate",

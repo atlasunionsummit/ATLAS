@@ -25,6 +25,7 @@ import AccessDialog from "@/components/atlas/AccessDialog";
 import DelegateLoginDialog from "@/components/atlas/DelegateLoginDialog";
 import { ScanWipe } from "@/components/atlas/SectionFX";
 import { signOutUser } from "@/lib/atlasApi";
+import VerifyPayment from "@/pages/VerifyPayment";
 
 function Home({ setAccessOpen }) {
   const navigate = useNavigate();
@@ -153,6 +154,7 @@ function App() {
           <Route path="/coachella" element={<CoachellaDashboard onRequestAccess={() => setAccessOpen(true)} />} />
           <Route path="/passport" element={<DelegatePassportPage />} />
           <Route path="/p/:id" element={<StandalonePassPage />} />
+          <Route path="/verify" element={<VerifyPayment />} />
         </Routes>
         <AccessDialog open={accessOpen} onClose={() => setAccessOpen(false)} />
       </BrowserRouter>

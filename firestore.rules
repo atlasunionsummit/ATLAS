@@ -1,18 +1,83 @@
-rules_version='2'
+rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Helper function to check if the user is the Admin
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'atlasunionsummit@gmail.com';
+    }
+
+    // 1. Settings & Public Data
+    match /settings/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /portfolios/{document} {
+      allow read: if true;
+      allow write: if isAdmin(); // verify.js uses Admin SDK so it bypasses this
+    }
+
+    match /discount_codes/{document} {
+      allow read: if true;
+      allow write: if isAdmin(); // verify.js uses Admin SDK to increment uses
+    }
+
+    // 2. Delegate Data (Strictly Admin Only)
+    match /delegates/{document} {
+      allow read, write: if isAdmin();
+    }
+
+    match /payments/{document} {
+      allow read, write: if isAdmin();
+    }
+
+    // 3. User Submissions (Public Create, Admin Read/Write)
+    match /access_requests/{document} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /google_logins/{document} {
+      allow create: if request.auth != null; // User must be signed in to log their sign-in
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /registrations/{document} {
+      // Allow public creation with basic schema validation and Payload Bomb protection
+      allow create: if request.resource.data.keys().hasAll(['registration_id', 'email', 'status', 'timestamp'])
+                    && request.resource.data.status == 'pending_verification'
+                    && (
+                      !('id_proof_base64' in request.resource.data) || 
+                      (request.resource.data.id_proof_base64 is string && request.resource.data.id_proof_base64.size() < 500000)
+                    );
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /activity_logs/{document} {
+      // Allow public to create logs (used by generatePassport, requestAccess, etc)
+      allow create: if request.resource.data.keys().hasAll(['text', 'timestamp']);
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /guest_passports/{document} {
+      allow create, read: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    match /passports/{document} {
+      allow create, read: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    match /stats/{document} {
+      allow read, update, create: if true;
+    }
+
+    // 4. Fallback: Block everything else
     match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2026, 7, 7);
+      allow read, write: if isAdmin();
     }
   }
 }

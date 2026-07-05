@@ -201,6 +201,8 @@ export const registerUser = async (payload) => {
     country: payload.country,
     city_of_residence: payload.city_of_residence,
     committee: payload.committee,
+    portfolio_country: payload.portfolio_country || "",
+    portfolio: payload.portfolio || payload.portfolio_country || "",
     past_experience: payload.past_experience || "",
     dietary_instructions: payload.dietary_instructions || "",
     package_category: payload.package_category,
@@ -384,6 +386,8 @@ export const subscribeToDelegates = (callback) => {
     return () => {};
   }
 };
+
+
 
 export const saveDelegates = async (delegates) => {
   try {

@@ -24,8 +24,10 @@ export default function PortfolioMatrixViewer({ open, onClose }) {
         // Count from approved delegates and stubs
         currentDelegates.forEach(d => {
           const port = d.portfolio || d.portfolio_country;
-          if (port) {
-            occ[port] = (occ[port] || 0) + 1;
+          const committee = d.committee;
+          if (port && committee) {
+            if (!occ[committee]) occ[committee] = {};
+            occ[committee][port] = (occ[committee][port] || 0) + 1;
           }
         });
         
@@ -33,8 +35,10 @@ export default function PortfolioMatrixViewer({ open, onClose }) {
         const pendingRegs = currentRegistrations.filter(r => r.status === "pending_verification");
         pendingRegs.forEach(r => {
           const port = r.portfolio_country || r.portfolio || r.portfolio_1;
-          if (port) {
-            occ[port] = (occ[port] || 0) + 1;
+          const committee = r.committee;
+          if (port && committee) {
+            if (!occ[committee]) occ[committee] = {};
+            occ[committee][port] = (occ[committee][port] || 0) + 1;
           }
         });
 
@@ -133,7 +137,7 @@ export default function PortfolioMatrixViewer({ open, onClose }) {
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 pr-1">
                         {countries.map(item => {
-                          const currentCount = occupiedMap[item.country] || 0;
+                          const currentCount = (occupiedMap[committee] && occupiedMap[committee][item.country]) || 0;
                           const isOccupied = currentCount >= maxAllowed || item.status.toLowerCase() === "occupied" || item.status.toLowerCase() === "alloted" || item.status.toLowerCase() === "reserved";
                           
                           let bgClass = "bg-white/5 hover:bg-white/10 text-white/80";

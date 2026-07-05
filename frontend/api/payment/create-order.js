@@ -1,11 +1,61 @@
+import { db } from '../utils/firebaseAdmin.js';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
-  const { customer_details, order_amount, order_id, order_meta } = req.body;
+  const { customer_details, order_id, order_meta, delegate_payload, coupon_code } = req.body;
 
   try {
+    // --- SERVER-SIDE PRICE VALIDATION ---
+    let expectedPrice = 0;
+    
+    // Fetch base pricing
+    const settingsDoc = await db.collection('settings').doc('conference_settings').get();
+    const settings = settingsDoc.exists ? settingsDoc.data() : { early_bird_price: 1899 };
+    
+    // Determine base package price based on category
+    if (delegate_payload.package_category === "Model United Nations") {
+      expectedPrice = settings.early_bird_price || 1899;
+    } else if (delegate_payload.package_category === "School delegation") {
+      const discount = settings.school_discount !== undefined ? settings.school_discount : 100;
+      expectedPrice = (settings.early_bird_price || 1899) - discount;
+    } else if (delegate_payload.package_category === "For festival") {
+      expectedPrice = settings.festival_price || 1099;
+    } else if (delegate_payload.package_category === "For concert") {
+      expectedPrice = settings.concert_price || 999;
+    }
+
+    // Add Atlas Plus Addon
+    if (delegate_payload.is_atlas_plus) {
+      expectedPrice += (settings.atlas_plus_price || 600);
+    }
+
+    // Apply Discount Code if valid
+    if (coupon_code) {
+      const codeDoc = await db.collection('discount_codes').doc(coupon_code).get();
+      if (codeDoc.exists) {
+        const codeData = codeDoc.data();
+        const timesUsed = codeData.timesUsed || 0;
+        const maxUses = codeData.maxUses || 9999;
+        
+        if (timesUsed < maxUses) {
+          // Check if applies to category
+          if (codeData.appliesTo === "All Categories" || codeData.appliesTo === delegate_payload.package_category) {
+            const discountAmount = Math.floor(expectedPrice * (Number(codeData.percentage) / 100));
+            expectedPrice -= discountAmount;
+          }
+        }
+      }
+    }
+
+    // Ensure price doesn't drop below minimum
+    if (expectedPrice <= 0) {
+      return res.status(400).json({ message: "Invalid package category or pricing calculation resulted in 0." });
+    }
+
+    // --- CREATE CASHFREE ORDER ---
     const response = await fetch('https://api.cashfree.com/pg/orders', {
       method: 'POST',
       headers: {
@@ -16,7 +66,7 @@ export default async function handler(req, res) {
         'x-environment': process.env.CASHFREE_ENVIRONMENT || 'PRODUCTION'
       },
       body: JSON.stringify({
-        order_amount: order_amount,
+        order_amount: expectedPrice, // SECURE: Use server-calculated price
         order_currency: 'INR',
         customer_details: {
           customer_id: customer_details.customer_id,
