@@ -4,7 +4,7 @@ import { registerUser, getDiscountCodes } from "@/lib/atlasApi";
 import { MATRIX_DATA } from "@/lib/matrixData";
 import { toast } from "sonner";
 import PortfolioMatrixViewer from "./PortfolioMatrixViewer";
-
+import { load } from '@cashfreepayments/cashfree-js';
 const COMMITTEES = [
   "UNSC (United Nations Security Council)",
   "UNGA (United Nations General Assembly)",
@@ -157,27 +157,19 @@ export default function AccessDialog({ open, onClose }) {
         throw new Error(data.message || "Failed to initiate Cashfree payment");
       }
 
-      // Load SDK if not loaded
-      if (!window.Cashfree) {
-        await new Promise((resolve, reject) => {
-          const script = document.createElement("script");
-          script.src = "https://sdk.cashfree.com/pg/v3/cashfree.js";
-          script.onload = resolve;
-          script.onerror = reject;
-          document.head.appendChild(script);
-        });
-      }
-
-      // Initialize Checkout
-      const cashfree = window.Cashfree({ mode: "production" });
+      // Initialize Checkout using NPM package
+      const cashfree = await load({
+        mode: "production"
+      });
+      
       cashfree.checkout({
         paymentSessionId: data.payment_session_id,
         redirectTarget: "_self"
       });
 
     } catch (e) {
-      console.error(e);
-      toast.error("PAYMENT GATEWAY ERROR", { description: e.message });
+      console.error("CASHFREE CHECKOUT ERROR:", e);
+      toast.error("PAYMENT GATEWAY ERROR", { description: e.message || String(e) });
       setLoading(false);
     }
   };
