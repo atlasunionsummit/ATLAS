@@ -13,11 +13,14 @@ import {
   getAIChatHistory,
   saveAIChatHistory,
   getDelegateTasks,
-  saveDelegateTasks
+  saveDelegateTasks,
+  getConferenceSettings
 } from "@/lib/atlasApi";
 import { toast } from "sonner";
+import { load } from '@cashfreepayments/cashfree-js';
 import CoachellaDashboard, { UrgentSafetyContact } from "@/pages/CoachellaDashboard";
 import PortfolioMatrixViewer from "@/components/atlas/PortfolioMatrixViewer";
+import TermsAndConditions from "@/components/atlas/TermsAndConditions";
 
 export default function DelegateDashboard({ onRequestAccess }) {
   const navigate = useNavigate();
@@ -31,8 +34,8 @@ export default function DelegateDashboard({ onRequestAccess }) {
 
   // Atlas Plus Upgrade state
   const [showUpgradePay, setShowUpgradePay] = useState(false);
-  const [upgradeUtr, setUpgradeUtr] = useState("");
   const [upgradeLoading, setUpgradeLoading] = useState(false);
+  const [atlasPlusPrice, setAtlasPlusPrice] = useState(600);
 
   // Redirect if not signed in
   useEffect(() => {
@@ -48,6 +51,13 @@ export default function DelegateDashboard({ onRequestAccess }) {
         navigate("/");
       }
     }
+    
+    // Fetch dynamic atlas plus price
+    getConferenceSettings().then(settings => {
+      if (settings?.atlas_plus_price) {
+        setAtlasPlusPrice(settings.atlas_plus_price);
+      }
+    }).catch(console.error);
   }, [navigate]);
 
   // Read admin broadcasts for push notifications
@@ -104,31 +114,59 @@ export default function DelegateDashboard({ onRequestAccess }) {
     }
   };
 
-  const handleUpgradeSubmit = async (e) => {
-    e.preventDefault();
-    if (!upgradeUtr.trim() || upgradeUtr.trim().length < 8) {
-      toast.error("INVALID UTR", { description: "Please enter a valid 12-digit UTR." });
-      return;
-    }
+  const handleCashfreeUpgrade = async (e) => {
+    if (e) e.preventDefault();
     setUpgradeLoading(true);
     try {
-      const globalDelegates = await getDelegates();
-      const delegateDoc = globalDelegates.find(d => d.email.toLowerCase() === delegate.email.toLowerCase());
-      if (delegateDoc) {
-        const updatedDossier = { ...delegateDoc, upgrade_pending: true, upgrade_utr: upgradeUtr };
-        const updatedList = globalDelegates.map(d => d.email.toLowerCase() === delegate.email.toLowerCase() ? updatedDossier : d);
-        await saveDelegates(updatedList);
-        setDelegate(updatedDossier);
-        localStorage.setItem("aus_delegate_session", JSON.stringify(updatedDossier));
-        toast.success("UPGRADE REQUESTED", { description: "Your payment is being verified by the secretariat." });
-      } else {
-        toast.error("ERROR", { description: "Delegate profile not found." });
+      const orderId = `AUS-UPG-${Date.now()}`;
+      const payload = {
+        ...delegate,
+        is_upgrade: true,
+        registration_id: orderId,
+        package_name: "Atlas Plus Tier",
+        timestamp: new Date().toISOString(),
+      };
+
+      // Save to localStorage for verify step
+      localStorage.setItem("pending_upgrade_payload", JSON.stringify(payload));
+
+      const res = await fetch("/api/payment/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          order_amount: atlasPlusPrice,
+          order_id: orderId,
+          customer_details: {
+            customer_id: delegate.id || `CUST_${Date.now()}`,
+            customer_phone: delegate.phone_number || "9999999999",
+            customer_email: delegate.email,
+            customer_name: delegate.full_name
+          },
+          order_meta: {
+            return_url: `${window.location.origin}/verify-upgrade?order_id=${orderId}`
+          },
+          delegate_payload: payload
+        })
+      });
+
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to initiate Cashfree payment");
       }
-    } catch {
-      toast.error("UPGRADE FAILED", { description: "Could not submit upgrade request. Try again." });
-    } finally {
+
+      // Initialize Checkout using NPM package
+      const cashfree = await load({ mode: "production" });
+      
+      cashfree.checkout({
+        paymentSessionId: data.payment_session_id,
+        redirectTarget: "_self"
+      });
+
+    } catch (err) {
+      console.error("CASHFREE UPGRADE ERROR:", err);
+      toast.error("GATEWAY ERROR", { description: err.message || String(err) });
       setUpgradeLoading(false);
-      setShowUpgradePay(false);
     }
   };
 
@@ -216,6 +254,7 @@ export default function DelegateDashboard({ onRequestAccess }) {
             { id: "library", label: "10 ATLAS LIBRARY", icon: "📚" },
             { id: "safety", label: "11 URGENT SAFETY CONTACT", icon: "🚨" },
             { id: "matrix", label: "12 PORTFOLIO MATRIX", icon: "🗺️" },
+            { id: "terms", label: "13 TERMS & CONDITIONS", icon: "⚖️" },
           ].filter(tab => !(tab.id === "atlasplus" && delegate?.committee === "Coachella (Simulated Crisis)"))
           .map((tab) => (
             <button
@@ -392,65 +431,17 @@ export default function DelegateDashboard({ onRequestAccess }) {
                         </div>
                       ) : (
                         <div className="p-6 glass border border-[var(--atlas-gold)]/40 rounded">
-                          {showUpgradePay ? (
-                            <form onSubmit={handleUpgradeSubmit} className="space-y-4">
-                              <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
-                                <h4 className="font-display text-[var(--atlas-gold)] text-lg">UPGRADE TO ATLAS PLUS</h4>
-                                <button type="button" onClick={() => setShowUpgradePay(false)} className="text-white/50 hover:text-white">✕</button>
+                          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                            <div>
+                              <h4 className="font-display text-[var(--atlas-gold)] text-xl mb-1 tracking-wider">UPGRADE TO ATLAS PLUS</h4>
+                              <div className="text-[var(--atlas-gold)] font-mono text-sm tracking-widest mb-4 border-b border-[var(--atlas-gold)]/20 pb-3 inline-block">
+                                ₹{atlasPlusPrice} / INVITATION ONLY
                               </div>
-                              <div className="flex flex-col sm:flex-row gap-6">
-                                <div className="shrink-0 flex items-center justify-center bg-[#08000f]/80 p-2 rounded border border-[var(--atlas-gold)]/20">
-                                  <img
-                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&bgcolor=08000F&color=C9A44C&data=${encodeURIComponent("upi://pay?pa=9140738627@axl&pn=Atlas&am=2000&cu=INR")}`}
-                                    alt="Atlas Plus UPI QR Code"
-                                    className="w-28 h-28 object-contain rounded-sm shadow-[0_0_15px_rgba(201,164,76,0.3)]"
-                                  />
-                                </div>
-                                <div className="flex-grow space-y-4">
-                                  <div>
-                                    <span className="classified-label text-white/55 text-[10px]">PAY VIA UPI ID</span>
-                                    <code className="block bg-black/40 border border-white/10 rounded px-3 py-2 text-white font-mono text-[13px] tracking-wider mt-1.5">
-                                      9140738627@axl
-                                    </code>
-                                  </div>
-                                  <div>
-                                    <label className="classified-label text-[var(--atlas-gold)] text-[10.5px]">
-                                      ENTER 12-DIGIT TRANSACTION UTR ID *
-                                    </label>
-                                    <input
-                                      required
-                                      value={upgradeUtr}
-                                      onChange={(e) => setUpgradeUtr(e.target.value)}
-                                      placeholder="e.g. 306712495810"
-                                      maxLength={16}
-                                      className="w-full mt-2 bg-black/40 border border-white/15 focus:border-[var(--atlas-gold)] outline-none py-2 px-3 font-mono text-sm tracking-widest text-white placeholder:text-white/20"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="border-t border-white/5 pt-4 flex justify-end">
-                                <button
-                                  type="submit"
-                                  disabled={upgradeLoading || !upgradeUtr}
-                                  className="btn-atlas"
-                                >
-                                  {upgradeLoading ? "SUBMITTING..." : "CONFIRM UPGRADE (₹999)"} <span>↗</span>
-                                </button>
-                              </div>
-                            </form>
-                          ) : (
-                            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                              <div>
-                                <h4 className="font-display text-[var(--atlas-gold)] text-xl mb-1 tracking-wider">UPGRADE TO ATLAS PLUS</h4>
-                                <div className="text-[var(--atlas-gold)] font-mono text-sm tracking-widest mb-4 border-b border-[var(--atlas-gold)]/20 pb-3 inline-block">
-                                  ₹999 / INVITATION ONLY
-                                </div>
-                              </div>
-                              <button onClick={() => setShowUpgradePay(true)} className="btn-atlas shrink-0">
-                                UPGRADE NOW <span>↗</span>
-                              </button>
                             </div>
-                          )}
+                            <button onClick={handleCashfreeUpgrade} disabled={upgradeLoading} className="btn-atlas shrink-0">
+                              {upgradeLoading ? "INITIALIZING SECURE GATEWAY..." : "UPGRADE NOW ↗"}
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -535,6 +526,11 @@ export default function DelegateDashboard({ onRequestAccess }) {
               )}
               {activeTab === "matrix" && (
                 <PortfolioMatrixViewer open={true} onClose={() => setActiveTab("profile")} />
+              )}
+              {activeTab === "terms" && (
+                <div className="h-full overflow-y-auto pr-4 scrollbar-thin">
+                  <TermsAndConditions />
+                </div>
               )}
             </motion.div>
           </AnimatePresence>
@@ -1219,19 +1215,12 @@ function AIChatbot({ delegate }) {
     await saveAIChatHistory(delegate.id, updated);
 
     try {
-      const apiKey = process.env.REACT_APP_GROQ_API_KEY;
-      if (!apiKey) {
-        throw new Error("Missing Groq API Key");
-      }
-      
-      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      const response = await fetch("/api/ai/chat", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          model: "llama-3.1-8b-instant",
           messages: [
             {
               role: "system",
@@ -1240,14 +1229,10 @@ You are currently assisting ${delegate?.name || "a Delegate"}, representing ${de
 Help them with Model UN rules of procedure, resolution drafting, and diplomacy. 
 Keep your responses concise, professional, and slightly futuristic/cybernetic in tone.`
             },
-            ...messages.map(m => ({
-              role: m.sender === "You" ? "user" : "assistant",
-              content: m.text
-            })),
-            {
-              role: "user",
-              content: userMsg.text
-            }
+            ...updated.map((msg) => ({
+              role: msg.sender === "You" ? "user" : "assistant",
+              content: msg.text,
+            }))
           ]
         })
       });

@@ -24,7 +24,7 @@ import { signInWithPopup, signOut } from "firebase/auth";
 export const signInWithGoogle = async () => {
   const result = await signInWithPopup(auth, googleProvider);
   const user = result.user;
-  
+
   try {
     const loginRef = doc(collection(db, "google_logins"));
     await setDoc(loginRef, {
@@ -297,7 +297,7 @@ export const subscribeToRegistrations = (callback) => {
     });
   } catch (e) {
     console.error("Failed to subscribe to registrations:", e);
-    return () => {};
+    return () => { };
   }
 };
 
@@ -343,12 +343,7 @@ export const saveRegistrations = async (registrations) => {
     const currentIds = snap.docs.map((doc) => doc.id);
     const newIds = registrations.map((r) => r.registration_id);
 
-    // Remove deleted ones
-    for (const id of currentIds) {
-      if (!newIds.includes(id)) {
-        await deleteDoc(doc(db, "registrations", id));
-      }
-    }
+    // Removed bulk deletion logic to prevent race conditions with automated Cashfree registrations
     // Set/update current list
     for (const r of registrations) {
       await setDoc(doc(db, "registrations", r.registration_id), r);
@@ -383,7 +378,7 @@ export const subscribeToDelegates = (callback) => {
     });
   } catch (e) {
     console.error("Failed to subscribe to delegates:", e);
-    return () => {};
+    return () => { };
   }
 };
 
@@ -395,12 +390,8 @@ export const saveDelegates = async (delegates) => {
     const currentIds = snap.docs.map((doc) => doc.id);
     const newIds = delegates.map((d) => d.id);
 
-    // Remove deleted ones
-    for (const id of currentIds) {
-      if (!newIds.includes(id)) {
-        await deleteDoc(doc(db, "delegates", id));
-      }
-    }
+    // Removed bulk deletion logic to prevent race conditions with automated Cashfree delegates
+
     // Set/update current list
     for (const d of delegates) {
       await setDoc(doc(db, "delegates", d.id), d);
@@ -431,12 +422,8 @@ export const savePayments = async (payments) => {
     const currentIds = snap.docs.map((doc) => doc.id);
     const newIds = payments.map((p) => p.id);
 
-    // Remove deleted ones
-    for (const id of currentIds) {
-      if (!newIds.includes(id)) {
-        await deleteDoc(doc(db, "payments", id));
-      }
-    }
+    // Removed bulk deletion logic to prevent race conditions with Cashfree payments
+
     // Set/update current list
     for (const p of payments) {
       await setDoc(doc(db, "payments", p.id), p);
@@ -477,11 +464,8 @@ export const saveEvents = async (events) => {
     const currentIds = snap.docs.map((doc) => doc.id);
     const newIds = events.map((e) => e.id);
 
-    for (const id of currentIds) {
-      if (!newIds.includes(id)) {
-        await deleteDoc(doc(db, "events", id));
-      }
-    }
+    // Removed bulk deletion logic to prevent race conditions
+
     for (const e of events) {
       await setDoc(doc(db, "events", e.id), e);
     }
@@ -567,7 +551,7 @@ export const subscribeToBroadcasts = (callback) => {
     });
   } catch (e) {
     console.error("Failed to subscribe to broadcasts:", e);
-    return () => {};
+    return () => { };
   }
 };
 
@@ -763,7 +747,7 @@ export const getPassById = async (passId) => {
     if (!snap.empty) {
       return snap.docs[0].data();
     }
-    
+
     // Fallback: Check guest_passports
     const guestDocRef = doc(db, "guest_passports", passId);
     const guestSnap = await getDoc(guestDocRef);
@@ -774,7 +758,7 @@ export const getPassById = async (passId) => {
         pass_id: gData.delegate_id,
       };
     }
-    
+
     return null;
   } catch (e) {
     console.error("Failed to fetch pass by ID:", e);
@@ -835,23 +819,23 @@ export const scanPass = async (passId, scanType) => {
     if (!snap.empty) {
       const docRef = snap.docs[0].ref;
       const data = snap.docs[0].data();
-      
+
       const newLog = {
         type: scanType,
         timestamp: new Date().toISOString()
       };
-      
+
       const entryLogs = data.entry_logs || [];
       entryLogs.push(newLog);
-      
+
       const updateData = {
         entry_logs: entryLogs
       };
-      
+
       if (scanType === "entry") {
         updateData.status = "used";
       }
-      
+
       await updateDoc(docRef, updateData);
       await addActivityLog(`Operator ${data.delegate_name} recorded ${scanType.toUpperCase()} at check-in terminal`);
       return { success: true, pass: { ...data, ...updateData } };
@@ -867,12 +851,12 @@ export const bulkGeneratePasses = async () => {
   try {
     const delegates = await getDelegates();
     let generatedCount = 0;
-    
+
     for (const d of delegates) {
       const email = d.email.toLowerCase();
       const passRef = doc(db, "passes", email);
       const passSnap = await getDoc(passRef);
-      
+
       if (!passSnap.exists()) {
         const randNum = Math.floor(1000 + Math.random() * 9000);
         const newPass = {

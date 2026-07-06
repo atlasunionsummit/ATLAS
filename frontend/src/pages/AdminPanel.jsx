@@ -1544,13 +1544,28 @@ function RegistrationAuditor({ registrations, delegates, payments, emailTemplate
       saveDelegates([newDelegate, ...delegates]);
       savePayments([newPayment, ...payments]);
 
-      // 5. Mock Email Log details
-      const emailContent = emailTemplateConf
-        .replace("[NAME]", reg.full_name)
-        .replace("[COMMITTEE]", reg.committee)
-        .replace("[ID]", newDelegate.id);
+      // 5. Trigger Success Emails
+      const emailPayload = { ...reg, registration_id: reg.registration_id };
+      
+      fetch("/api/email/dispatch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email_type: "WELCOME", delegate_payload: emailPayload })
+      }).catch(console.error);
 
-      console.log(`[SIMULATED EMAIL DISPATCH TO ${reg.email}]:\n${emailContent}`);
+      fetch("/api/email/dispatch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email_type: "PAYMENT_SUCCESS", delegate_payload: emailPayload })
+      }).catch(console.error);
+
+      if (reg.is_atlas_plus || reg.package_name?.includes("ATLAS PLUS")) {
+        fetch("/api/email/dispatch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email_type: "ATLAS_PLUS", delegate_payload: emailPayload })
+        }).catch(console.error);
+      }
 
       toast.success("DOSSIER APPROVED", {
         description: `Confirmation email dispatched to ${reg.email}.`,
@@ -2239,37 +2254,37 @@ function ConferenceSettings({ settings, onUpdate, delegates, registrations, onUp
           <Field
             label="EARLY BIRD PRICE (₹)"
             type="number"
-            value={form.early_bird_price || 1899}
+            value={form.early_bird_price ?? ""}
             onChange={(v) => setForm({ ...form, early_bird_price: Number(v) })}
           />
           <Field
             label="REGULAR PRICE (₹)"
             type="number"
-            value={form.regular_price || 2299}
+            value={form.regular_price ?? ""}
             onChange={(v) => setForm({ ...form, regular_price: Number(v) })}
           />
           <Field
             label="SCHOOL DELEGATION DISCOUNT (₹)"
             type="number"
-            value={form.school_discount !== undefined ? form.school_discount : 100}
+            value={form.school_discount ?? ""}
             onChange={(v) => setForm({ ...form, school_discount: Number(v) })}
           />
           <Field
             label="FESTIVAL PASS PRICE (₹)"
             type="number"
-            value={form.festival_price || 1099}
+            value={form.festival_price ?? ""}
             onChange={(v) => setForm({ ...form, festival_price: Number(v) })}
           />
           <Field
             label="CONCERT PASS PRICE (₹)"
             type="number"
-            value={form.concert_price || 999}
+            value={form.concert_price ?? ""}
             onChange={(v) => setForm({ ...form, concert_price: Number(v) })}
           />
           <Field
             label="ATLAS PLUS UPGRADE PRICE (₹)"
             type="number"
-            value={form.atlas_plus_price || 999}
+            value={form.atlas_plus_price ?? ""}
             onChange={(v) => setForm({ ...form, atlas_plus_price: Number(v) })}
           />
         </div>

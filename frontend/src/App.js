@@ -20,12 +20,14 @@ import Passport from "@/components/atlas/Passport";
 import Timeline from "@/components/atlas/Timeline";
 import Partners from "@/components/atlas/Partners";
 import Faq from "@/components/atlas/Faq";
+import TermsAndConditions from "@/components/atlas/TermsAndConditions";
 import Footer from "@/components/atlas/Footer";
 import AccessDialog from "@/components/atlas/AccessDialog";
 import DelegateLoginDialog from "@/components/atlas/DelegateLoginDialog";
 import { ScanWipe } from "@/components/atlas/SectionFX";
 import { signOutUser } from "@/lib/atlasApi";
 import VerifyPayment from "@/pages/VerifyPayment";
+import VerifyUpgrade from "@/pages/VerifyUpgrade";
 
 function Home({ setAccessOpen }) {
   const navigate = useNavigate();
@@ -113,6 +115,7 @@ function Home({ setAccessOpen }) {
         <Timeline />
         <Partners />
         <Faq />
+        <TermsAndConditions />
       </main>
 
       <Footer onRequestAccess={() => setAccessOpen(true)} />
@@ -155,6 +158,7 @@ function App() {
           <Route path="/passport" element={<DelegatePassportPage />} />
           <Route path="/p/:id" element={<StandalonePassPage />} />
           <Route path="/verify" element={<VerifyPayment />} />
+          <Route path="/verify-upgrade" element={<VerifyUpgrade />} />
         </Routes>
         <AccessDialog open={accessOpen} onClose={() => setAccessOpen(false)} />
       </BrowserRouter>

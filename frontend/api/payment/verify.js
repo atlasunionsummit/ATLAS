@@ -15,7 +15,12 @@ export default async function handler(req, res) {
       .limit(1)
       .get();
       
-    if (!existingOrderQuery.empty) {
+    const existingUpgradeQuery = await db.collection('delegates')
+      .where('upgrade_payment_order_id', '==', order_id)
+      .limit(1)
+      .get();
+      
+    if (!existingOrderQuery.empty || !existingUpgradeQuery.empty) {
       // Order has already been processed successfully
       return res.status(200).json({ success: true, message: 'Transaction already processed successfully' });
     }
@@ -39,50 +44,73 @@ export default async function handler(req, res) {
 
     // 3. Execute Firestore Transaction via Admin SDK
     await db.runTransaction(async (transaction) => {
-      // 3a. Lock Portfolio Slot
-      const portfolioId = delegate_payload.portfolio || delegate_payload.portfolio_country;
-      if (portfolioId) {
-        const portfolioRef = db.collection("portfolios").doc(portfolioId);
-        const portfolioSnap = await transaction.get(portfolioRef);
-        
-        let maxSlots = 1;
-        if (delegate_payload.committee && delegate_payload.committee.includes("IPL")) maxSlots = 3;
-        if (delegate_payload.committee && delegate_payload.committee.includes("UNSC")) maxSlots = 2;
+      if (delegate_payload.is_upgrade) {
+        // Handle Upgrade Logic
+        const delegateRef = db.collection("delegates").doc(delegate_payload.id);
+        transaction.update(delegateRef, {
+          is_atlas_plus: true,
+          package_name: "Atlas Plus Tier",
+          upgrade_payment_order_id: order_id,
+          upgrade_timestamp: new Date().toISOString()
+        });
+      } else {
+        // Handle Initial Registration Logic
+        // 3. Process Transaction Data
+        let portfolioSnap = null;
+        let couponSnap = null;
+        let portfolioRef = null;
+        let couponRef = null;
 
-        if (!portfolioSnap.exists) {
-          transaction.set(portfolioRef, { slotsFilled: 1, maxSlots: maxSlots });
-        } else {
-          const currentFilled = portfolioSnap.data().slotsFilled || 0;
-          if (currentFilled >= maxSlots) {
-            throw new Error("Portfolio slot already taken.");
-          }
-          transaction.update(portfolioRef, { slotsFilled: currentFilled + 1 });
+        // Perform ALL READS first
+        if (delegate_payload.portfolio_country) {
+          portfolioRef = db.collection("portfolios").doc(delegate_payload.portfolio_country);
+          portfolioSnap = await transaction.get(portfolioRef);
         }
-      }
 
-      // 3b. Create Delegate Record
-      const newDelegateId = `AUS-DEL-${Date.now()}`;
-      const delegateRef = db.collection("delegates").doc(newDelegateId);
-      transaction.set(delegateRef, {
-        ...delegate_payload,
-        id: newDelegateId,
-        payment_order_id: order_id,
-        status: "approved",
-        timestamp: new Date().toISOString()
-      });
+        if (coupon_code) {
+          couponRef = db.collection("discount_codes").doc(coupon_code);
+          couponSnap = await transaction.get(couponRef);
+        }
 
-      // 3c. Increment Coupon Usage
-      if (coupon_code) {
-        const couponRef = db.collection("discount_codes").doc(coupon_code);
-        const couponSnap = await transaction.get(couponRef);
-        if (couponSnap.exists) {
+        // Perform ALL WRITES next
+        // 3a. Update Portfolio Slots
+        if (delegate_payload.portfolio_country) {
+          let maxSlots = 1;
+          if (delegate_payload.committee && delegate_payload.committee.includes("IPL")) maxSlots = 3;
+          if (delegate_payload.committee && delegate_payload.committee.includes("UNSC")) maxSlots = 2;
+
+          if (!portfolioSnap.exists) {
+            transaction.set(portfolioRef, { slotsFilled: 1, maxSlots: maxSlots });
+          } else {
+            const currentFilled = portfolioSnap.data().slotsFilled || 0;
+            if (currentFilled >= maxSlots) {
+              throw new Error("Portfolio slot already taken.");
+            }
+            transaction.update(portfolioRef, { slotsFilled: currentFilled + 1 });
+          }
+        }
+
+        // 3b. Create Delegate Record
+        const newDelegateId = `AUS-DEL-${Date.now()}`;
+        const delegateRef = db.collection("delegates").doc(newDelegateId);
+        transaction.set(delegateRef, {
+          ...delegate_payload,
+          id: newDelegateId,
+          payment_order_id: order_id,
+          status: "approved",
+          timestamp: new Date().toISOString()
+        });
+
+        // 3c. Increment Coupon Usage
+        if (couponSnap && couponSnap.exists) {
           const currentTimesUsed = couponSnap.data().timesUsed || 0;
           const maxUses = couponSnap.data().maxUses || 9999;
           if (currentTimesUsed < maxUses) {
             transaction.update(couponRef, { timesUsed: currentTimesUsed + 1 });
           }
         }
-      }
+      } // End else
+
     });
 
     // 4. Trigger Brevo Email

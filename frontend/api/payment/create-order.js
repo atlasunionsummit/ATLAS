@@ -12,24 +12,26 @@ export default async function handler(req, res) {
     let expectedPrice = 0;
     
     // Fetch base pricing
-    const settingsDoc = await db.collection('settings').doc('conference_settings').get();
+    const settingsDoc = await db.collection('settings').doc('config').get();
     const settings = settingsDoc.exists ? settingsDoc.data() : { early_bird_price: 1899 };
     
     // Determine base package price based on category
-    if (delegate_payload.package_category === "Model United Nations") {
-      expectedPrice = settings.early_bird_price || 1899;
+    if (delegate_payload.is_upgrade) {
+      expectedPrice = settings.atlas_plus_price ?? 600;
+    } else if (delegate_payload.package_category === "Model United Nations") {
+      expectedPrice = settings.early_bird_price ?? 1899;
     } else if (delegate_payload.package_category === "School delegation") {
-      const discount = settings.school_discount !== undefined ? settings.school_discount : 100;
-      expectedPrice = (settings.early_bird_price || 1899) - discount;
+      const discount = settings.school_discount ?? 100;
+      expectedPrice = (settings.early_bird_price ?? 1899) - discount;
     } else if (delegate_payload.package_category === "For festival") {
-      expectedPrice = settings.festival_price || 1099;
+      expectedPrice = settings.festival_price ?? 1099;
     } else if (delegate_payload.package_category === "For concert") {
-      expectedPrice = settings.concert_price || 999;
+      expectedPrice = settings.concert_price ?? 999;
     }
 
-    // Add Atlas Plus Addon
-    if (delegate_payload.is_atlas_plus) {
-      expectedPrice += (settings.atlas_plus_price || 600);
+    // Add Atlas Plus Addon (only if not an upgrade itself)
+    if (delegate_payload.is_atlas_plus && !delegate_payload.is_upgrade) {
+      expectedPrice += (settings.atlas_plus_price ?? 600);
     }
 
     // Apply Discount Code if valid

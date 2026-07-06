@@ -79,26 +79,28 @@ export default function AccessDialog({ open, onClose }) {
   const [liveDelegates, setLiveDelegates] = useState([]);
   const [matrixOpen, setMatrixOpen] = useState(false); // To control standalone matrix dialog
   const [packages, setPackages] = useState(PACKAGES);
+  const [settings, setSettings] = useState(null);
 
   // Fetch settings once on mount
   useEffect(() => {
     async function loadSettings() {
       try {
-        const settings = await getConferenceSettings();
-        if (settings) {
+        const fetchedSettings = await getConferenceSettings();
+        if (fetchedSettings) {
+          setSettings(fetchedSettings);
           setPackages({
             "Model United Nations": [
-              { name: "Early Bird", price: settings.early_bird_price || 1899 },
+              { name: "Early Bird", price: fetchedSettings.early_bird_price ?? 1899 },
             ],
             "School delegation": [
-              { name: "Early Bird", price: (settings.early_bird_price || 1899) - (settings.school_discount !== undefined ? settings.school_discount : 100) },
+              { name: "Early Bird", price: (fetchedSettings.early_bird_price ?? 1899) - (fetchedSettings.school_discount ?? 100) },
             ],
             "For festival": [
-              { name: "Early Bird", price: settings.festival_price || 1099 },
+              { name: "Early Bird", price: fetchedSettings.festival_price ?? 1099 },
             ],
             "For concert": [
-              { name: "Early Bird", price: settings.concert_price || 999 },
-            ],
+              { name: "Early Bird", price: fetchedSettings.concert_price ?? 999 },
+            ]
           });
         }
       } catch (err) {
@@ -287,8 +289,7 @@ export default function AccessDialog({ open, onClose }) {
     };
     reader.readAsDataURL(file);
   };
-
-  const payPrice = form.is_atlas_plus ? finalPrice + 2000 : finalPrice;
+  const payPrice = form.is_atlas_plus ? finalPrice + (settings?.atlas_plus_price ?? 600) : finalPrice;
 
   const handleNextStep = (e) => {
     e?.preventDefault?.();
@@ -406,12 +407,7 @@ export default function AccessDialog({ open, onClose }) {
       const result = await registerUser(payload);
       setRegistrationResult(result);
       
-      // Trigger Welcome Email (Non-blocking)
-      fetch("/api/email/welcome", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ delegate_payload: { ...payload, registration_id: result.registration_id } })
-      }).catch(err => console.error("Welcome email trigger failed:", err));
+
 
       toast.success("TRANSMISSION COMPLETED", {
         description: `Ref ID: ${result.registration_id}`,
@@ -872,48 +868,7 @@ export default function AccessDialog({ open, onClose }) {
                         </span>
                       </div>
 
-                      {/* Custom Category Dropdown */}
-                      <div className="relative mt-3 mb-2">
-                        <button
-                          type="button"
-                          onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
-                          onBlur={() => setTimeout(() => setCategoryDropdownOpen(false), 200)}
-                          className="w-full bg-black/40 border border-white/15 focus:border-[var(--atlas-gold)] rounded py-3 px-4 flex justify-between items-center transition-colors text-white font-mono text-xs tracking-wider"
-                        >
-                          <span>{selectedCategory}</span>
-                          <span className="text-[10px] opacity-50">▼</span>
-                        </button>
-                        
-                        <AnimatePresence>
-                          {categoryDropdownOpen && (
-                            <motion.div
-                              initial={{ opacity: 0, y: -5 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -5 }}
-                              className="absolute top-full left-0 w-full mt-1.5 bg-[#0a0510] border border-[var(--atlas-gold)]/30 rounded-md overflow-hidden z-50 shadow-[0_10px_40px_rgba(0,0,0,0.8)]"
-                            >
-                              {Object.keys(PACKAGES).map((category) => (
-                                <button
-                                  key={category}
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedCategory(category);
-                                    setSelectedPkgIndex(0);
-                                    setCategoryDropdownOpen(false);
-                                  }}
-                                  className={`w-full text-left px-4 py-3 font-mono text-xs tracking-wider transition-colors ${
-                                    selectedCategory === category
-                                      ? "bg-[var(--atlas-gold)]/10 text-[var(--atlas-gold)] border-l-2 border-[var(--atlas-gold)]"
-                                      : "text-white/70 hover:bg-white/5 hover:text-white border-l-2 border-transparent"
-                                  }`}
-                                >
-                                  {category}
-                                </button>
-                              ))}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
+                      {/* Category Selection Removed - Defaults to Model United Nations */}
 
                       {/* Packages Grid */}
                       <div className="grid grid-cols-1 gap-3 mt-3">
