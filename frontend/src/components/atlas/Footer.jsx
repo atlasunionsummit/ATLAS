@@ -41,6 +41,7 @@ export default function Footer({ onRequestAccess }) {
                 { label: "FAQ", id: "faq" },
                 { label: "Partners", id: "partners" },
                 { label: "Press", id: "press" },
+                { label: "Terms & Conditions", id: "terms" },
               ],
             }
           ].map((col) => (

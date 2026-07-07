@@ -1,12 +1,19 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { subscribeToDelegates, subscribeToRegistrations } from "@/lib/atlasApi";
-import { MATRIX_DATA } from "@/lib/matrixData";
+import { subscribeToDelegates, subscribeToRegistrations, getCustomPortfolios } from "@/lib/atlasApi";
+import { MATRIX_DATA, getMergedMatrixData } from "@/lib/matrixData";
 import { toast } from "sonner";
 
 export default function PortfolioMatrixViewer({ open, onClose }) {
   const [occupiedMap, setOccupiedMap] = useState({});
+  const [customPortfolios, setCustomPortfolios] = useState({});
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (open) {
+      getCustomPortfolios().then(setCustomPortfolios).catch(console.error);
+    }
+  }, [open]);
 
   useEffect(() => {
     let unsubDelegates = null;
@@ -118,7 +125,7 @@ export default function PortfolioMatrixViewer({ open, onClose }) {
               </div>
             ) : (
               <div className="space-y-8 mt-6">
-                {Object.entries(MATRIX_DATA).map(([committee, countries]) => {
+                {Object.entries(getMergedMatrixData(MATRIX_DATA, customPortfolios)).map(([committee, countries]) => {
                   let maxAllowed = 1;
                   if (committee.includes("IPL")) maxAllowed = 3;
                   else if (committee.includes("UNSC")) maxAllowed = 2;
