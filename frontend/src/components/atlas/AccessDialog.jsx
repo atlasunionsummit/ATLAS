@@ -45,11 +45,9 @@ const SPECIAL_COMMITTEES = [
 
 const PACKAGES = {
   "Model United Nations": [
-    { name: "Early Bird", price: 1799 },
     { name: "Regular", price: 1999 },
   ],
   "School delegation": [
-    { name: "Early Bird", price: 1699 },
     { name: "Regular", price: 1899 },
   ],
   "For festival": [
@@ -126,11 +124,9 @@ export default function AccessDialog({ open, onClose }) {
     
     setPackages({
       "Model United Nations": [
-        { name: "Early Bird", price: baseMUNPriceEarlyBird },
         { name: "Regular", price: baseMUNPriceRegular },
       ],
       "School delegation": [
-        { name: "Early Bird", price: baseMUNPriceEarlyBird - (settings.school_discount ?? 100) },
         { name: "Regular", price: baseMUNPriceRegular - (settings.school_discount ?? 100) },
       ],
       "For festival": [
@@ -943,6 +939,16 @@ export default function AccessDialog({ open, onClose }) {
                         ))}
                       </div>
                       
+                      {/* Food Notice */}
+                      <div className="mt-4 p-3 rounded border border-orange-500/30 bg-orange-500/5">
+                        <p className="text-[10px] font-mono text-orange-400 tracking-widest uppercase flex items-center gap-2">
+                          <span className="text-base">⚠️</span> IMPORTANT: FOOD NOT INCLUDED
+                        </p>
+                        <p className="text-white/60 text-[9px] font-mono mt-1.5 leading-relaxed">
+                          Please note that meals are not included in the standard pass. Food and beverages must be purchased separately from the on-site stalls during the summit. (VIP Meals are only included in the Atlas Plus upgrade).
+                        </p>
+                      </div>
+                      
                       {/* Referral Code Field */}
                       <div className="mt-5 bg-white/[0.02] p-3 rounded border border-white/5">
                         <label className="classified-label text-white/50 text-[10px] mb-1 block">
@@ -1013,7 +1019,7 @@ export default function AccessDialog({ open, onClose }) {
                         
                         <div className="mt-5 pt-4 border-t border-white/10 flex items-center justify-between">
                           <span className="text-[10px] text-white/50 tracking-widest uppercase">Limited Availability</span>
-                          <span className="text-xl font-bold text-[var(--atlas-gold)]">+₹2000</span>
+                          <span className="text-xl font-bold text-[var(--atlas-gold)]">+₹{settings?.atlas_plus_price ?? 999}</span>
                         </div>
                       </div>
                     </div>
@@ -1104,7 +1110,7 @@ export default function AccessDialog({ open, onClose }) {
                           <div className="flex justify-between mt-1">
                             <span className="text-white/55">ADD-ON</span>
                             <span className="text-[var(--atlas-gold)] font-bold">
-                              ATLAS PLUS (+₹999)
+                              ATLAS PLUS (+₹{settings?.atlas_plus_price ?? 999})
                             </span>
                           </div>
                         )}
