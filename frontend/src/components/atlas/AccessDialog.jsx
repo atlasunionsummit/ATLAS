@@ -1,7 +1,7 @@
 import { useState, useEffect, Fragment } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { registerUser, getDiscountCodes } from "@/lib/atlasApi";
-import { MATRIX_DATA } from "@/lib/matrixData";
+import { registerUser, getDiscountCodes, getConferenceSettings, getCustomPortfolios } from "@/lib/atlasApi";
+import { MATRIX_DATA, getMergedMatrixData } from "@/lib/matrixData";
 import { toast } from "sonner";
 import PortfolioMatrixViewer from "./PortfolioMatrixViewer";
 import { load } from '@cashfreepayments/cashfree-js';
@@ -31,16 +31,32 @@ const COMMITTEE_RULES = {
   "Coachella (Simulated Crisis)": { type: "grade", min: 6, max: 12 },
 };
 
+const SPECIAL_COMMITTEES = [
+  "Formula 1 Strategy Summit",
+  "Operation Red",
+  "Vaidya Council",
+  "IPL (Indian Premier League)",
+  "IPL Auction",
+  "Vaidya Council (Premium)",
+  "Simulation Corps (Premium)",
+  "F1 Simulation (Premium)",
+];
+
 
 const PACKAGES = {
   "Model United Nations": [
     { name: "Early Bird", price: 1799 },
+    { name: "Regular", price: 1999 },
   ],
   "School delegation": [
     { name: "Early Bird", price: 1699 },
+    { name: "Regular", price: 1899 },
+  ],
+  "For festival": [
+    { name: "Regular", price: 1099 },
   ],
   "For concert": [
-    { name: "Early Bird", price: 999 },
+    { name: "Regular", price: 999 },
   ],
 };
 
@@ -80,28 +96,19 @@ export default function AccessDialog({ open, onClose }) {
   const [matrixOpen, setMatrixOpen] = useState(false); // To control standalone matrix dialog
   const [packages, setPackages] = useState(PACKAGES);
   const [settings, setSettings] = useState(null);
+  const [customPortfolios, setCustomPortfolios] = useState({});
 
   // Fetch settings once on mount
   useEffect(() => {
     async function loadSettings() {
       try {
-        const fetchedSettings = await getConferenceSettings();
+        const [fetchedSettings, fetchedPortfolios] = await Promise.all([
+          getConferenceSettings(),
+          getCustomPortfolios()
+        ]);
+        if (fetchedPortfolios) setCustomPortfolios(fetchedPortfolios);
         if (fetchedSettings) {
           setSettings(fetchedSettings);
-          setPackages({
-            "Model United Nations": [
-              { name: "Early Bird", price: fetchedSettings.early_bird_price ?? 1899 },
-            ],
-            "School delegation": [
-              { name: "Early Bird", price: (fetchedSettings.early_bird_price ?? 1899) - (fetchedSettings.school_discount ?? 100) },
-            ],
-            "For festival": [
-              { name: "Early Bird", price: fetchedSettings.festival_price ?? 1099 },
-            ],
-            "For concert": [
-              { name: "Early Bird", price: fetchedSettings.concert_price ?? 999 },
-            ]
-          });
         }
       } catch (err) {
         console.error("Failed to load settings:", err);
@@ -109,6 +116,31 @@ export default function AccessDialog({ open, onClose }) {
     }
     loadSettings();
   }, []);
+
+  // Update packages whenever settings or committee changes
+  useEffect(() => {
+    if (!settings) return;
+    const isSpecial = form.committee && SPECIAL_COMMITTEES.some(c => form.committee.includes(c));
+    const baseMUNPriceRegular = isSpecial ? (settings.special_regular_price ?? 2499) : (settings.regular_price ?? 1999);
+    const baseMUNPriceEarlyBird = isSpecial ? (settings.special_early_bird_price ?? (baseMUNPriceRegular - 500)) : (settings.early_bird_price ?? 1799);
+    
+    setPackages({
+      "Model United Nations": [
+        { name: "Early Bird", price: baseMUNPriceEarlyBird },
+        { name: "Regular", price: baseMUNPriceRegular },
+      ],
+      "School delegation": [
+        { name: "Early Bird", price: baseMUNPriceEarlyBird - (settings.school_discount ?? 100) },
+        { name: "Regular", price: baseMUNPriceRegular - (settings.school_discount ?? 100) },
+      ],
+      "For festival": [
+        { name: "Regular", price: settings.festival_price ?? 1099 },
+      ],
+      "For concert": [
+        { name: "Regular", price: settings.concert_price ?? 999 },
+      ]
+    });
+  }, [settings, form.committee]);
 
   const handleCashfreePayment = async () => {
     setLoading(true);
@@ -289,7 +321,7 @@ export default function AccessDialog({ open, onClose }) {
     };
     reader.readAsDataURL(file);
   };
-  const payPrice = form.is_atlas_plus ? finalPrice + (settings?.atlas_plus_price ?? 600) : finalPrice;
+  const payPrice = form.is_atlas_plus ? finalPrice + (settings?.atlas_plus_price ?? 999) : finalPrice;
 
   const handleNextStep = (e) => {
     e?.preventDefault?.();
@@ -463,7 +495,7 @@ export default function AccessDialog({ open, onClose }) {
   )}`;
 
   const isExceptionCommittee = EXCEPTION_COMMITTEES.includes(form.committee);
-  const currentMatrix = MATRIX_DATA[form.committee] || [];
+  const currentMatrix = getMergedMatrixData(MATRIX_DATA, customPortfolios)[form.committee] || [];
 
   return (
     <Fragment>

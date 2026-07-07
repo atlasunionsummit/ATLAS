@@ -930,3 +930,31 @@ export const subscribeToChat = (room, callback) => {
 
   return unsubscribe;
 };
+
+// ----------------------------------------------------
+// CUSTOM PORTFOLIOS
+// ----------------------------------------------------
+export const getCustomPortfolios = async () => {
+  try {
+    const docRef = doc(db, "settings", "custom_portfolios");
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data();
+    }
+    return {};
+  } catch (error) {
+    console.error("Error fetching custom portfolios:", error);
+    return {};
+  }
+};
+
+export const saveCustomPortfolios = async (portfolios) => {
+  try {
+    const docRef = doc(db, "settings", "custom_portfolios");
+    await setDoc(docRef, portfolios);
+    return true;
+  } catch (error) {
+    console.error("Error saving custom portfolios:", error);
+    return false;
+  }
+};

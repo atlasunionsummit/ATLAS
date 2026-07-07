@@ -370,3 +370,23 @@ export const MATRIX_DATA = {
     { country: "Caricaturist 10", status: "Open" }
   ]
 };
+
+export const getMergedMatrixData = (staticData, customPortfolios) => {
+  const merged = { ...staticData };
+  if (!customPortfolios) return merged;
+
+  for (const [committee, customList] of Object.entries(customPortfolios)) {
+    if (!merged[committee]) {
+      merged[committee] = [];
+    }
+    // ensure no duplicates by country name
+    const existingCountries = new Set(merged[committee].map(c => c.country));
+    for (const custom of customList) {
+      if (!existingCountries.has(custom.country)) {
+        merged[committee].push({ country: custom.country, status: "Open" });
+        existingCountries.add(custom.country);
+      }
+    }
+  }
+  return merged;
+};
