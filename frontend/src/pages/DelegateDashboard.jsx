@@ -35,7 +35,7 @@ export default function DelegateDashboard({ onRequestAccess }) {
   // Atlas Plus Upgrade state
   const [showUpgradePay, setShowUpgradePay] = useState(false);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
-  const [atlasPlusPrice, setAtlasPlusPrice] = useState(600);
+  const [atlasPlusPrice, setAtlasPlusPrice] = useState(999);
 
   // Redirect if not signed in
   useEffect(() => {
@@ -54,9 +54,7 @@ export default function DelegateDashboard({ onRequestAccess }) {
     
     // Fetch dynamic atlas plus price
     getConferenceSettings().then(settings => {
-      if (settings?.atlas_plus_price) {
-        setAtlasPlusPrice(settings.atlas_plus_price);
-      }
+      setAtlasPlusPrice(settings?.atlas_plus_price ?? 999);
     }).catch(console.error);
   }, [navigate]);
 

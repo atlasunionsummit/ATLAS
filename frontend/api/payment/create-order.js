@@ -13,16 +13,28 @@ export default async function handler(req, res) {
     
     // Fetch base pricing
     const settingsDoc = await db.collection('settings').doc('config').get();
-    const settings = settingsDoc.exists ? settingsDoc.data() : { early_bird_price: 1899 };
+    const settings = settingsDoc.exists ? settingsDoc.data() : { regular_price: 1999, special_regular_price: 2499 };
     
+    // Check if special committee
+    const specialCommittees = ["Formula 1 Strategy Summit", "Operation Red", "Vaidya Council", "IPL (Indian Premier League)", "IPL Auction"];
+    const isSpecial = delegate_payload.committee && specialCommittees.some(c => delegate_payload.committee.includes(c));
+    
+    // Determine base prices based on special or regular
+    const baseMUNPriceRegular = isSpecial ? (settings.special_regular_price ?? 2499) : (settings.regular_price ?? 1999);
+    const baseMUNPriceEarlyBird = isSpecial ? (settings.special_early_bird_price ?? (baseMUNPriceRegular - 500)) : (settings.early_bird_price ?? 1799);
+    
+    // Determine which package the user selected
+    const isEarlyBird = delegate_payload.package_name && delegate_payload.package_name.includes("Early Bird");
+    const baseMUNPrice = isEarlyBird ? baseMUNPriceEarlyBird : baseMUNPriceRegular;
+
     // Determine base package price based on category
     if (delegate_payload.is_upgrade) {
-      expectedPrice = settings.atlas_plus_price ?? 600;
+      expectedPrice = settings.atlas_plus_price ?? 999;
     } else if (delegate_payload.package_category === "Model United Nations") {
-      expectedPrice = settings.early_bird_price ?? 1899;
+      expectedPrice = baseMUNPrice;
     } else if (delegate_payload.package_category === "School delegation") {
       const discount = settings.school_discount ?? 100;
-      expectedPrice = (settings.early_bird_price ?? 1899) - discount;
+      expectedPrice = baseMUNPrice - discount;
     } else if (delegate_payload.package_category === "For festival") {
       expectedPrice = settings.festival_price ?? 1099;
     } else if (delegate_payload.package_category === "For concert") {
@@ -31,7 +43,7 @@ export default async function handler(req, res) {
 
     // Add Atlas Plus Addon (only if not an upgrade itself)
     if (delegate_payload.is_atlas_plus && !delegate_payload.is_upgrade) {
-      expectedPrice += (settings.atlas_plus_price ?? 600);
+      expectedPrice += (settings.atlas_plus_price ?? 999);
     }
 
     // Apply Discount Code if valid
@@ -86,6 +98,18 @@ export default async function handler(req, res) {
       console.error('Cashfree Error:', data);
       return res.status(response.status).json(data);
     }
+
+    // --- SECURITY: Store validated payload server-side ---
+    // This prevents payload tampering at the /verify step.
+    // verify.js will retrieve this trusted payload instead of trusting the client.
+    const cfOrderId = data.cf_order_id || data.order_id || order_id;
+    await db.collection('pending_orders').doc(cfOrderId).set({
+      delegate_payload: delegate_payload,
+      coupon_code: coupon_code || null,
+      expected_price: expectedPrice,
+      order_id: cfOrderId,
+      created_at: new Date().toISOString(),
+    });
 
     return res.status(200).json(data);
   } catch (error) {

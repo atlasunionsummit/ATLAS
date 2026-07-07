@@ -27,8 +27,10 @@ import {
   saveDiscountCode,
   deleteDiscountCode,
   getGoogleLogins,
+  getCustomPortfolios,
+  saveCustomPortfolios
 } from "@/lib/atlasApi";
-import { MATRIX_DATA } from "@/lib/matrixData";
+import { MATRIX_DATA, getMergedMatrixData } from "@/lib/matrixData";
 import { toast } from "sonner";
 
 const COMMITTEES = [
@@ -70,13 +72,14 @@ export default function AdminPanel() {
   const [activityLogs, setActivityLogs] = useState([]);
   const [discountCodes, setDiscountCodes] = useState([]);
   const [googleLogins, setGoogleLogins] = useState([]);
+  const [customPortfolios, setCustomPortfolios] = useState({});
   const [loading, setLoading] = useState(true);
 
   // Fetch all mock data
   const refreshData = async () => {
     setLoading(true);
     try {
-      const [d, r, p, e, s, b, l, dc, gl] = await Promise.all([
+      const [d, r, p, e, s, b, l, dc, gl, cp] = await Promise.all([
         getDelegates(),
         getRegistrations(),
         getPayments(),
@@ -86,6 +89,7 @@ export default function AdminPanel() {
         getActivityLogs(),
         getDiscountCodes(),
         getGoogleLogins(),
+        getCustomPortfolios(),
       ]);
       setDelegates(d);
       setRegistrations(r);
@@ -96,6 +100,7 @@ export default function AdminPanel() {
       setActivityLogs(l);
       setDiscountCodes(dc);
       setGoogleLogins(gl);
+      setCustomPortfolios(cp);
     } catch (err) {
       toast.error("DATA FETCH FAILED");
     } finally {
@@ -287,6 +292,11 @@ export default function AdminPanel() {
                   <PortfolioMatrixAdmin 
                     delegates={delegates} 
                     registrations={registrations}
+                    customPortfolios={customPortfolios}
+                    onUpdateCustomPortfolios={async (newCustoms) => {
+                      setCustomPortfolios(newCustoms);
+                      await saveCustomPortfolios(newCustoms);
+                    }}
                     onUpdateDelegates={async (newDelegates) => {
                       setDelegates(newDelegates);
                       await saveDelegates(newDelegates);
@@ -720,7 +730,7 @@ function DashboardOverview({ delegates, registrations, payments, events, logs })
 // ----------------------------------------------------
 // Tab Component: DelegateManager
 // ----------------------------------------------------
-function DelegateManager({ delegates, onUpdate, onRefresh }) {
+function DelegateManager({ delegates, customPortfolios, onUpdate, onRefresh }) {
   const [search, setSearch] = useState("");
   const [filterCommittee, setFilterCommittee] = useState("");
   const [filterCountry, setFilterCountry] = useState("");
@@ -1057,14 +1067,14 @@ function DelegateManager({ delegates, onUpdate, onRefresh }) {
 
               <div>
                 <label className="classified-label text-[var(--atlas-gold)] text-[9px]">PORTFOLIO ASSIGNMENT</label>
-                {MATRIX_DATA[editingDelegate.committee] ? (
+                {getMergedMatrixData(MATRIX_DATA, customPortfolios)[editingDelegate.committee] ? (
                   <select
                     value={editingDelegate.portfolio || ""}
                     onChange={(e) => setEditingDelegate({ ...editingDelegate, portfolio: e.target.value, portfolio_country: e.target.value })}
                     className="w-full mt-1 bg-black/40 border border-[var(--atlas-gold)]/40 rounded px-3 py-2 text-white font-mono text-[11px] focus:border-[var(--atlas-gold)] outline-none"
                   >
                     <option value="" className="bg-[var(--atlas-black)]">-- Select Portfolio --</option>
-                    {MATRIX_DATA[editingDelegate.committee].map(item => (
+                    {getMergedMatrixData(MATRIX_DATA, customPortfolios)[editingDelegate.committee].map(item => (
                       <option key={item.country} value={item.country} className="bg-[var(--atlas-black)]">{item.country}</option>
                     ))}
                   </select>
@@ -2264,6 +2274,24 @@ function ConferenceSettings({ settings, onUpdate, delegates, registrations, onUp
             onChange={(v) => setForm({ ...form, regular_price: Number(v) })}
           />
           <Field
+            label="SPECIAL COMMITTEES EARLY BIRD (₹)"
+            type="number"
+            value={form.special_early_bird_price ?? ""}
+            onChange={(v) => setForm({ ...form, special_early_bird_price: Number(v) })}
+          />
+          <Field
+            label="SPECIAL COMMITTEES REGULAR (₹)"
+            type="number"
+            value={form.special_regular_price ?? ""}
+            onChange={(v) => setForm({ ...form, special_regular_price: Number(v) })}
+          />
+          <Field
+            label="SPECIAL COMMITTEES LATE (₹)"
+            type="number"
+            value={form.special_late_price ?? ""}
+            onChange={(v) => setForm({ ...form, special_late_price: Number(v) })}
+          />
+          <Field
             label="SCHOOL DELEGATION DISCOUNT (₹)"
             type="number"
             value={form.school_discount ?? ""}
@@ -2925,13 +2953,15 @@ export function PassLedgerAndScanner({ delegates, onRefresh }) {
 }
 
 // ----------------------------------------------------
-// Component: PortfolioMatrixAdmin
+// Tab Component: PortfolioMatrixAdmin
 // ----------------------------------------------------
-function PortfolioMatrixAdmin({ delegates, registrations = [], onUpdateDelegates, onUpdateRegistrations }) {
+function PortfolioMatrixAdmin({ delegates, registrations, customPortfolios, onUpdateCustomPortfolios, onUpdateDelegates, onUpdateRegistrations }) {
   const [selectedPortfolio, setSelectedPortfolio] = useState(null);
   const [assignEmail, setAssignEmail] = useState("");
   const [isManuallyAssigned, setIsManuallyAssigned] = useState(false);
   const [manuallyAssignedName, setManuallyAssignedName] = useState("");
+  const [addingPortfolioForCommittee, setAddingPortfolioForCommittee] = useState(null);
+  const [newPortfolioName, setNewPortfolioName] = useState("");
 
   const handleRevoke = async (assigneeId, isRegistration = false) => {
     if (!window.confirm("Are you sure you want to revoke this portfolio assignment?")) return;
@@ -3123,9 +3153,9 @@ function PortfolioMatrixAdmin({ delegates, registrations = [], onUpdateDelegates
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 overflow-y-auto pr-2 scrollbar-thin flex-1 pb-10">
-        {Object.entries(MATRIX_DATA).map(([committee, countries]) => {
+        {Object.entries(getMergedMatrixData(MATRIX_DATA, customPortfolios)).map(([committee, countries]) => {
           const committeeDelegates = delegates.filter(d => d.committee === committee);
-          const committeeRegistrations = registrations.filter(r => r.committee === committee && r.status === "pending_verification");
+          const committeeRegistrations = (registrations || []).filter(r => r.committee === committee && r.status === "pending_verification");
           const allCommitteeAssignees = [...committeeDelegates, ...committeeRegistrations];
           
           const occupiedMap = {};
@@ -3150,7 +3180,6 @@ function PortfolioMatrixAdmin({ delegates, registrations = [], onUpdateDelegates
                   <span className="text-[8px] font-mono tracking-widest text-[var(--atlas-gold)] bg-[var(--atlas-gold)]/10 px-1.5 py-0.5 rounded">
                     MAX {maxAllowed}/PORTFOLIO
                   </span>
-                )}
               </div>
               <div className="grid grid-cols-2 gap-2 overflow-y-auto pr-1 scrollbar-thin">
                 {countries.map(item => {
@@ -3176,6 +3205,48 @@ function PortfolioMatrixAdmin({ delegates, registrations = [], onUpdateDelegates
                     </button>
                   );
                 })}
+                
+                {/* ADD PORTFOLIO BUTTON & FIELD */}
+                {addingPortfolioForCommittee === committee ? (
+                  <div className="flex gap-1 col-span-2 mt-2">
+                    <input 
+                      type="text" 
+                      value={newPortfolioName} 
+                      onChange={(e) => setNewPortfolioName(e.target.value)} 
+                      placeholder="Portfolio Name" 
+                      className="bg-black/40 text-xs px-2 py-1 rounded border border-[var(--atlas-gold)] outline-none text-white w-full font-mono"
+                    />
+                    <button 
+                      onClick={() => {
+                        if(newPortfolioName.trim()){
+                          const updated = { ...customPortfolios };
+                          if(!updated[committee]) updated[committee] = [];
+                          updated[committee].push({ country: newPortfolioName.trim() });
+                          onUpdateCustomPortfolios(updated);
+                          toast.success(`Portfolio added to ${committee}`);
+                          setNewPortfolioName("");
+                          setAddingPortfolioForCommittee(null);
+                        }
+                      }}
+                      className="bg-[var(--atlas-gold)]/20 text-[var(--atlas-gold)] text-xs px-2 rounded font-bold hover:bg-[var(--atlas-gold)]/30 border border-[var(--atlas-gold)]"
+                    >✓</button>
+                    <button 
+                      onClick={() => { setAddingPortfolioForCommittee(null); setNewPortfolioName(""); }}
+                      className="bg-red-500/20 text-red-500 text-xs px-2 rounded font-bold hover:bg-red-500/30 border border-red-500/50"
+                    >✗</button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAddingPortfolioForCommittee(committee);
+                      setNewPortfolioName("");
+                    }}
+                    className="col-span-2 mt-2 text-[9px] font-mono py-1.5 px-2 rounded border border-dashed border-white/20 text-white/50 hover:text-[var(--atlas-gold)] hover:border-[var(--atlas-gold)] transition-colors cursor-pointer text-center"
+                  >
+                    + ADD CUSTOM PORTFOLIO
+                  </button>
+                )}
               </div>
             </div>
           );

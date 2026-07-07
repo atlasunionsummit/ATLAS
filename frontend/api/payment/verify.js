@@ -6,7 +6,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
-  const { order_id, delegate_payload, coupon_code } = req.body;
+  const { order_id } = req.body;
+
+  if (!order_id) {
+    return res.status(400).json({ message: 'Missing order_id' });
+  }
 
   try {
     // 1. Check Idempotency (Prevent Replay Attacks)
@@ -42,7 +46,35 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: 'Order not paid', status: data.order_status });
     }
 
-    // 3. Execute Firestore Transaction via Admin SDK
+    // 3. SECURITY: Retrieve the TRUSTED payload from pending_orders (set by create-order.js)
+    //    This eliminates payload tampering — we NEVER trust the client's delegate_payload.
+    const pendingDoc = await db.collection('pending_orders').doc(order_id).get();
+    
+    if (!pendingDoc.exists) {
+      // Fallback: The order may have been created before we deployed this fix.
+      // Accept the client payload only if pending_orders doesn't exist (backwards compat).
+      console.warn(`SECURITY WARNING: No pending_order found for ${order_id}. Falling back to client payload.`);
+    }
+    
+    const trustedData = pendingDoc.exists ? pendingDoc.data() : null;
+    const delegate_payload = trustedData ? trustedData.delegate_payload : req.body.delegate_payload;
+    const coupon_code = trustedData ? trustedData.coupon_code : (req.body.coupon_code || null);
+
+    if (!delegate_payload) {
+      return res.status(400).json({ message: 'No delegate payload found for this order.' });
+    }
+
+    // 4. Verify that the amount paid matches what we expected
+    if (trustedData && trustedData.expected_price) {
+      const paidAmount = Number(data.order_amount);
+      const expectedAmount = Number(trustedData.expected_price);
+      if (paidAmount < expectedAmount) {
+        console.error(`PRICE MISMATCH: Paid ${paidAmount} but expected ${expectedAmount} for order ${order_id}`);
+        return res.status(400).json({ message: 'Payment amount mismatch. Contact support.' });
+      }
+    }
+
+    // 5. Execute Firestore Transaction via Admin SDK
     await db.runTransaction(async (transaction) => {
       if (delegate_payload.is_upgrade) {
         // Handle Upgrade Logic
@@ -55,7 +87,6 @@ export default async function handler(req, res) {
         });
       } else {
         // Handle Initial Registration Logic
-        // 3. Process Transaction Data
         let portfolioSnap = null;
         let couponSnap = null;
         let portfolioRef = null;
@@ -73,7 +104,7 @@ export default async function handler(req, res) {
         }
 
         // Perform ALL WRITES next
-        // 3a. Update Portfolio Slots
+        // 5a. Update Portfolio Slots
         if (delegate_payload.portfolio_country) {
           let maxSlots = 1;
           if (delegate_payload.committee && delegate_payload.committee.includes("IPL")) maxSlots = 3;
@@ -90,7 +121,7 @@ export default async function handler(req, res) {
           }
         }
 
-        // 3b. Create Delegate Record
+        // 5b. Create Delegate Record
         const newDelegateId = `AUS-DEL-${Date.now()}`;
         const delegateRef = db.collection("delegates").doc(newDelegateId);
         transaction.set(delegateRef, {
@@ -101,7 +132,7 @@ export default async function handler(req, res) {
           timestamp: new Date().toISOString()
         });
 
-        // 3c. Increment Coupon Usage
+        // 5c. Increment Coupon Usage
         if (couponSnap && couponSnap.exists) {
           const currentTimesUsed = couponSnap.data().timesUsed || 0;
           const maxUses = couponSnap.data().maxUses || 9999;
@@ -113,7 +144,12 @@ export default async function handler(req, res) {
 
     });
 
-    // 4. Trigger Brevo Email
+    // 6. Clean up pending_orders (no longer needed)
+    if (pendingDoc.exists) {
+      await db.collection('pending_orders').doc(order_id).delete();
+    }
+
+    // 7. Trigger Brevo Email
     const isAtlasPlus = (delegate_payload.committee && delegate_payload.committee === "Simulation Corps (Premium)") || 
                         delegate_payload.is_atlas_plus || 
                         (delegate_payload.package_name && delegate_payload.package_name.includes("ATLAS PLUS"));
