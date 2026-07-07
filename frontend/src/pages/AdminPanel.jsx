@@ -3180,6 +3180,7 @@ function PortfolioMatrixAdmin({ delegates, registrations, customPortfolios, onUp
                   <span className="text-[8px] font-mono tracking-widest text-[var(--atlas-gold)] bg-[var(--atlas-gold)]/10 px-1.5 py-0.5 rounded">
                     MAX {maxAllowed}/PORTFOLIO
                   </span>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-2 overflow-y-auto pr-1 scrollbar-thin">
                 {countries.map(item => {
