@@ -16,13 +16,37 @@ export default async function handler(req, res) {
     // Validate registration exists (check registrations first)
     let regDoc = await db.collection('registrations').doc(delegate_payload.registration_id).get();
     
-    // If not found in registrations, check delegates (for automated Cashfree flow)
+    // If not found in registrations, check delegates by doc ID (for automated Cashfree flow)
     if (!regDoc.exists) {
       regDoc = await db.collection('delegates').doc(delegate_payload.registration_id).get();
     }
     
+    // If still not found, search delegates by email as fallback.
+    // This handles the common case where the Cashfree flow creates delegates with 
+    // AUS-DEL-{timestamp} IDs but the email payload passes AUS-ORD-{timestamp} as registration_id.
     if (!regDoc.exists) {
-      console.warn(`Attempted ${email_type} email for non-existent registration: ${delegate_payload.registration_id}`);
+      const emailQuery = await db.collection('delegates')
+        .where('email', '==', delegate_payload.email.toLowerCase())
+        .limit(1)
+        .get();
+      if (!emailQuery.empty) {
+        regDoc = emailQuery.docs[0];
+      }
+    }
+    
+    // Last resort: search registrations by email
+    if (!regDoc.exists) {
+      const regEmailQuery = await db.collection('registrations')
+        .where('email', '==', delegate_payload.email.toLowerCase())
+        .limit(1)
+        .get();
+      if (!regEmailQuery.empty) {
+        regDoc = regEmailQuery.docs[0];
+      }
+    }
+    
+    if (!regDoc.exists) {
+      console.warn(`Attempted ${email_type} email for non-existent registration: ${delegate_payload.registration_id} / ${delegate_payload.email}`);
       return res.status(403).json({ message: "Forbidden: Registration does not exist." });
     }
 

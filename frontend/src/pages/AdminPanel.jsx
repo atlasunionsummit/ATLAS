@@ -2261,24 +2261,14 @@ function ConferenceSettings({ settings, onUpdate, delegates, registrations, onUp
             value={form.registration_fee}
             onChange={(v) => setForm({ ...form, registration_fee: v })}
           />
-          <Field
-            label="EARLY BIRD PRICE (₹)"
-            type="number"
-            value={form.early_bird_price ?? ""}
-            onChange={(v) => setForm({ ...form, early_bird_price: Number(v) })}
-          />
+
           <Field
             label="REGULAR PRICE (₹)"
             type="number"
             value={form.regular_price ?? ""}
             onChange={(v) => setForm({ ...form, regular_price: Number(v) })}
           />
-          <Field
-            label="SPECIAL COMMITTEES EARLY BIRD (₹)"
-            type="number"
-            value={form.special_early_bird_price ?? ""}
-            onChange={(v) => setForm({ ...form, special_early_bird_price: Number(v) })}
-          />
+
           <Field
             label="SPECIAL COMMITTEES REGULAR (₹)"
             type="number"
@@ -3426,7 +3416,7 @@ function AtlasPlusManager({ delegates, registrations, payments, onUpdateDelegate
           email: person.email,
           category: "ATLAS PLUS UPGRADE",
           package_name: "Atlas Plus Tier",
-          price: 2000,
+          price: 999,
           utr_number: person.upgrade_utr || "MANUAL_UPGRADE",
           status: "paid",
           timestamp: new Date().toISOString(),

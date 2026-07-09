@@ -21,11 +21,9 @@ export default async function handler(req, res) {
     
     // Determine base prices based on special or regular
     const baseMUNPriceRegular = isSpecial ? (settings.special_regular_price ?? 2499) : (settings.regular_price ?? 1999);
-    const baseMUNPriceEarlyBird = isSpecial ? (settings.special_early_bird_price ?? (baseMUNPriceRegular - 500)) : (settings.early_bird_price ?? 1799);
     
     // Determine which package the user selected
-    const isEarlyBird = delegate_payload.package_name && delegate_payload.package_name.includes("Early Bird");
-    const baseMUNPrice = isEarlyBird ? baseMUNPriceEarlyBird : baseMUNPriceRegular;
+    const baseMUNPrice = baseMUNPriceRegular;
 
     // Determine base package price based on category
     if (delegate_payload.is_upgrade) {
@@ -102,12 +100,14 @@ export default async function handler(req, res) {
     // --- SECURITY: Store validated payload server-side ---
     // This prevents payload tampering at the /verify step.
     // verify.js will retrieve this trusted payload instead of trusting the client.
-    const cfOrderId = data.cf_order_id || data.order_id || order_id;
-    await db.collection('pending_orders').doc(cfOrderId).set({
+    // IMPORTANT: Use the client-generated order_id (not cf_order_id) as the key,
+    // because verify.js receives the client order_id from the return_url and looks it up by that.
+    await db.collection('pending_orders').doc(order_id).set({
       delegate_payload: delegate_payload,
       coupon_code: coupon_code || null,
       expected_price: expectedPrice,
-      order_id: cfOrderId,
+      order_id: order_id,
+      cf_order_id: data.cf_order_id || null,
       created_at: new Date().toISOString(),
     });
 

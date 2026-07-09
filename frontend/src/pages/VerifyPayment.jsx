@@ -12,6 +12,7 @@ export default function VerifyPayment() {
   const [errorMsg, setErrorMsg] = useState("");
   const [delegateData, setDelegateData] = useState(null);
   const verifyLock = useRef(false);
+  const verifyCompleted = useRef(false); // Track completion to avoid stale closure in timeout
 
   useEffect(() => {
     if (!orderId) {
@@ -43,13 +44,13 @@ export default function VerifyPayment() {
     if (verifyLock.current) return;
     verifyLock.current = true;
 
-    // Timeout fallback just in case the server hangs
+    // Timeout fallback — uses a ref to check completion instead of stale `status` state
     const timeoutId = setTimeout(() => {
-      if (status === "verifying") {
+      if (!verifyCompleted.current) {
         setStatus("failed");
         setErrorMsg("Server verification timed out. If your money was deducted, please contact support.");
       }
-    }, 15000);
+    }, 30000); // 30 seconds to account for Cashfree API + Firestore transaction latency
 
     const verifyPayment = async () => {
       try {
@@ -64,6 +65,7 @@ export default function VerifyPayment() {
         });
 
         const data = await res.json();
+        verifyCompleted.current = true; // Mark as completed BEFORE setting state
 
         if (res.ok) {
           setStatus("success");
@@ -112,6 +114,7 @@ export default function VerifyPayment() {
         }
       } catch (err) {
         console.error(err);
+        verifyCompleted.current = true; // Mark completed even on error
         setStatus("failed");
         setErrorMsg("Failed to communicate with payment server. Please contact support.");
       } finally {
