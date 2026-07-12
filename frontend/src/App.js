@@ -145,25 +145,13 @@ function Home({ setAccessOpen }) {
 }
 
 function App() {
-  const [accessOpen, setAccessOpen] = useState(false);
-
   return (
-    <>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home setAccessOpen={setAccessOpen} />} />
-          <Route path="/admin" element={<AdminPanel />} />
-          <Route path="/dashboard" element={<DelegateDashboard onRequestAccess={() => setAccessOpen(true)} />} />
-          <Route path="/coachella" element={<CoachellaDashboard onRequestAccess={() => setAccessOpen(true)} />} />
-          <Route path="/passport" element={<DelegatePassportPage />} />
-          <Route path="/p/:id" element={<StandalonePassPage />} />
-          <Route path="/verify" element={<VerifyPayment />} />
-          <Route path="/verify-upgrade" element={<VerifyUpgrade />} />
-        </Routes>
-        <AccessDialog open={accessOpen} onClose={() => setAccessOpen(false)} />
-      </BrowserRouter>
-      {/* <Analytics /> */}
-    </>
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#0a0212', color: '#c9a44c', fontFamily: 'JetBrains Mono, monospace', textAlign: 'center', padding: '2rem' }}>
+      <div>
+        <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>Website is under maintenance</h1>
+        <p style={{ fontSize: '1.2rem', color: '#F5F1FF' }}>We are redesigning the website, stay tuned for further updates.</p>
+      </div>
+    </div>
   );
 }
 
