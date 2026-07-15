@@ -3460,7 +3460,7 @@ function PortfolioManager({ committees, portfolios, delegates, onUpdatePortfolio
 // ----------------------------------------------------
 // Tab Component: PortfolioMatrixViewer
 // ----------------------------------------------------
-function PortfolioMatrixViewer({ committees, portfolios, delegates, onUpdatePortfolios, onRefresh, registrations, onUpdateRegistrations }) {
+function PortfolioMatrixViewer({ committees, portfolios, delegates, onUpdateDelegates, onUpdatePortfolios, onRefresh, registrations, onUpdateRegistrations }) {
   const [selectedPortfolio, setSelectedPortfolio] = useState(null);
   const [assignEmail, setAssignEmail] = useState("");
   const [isManuallyAssigned, setIsManuallyAssigned] = useState(false);
