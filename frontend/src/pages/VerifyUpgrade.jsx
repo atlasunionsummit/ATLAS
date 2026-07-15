@@ -81,15 +81,7 @@ export default function VerifyUpgrade() {
           }
 
           toast.success("UPGRADE SUCCESSFUL", { description: "Welcome to the Atlas Plus Elite Tier." });
-          
-          // --- TRIGGER ATLAS PLUS EMAIL ---
-          const emailPayload = { ...payload, is_atlas_plus: true };
-          fetch("/api/email/dispatch", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email_type: "ATLAS_PLUS", delegate_payload: emailPayload })
-          }).catch(console.error);
-          
+          // Backend verify.js handles sending the Atlas Plus email natively.
         } else {
           setStatus("failed");
           setErrorMsg(data.message || `Payment Failed (${data.status || 'UNKNOWN'})`);

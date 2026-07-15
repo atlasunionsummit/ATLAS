@@ -92,21 +92,6 @@ export default function VerifyPayment() {
             body: JSON.stringify({ email_type: "WELCOME", delegate_payload: emailPayload })
           }).catch(console.error);
           
-          // 2. Payment Completed Email
-          fetch("/api/email/dispatch", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email_type: "PAYMENT_SUCCESS", delegate_payload: emailPayload })
-          }).catch(console.error);
-          
-          // 3. Atlas Plus Email (if applicable)
-          if (payload.is_atlas_plus || payload.package_name?.includes("ATLAS PLUS")) {
-            fetch("/api/email/dispatch", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ email_type: "ATLAS_PLUS", delegate_payload: emailPayload })
-            }).catch(console.error);
-          }
           // ------------------------------
         } else {
           setStatus("failed");
