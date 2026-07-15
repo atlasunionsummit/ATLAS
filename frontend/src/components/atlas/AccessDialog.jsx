@@ -4,7 +4,7 @@ import { registerUser, getDiscountCodes, getConferenceSettings, getCustomPortfol
 import { MATRIX_DATA, getMergedMatrixData } from "@/lib/matrixData";
 import { toast } from "sonner";
 import PortfolioMatrixViewer from "./PortfolioMatrixViewer";
-import { load } from '@cashfreepayments/cashfree-js';
+import PortfolioMatrixViewer from "./PortfolioMatrixViewer";
 const COMMITTEES = [
   "UNSC (United Nations Security Council)",
   "UNGA (United Nations General Assembly)",
@@ -138,7 +138,7 @@ export default function AccessDialog({ open, onClose }) {
     });
   }, [settings, form.committee]);
 
-  const handleCashfreePayment = async () => {
+  const handleRegistrationSubmit = async () => {
     setLoading(true);
     try {
       const orderId = `AUS-ORD-${Date.now()}`;
@@ -152,30 +152,10 @@ export default function AccessDialog({ open, onClose }) {
         timestamp: new Date().toISOString(),
       };
 
-      // Save to localStorage so VerifyPayment.jsx can retrieve it upon return
-      localStorage.setItem("pending_delegate_payload", JSON.stringify(payload));
-      if (form.referralCode) {
-        localStorage.setItem("pending_coupon_code", form.referralCode);
-      } else {
-        localStorage.removeItem("pending_coupon_code");
-      }
-
-      // Fetch Session ID
-      const res = await fetch("/api/payment/create-order", {
+      const res = await fetch("/api/registration/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          order_amount: payPrice,
-          order_id: orderId,
-          customer_details: {
-            customer_id: `CUST_${Date.now()}`,
-            customer_phone: form.phone_number,
-            customer_email: form.email,
-            customer_name: form.full_name
-          },
-          order_meta: {
-            return_url: `${window.location.origin}/verify?order_id=${orderId}`
-          },
           delegate_payload: payload,
           coupon_code: form.referralCode || null
         })
@@ -184,22 +164,27 @@ export default function AccessDialog({ open, onClose }) {
       const data = await res.json();
       
       if (!res.ok) {
-        throw new Error(data.message || "Failed to initiate Cashfree payment");
+        throw new Error(data.message || "Failed to submit registration");
       }
 
-      // Initialize Checkout using NPM package
-      const cashfree = await load({
-        mode: "production"
-      });
+      // Automatically log the user in
+      const userSession = {
+        id: data.id || orderId,
+        full_name: payload.full_name,
+        email: payload.email,
+        committee: payload.committee,
+        role: "delegate"
+      };
+      localStorage.setItem("aus_delegate_session", JSON.stringify(userSession));
+      toast.success("DOSSIER SUBMITTED", { description: "Your Dossier has been officially minted." });
       
-      cashfree.checkout({
-        paymentSessionId: data.payment_session_id,
-        redirectTarget: "_self"
-      });
+      // Complete step
+      setStep(5);
 
     } catch (e) {
-      console.error("CASHFREE CHECKOUT ERROR:", e);
-      toast.error("PAYMENT GATEWAY ERROR", { description: e.message || String(e) });
+      console.error("REGISTRATION ERROR:", e);
+      toast.error("REGISTRATION ERROR", { description: e.message || String(e) });
+    } finally {
       setLoading(false);
     }
   };
@@ -1124,25 +1109,20 @@ export default function AccessDialog({ open, onClose }) {
                       </div>
                     </div>
 
-                    {/* Cashfree Automation Block */}
+                    {/* Direct Submission Block */}
                     <div className="border-t border-white/5 pt-8 mt-4 flex flex-col items-center">
                       <div className="w-full max-w-md space-y-4">
                         <button
                           type="button"
-                          onClick={handleCashfreePayment}
+                          onClick={handleRegistrationSubmit}
                           disabled={loading}
                           className="w-full py-4 bg-gradient-to-r from-[var(--atlas-gold)] to-[#947126] text-black font-display text-lg tracking-widest font-bold rounded shadow-[0_0_20px_rgba(201,164,76,0.3)] hover:shadow-[0_0_30px_rgba(201,164,76,0.5)] transition-all transform hover:scale-[1.02]"
                         >
-                          {loading ? "INITIALIZING SECURE GATEWAY..." : "PAY SECURELY VIA CASHFREE ↗"}
+                          {loading ? "INITIALIZING UPLOAD..." : "SUBMIT DOSSIER ↗"}
                         </button>
-                        
-                        <div className="flex items-center justify-center gap-3">
-                          <span className="font-mono text-[9px] tracking-wider text-white/45 flex items-center gap-1.5">
-                            🛡️ 256-BIT END-TO-END ENCRYPTED CHECKOUT
-                          </span>
-                        </div>
                       </div>
                     </div>
+
                   </motion.div>
                 )}
 
