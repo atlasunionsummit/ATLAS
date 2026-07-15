@@ -1,13 +1,22 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { getPassById } from "@/lib/atlasApi";
+import { getPassById, scanPass } from "@/lib/atlasApi";
 import { ATLAS_LOGO_CLEAN } from "@/lib/atlasAssets";
+import { toast } from "sonner";
 
 export default function StandalonePassPage() {
   const { id } = useParams();
   const [pass, setPass] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminCheckingIn, setAdminCheckingIn] = useState(false);
+
+  useEffect(() => {
+    if (localStorage.getItem("aus_admin_user")) {
+      setIsAdmin(true);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchPass = async () => {
@@ -48,6 +57,21 @@ export default function StandalonePassPage() {
   }
 
   const qrURL = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&bgcolor=08000F&color=C9A44C&data=https://atlasunionsummit.com/p/${pass.pass_id}`;
+
+  const handleAdminCheckIn = async () => {
+    setAdminCheckingIn(true);
+    try {
+      const result = await scanPass(pass.pass_id, "entry");
+      if (result.success) {
+        toast.success("ENTRY RECORDED", { description: `${pass.delegate_name} checked in.` });
+      } else {
+        toast.error("CHECK-IN FAILED", { description: result.error });
+      }
+    } catch (e) {
+      toast.error("ERROR", { description: e.message });
+    }
+    setAdminCheckingIn(false);
+  };
 
   return (
     <div className="min-h-screen bg-[#08000F] flex items-center justify-center p-4">
@@ -169,6 +193,23 @@ export default function StandalonePassPage() {
           </div>
         </div>
       </div>
+
+      {isAdmin && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-black/80 backdrop-blur border-t border-[var(--atlas-gold)]/20 z-50 animate-in slide-in-from-bottom">
+          <div className="max-w-[420px] mx-auto flex flex-col gap-2">
+            <p className="text-center font-mono text-[10px] text-[var(--atlas-gold)] tracking-widest">
+              ADMINISTRATOR CONTROLS
+            </p>
+            <button
+              onClick={handleAdminCheckIn}
+              disabled={adminCheckingIn}
+              className="w-full bg-[var(--atlas-gold)] hover:bg-[#b08b39] text-black font-bold font-mono tracking-widest py-4 rounded transition-colors disabled:opacity-50"
+            >
+              {adminCheckingIn ? "PROCESSING..." : "MARK AS ENTERED (CHECK IN)"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

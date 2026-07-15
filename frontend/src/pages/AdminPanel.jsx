@@ -2535,6 +2535,8 @@ export function PassLedgerAndScanner({ delegates, onRefresh }) {
     let passId = rawCode.trim();
     if (passId.includes("PASS::")) {
       passId = passId.split("PASS::")[1];
+    } else if (passId.includes("/p/")) {
+      passId = passId.split("/p/")[1].split("?")[0];
     }
 
     try {
