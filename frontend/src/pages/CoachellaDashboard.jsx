@@ -193,7 +193,7 @@ ID: ${delegate.id}`;
   );
 }
 
-export default function CoachellaDashboard({ onRequestAccess }) {
+export default function CoachellaDashboard() {
   const navigate = useNavigate();
   const [delegate, setDelegate] = useState(null);
   const [activeTab, setActiveTab] = useState("profile");

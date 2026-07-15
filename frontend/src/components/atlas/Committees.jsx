@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ATLAS } from "@/constants/testIds";
 import { COMMITTEE_GUARDIAN } from "@/lib/atlasAssets";
 import PortfolioMatrixViewer from "./PortfolioMatrixViewer";
+import { getCommittees } from "@/lib/atlasApi";
 
 const COMMITTEES = [
   {
     key: "unsc",
-    name: "UNSC",
+    name: "UNSC (United Nations Security Council)",
     theme: "War Room",
     level: "Advanced",
     atmosphere: "Tactical · Satellite Maps · Red Light",
@@ -19,7 +20,7 @@ const COMMITTEES = [
   },
   {
     key: "unga",
-    name: "UNGA",
+    name: "UNGA (United Nations General Assembly)",
     theme: "Global Assembly",
     level: "Intermediate",
     atmosphere: "Diplomatic Lighting · World Map",
@@ -31,7 +32,7 @@ const COMMITTEES = [
   },
   {
     key: "aippm",
-    name: "AIPPM",
+    name: "AIPPM (All India Political Parties Meet)",
     theme: "Indian Parliament",
     level: "Intermediate",
     atmosphere: "Media Cameras · Election Graphics",
@@ -43,7 +44,7 @@ const COMMITTEES = [
   },
   {
     key: "uncsw",
-    name: "UNCSW",
+    name: "UNCSW (UN Commission on the Status of Women)",
     theme: "Justice & Human Rights",
     level: "Intermediate",
     atmosphere: "Elegant · Editorial Light",
@@ -55,7 +56,7 @@ const COMMITTEES = [
   },
   {
     key: "unfccc",
-    name: "UNFCCC",
+    name: "UNFCCC (UN Framework Convention on Climate Change)",
     theme: "Climate Technology",
     level: "Advanced",
     atmosphere: "Future Earth · Scientific Visuals",
@@ -67,7 +68,7 @@ const COMMITTEES = [
   },
   {
     key: "coachella",
-    name: "COACHELLA",
+    name: "Coachella (Simulated Crisis)",
     theme: "Culture, Media & Entertainment",
     level: "Beginner",
     atmosphere: "Neon · Backstage · Press",
@@ -79,7 +80,7 @@ const COMMITTEES = [
   },
   {
     key: "ip",
-    name: "INTERNATIONAL PRESS",
+    name: "International Press",
     theme: "Photography & Journalism",
     level: "Open",
     atmosphere: "Editorial · Newsroom · Field",
@@ -91,7 +92,7 @@ const COMMITTEES = [
   },
   {
     key: "ipl",
-    name: "IPL AUCTION",
+    name: "IPL (Indian Premier League)",
     theme: "Sports & Strategy",
     level: "Open",
     atmosphere: "Auction Room · High Bids · Tension",
@@ -141,6 +142,30 @@ const COMMITTEES = [
 
 export default function Committees() {
   const [matrixOpen, setMatrixOpen] = useState(false);
+  const [fetchedCommittees, setFetchedCommittees] = useState([]);
+
+  useEffect(() => {
+    getCommittees().then(setFetchedCommittees).catch(console.error);
+  }, []);
+
+  const allCommittees = [...COMMITTEES];
+  fetchedCommittees.forEach(fc => {
+    if (!fc.name) return;
+    if (!allCommittees.some(c => c.name.toLowerCase() === fc.name.toLowerCase() || c.key.toLowerCase() === fc.name.toLowerCase())) {
+      allCommittees.push({
+        key: fc.id,
+        name: fc.name,
+        theme: "Custom Committee",
+        level: (fc.delegationType ? fc.delegationType.charAt(0).toUpperCase() + fc.delegationType.slice(1) : "Single") + " Delegation",
+        atmosphere: "Standard Setup",
+        quote: "Newly formed committee.",
+        agenda: "Check with administration for agenda details.",
+        image: COMMITTEE_GUARDIAN.unga,
+        accent: "#FFFFFF",
+        tag: "NEW · ADDED"
+      });
+    }
+  });
 
   return (
     <section
@@ -176,7 +201,7 @@ export default function Committees() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {COMMITTEES.map((c, i) => (
+        {allCommittees.map((c, i) => (
           <motion.article
             key={c.key}
             data-testid={ATLAS.committee(c.key)}

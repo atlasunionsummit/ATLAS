@@ -21,7 +21,7 @@ import CoachellaDashboard, { UrgentSafetyContact } from "@/pages/CoachellaDashbo
 import PortfolioMatrixViewer from "@/components/atlas/PortfolioMatrixViewer";
 import TermsAndConditions from "@/components/atlas/TermsAndConditions";
 
-export default function DelegateDashboard({ onRequestAccess }) {
+export default function DelegateDashboard() {
   const navigate = useNavigate();
   const [delegate, setDelegate] = useState(null);
   const [activeTab, setActiveTab] = useState("profile");
@@ -262,7 +262,7 @@ export default function DelegateDashboard({ onRequestAccess }) {
                 <ProfileDesk delegate={delegate} onUpdate={handleProfileUpdate} />
               )}
               {activeTab === "agenda" && (
-                <RestrictedOverlay delegate={delegate} onRequestAccess={onRequestAccess}>
+                <RestrictedOverlay delegate={delegate}>
                   <AccountingCalendar delegate={delegate} />
                 </RestrictedOverlay>
               )}
@@ -273,12 +273,12 @@ export default function DelegateDashboard({ onRequestAccess }) {
                 <EncryptedChat delegate={delegate} />
               )}
               {activeTab === "notes" && (
-                <RestrictedOverlay delegate={delegate} onRequestAccess={onRequestAccess}>
+                <RestrictedOverlay delegate={delegate}>
                   <NotepadConsole delegate={delegate} />
                 </RestrictedOverlay>
               )}
               {activeTab === "ai" && (
-                <RestrictedOverlay delegate={delegate} onRequestAccess={onRequestAccess}>
+                <RestrictedOverlay delegate={delegate}>
                   <AIChatbot delegate={delegate} />
                 </RestrictedOverlay>
               )}
@@ -1322,7 +1322,7 @@ function Field({
 // ----------------------------------------------------
 // Sub-component: RestrictedOverlay
 // ----------------------------------------------------
-function RestrictedOverlay({ delegate, onRequestAccess, children }) {
+function RestrictedOverlay({ delegate, children }) {
   if (delegate.role === "admin" || delegate.role === "delegate") {
     return <>{children}</>;
   }
@@ -1340,14 +1340,9 @@ function RestrictedOverlay({ delegate, onRequestAccess, children }) {
           <h3 className="font-display text-white text-2xl mb-3">ACCESS RESTRICTED</h3>
           <p className="text-white/60 font-mono text-[11px] mb-6 leading-[1.8]">
             {delegate.role === "pending" 
-              ? "Your payment is pending approval. Command registry is verifying your dossier."
-              : "these tools are really really tools, aren't they? Register now!"}
+              ? "Your status is pending. Command registry is verifying your dossier."
+              : "Access restricted. You must be an authorized delegate to access this node."}
           </p>
-          {delegate.role !== "pending" && (
-            <button onClick={onRequestAccess} className="btn-atlas w-full text-center flex justify-center py-3">
-              ATLAS PAY INTERFACE <span>↗</span>
-            </button>
-          )}
         </div>
       </div>
     </div>

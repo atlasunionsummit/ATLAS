@@ -1,17 +1,27 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { subscribeToDelegates, subscribeToRegistrations, getCustomPortfolios } from "@/lib/atlasApi";
+import { subscribeToDelegates, subscribeToRegistrations, getCommittees, getPortfolios, getPressCrew } from "@/lib/atlasApi";
 import { MATRIX_DATA, getMergedMatrixData } from "@/lib/matrixData";
 import { toast } from "sonner";
 
 export default function PortfolioMatrixViewer({ open, onClose }) {
   const [occupiedMap, setOccupiedMap] = useState({});
-  const [customPortfolios, setCustomPortfolios] = useState({});
+  const [dynamicCommittees, setDynamicCommittees] = useState([]);
+  const [dynamicPortfolios, setDynamicPortfolios] = useState({});
+  const [dynamicPress, setDynamicPress] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (open) {
-      getCustomPortfolios().then(setCustomPortfolios).catch(console.error);
+      Promise.all([
+        getCommittees(),
+        getPortfolios(),
+        getPressCrew()
+      ]).then(([c, p, pr]) => {
+        setDynamicCommittees(c);
+        setDynamicPortfolios(p);
+        setDynamicPress(pr);
+      }).catch(console.error);
     }
   }, [open]);
 
@@ -125,7 +135,7 @@ export default function PortfolioMatrixViewer({ open, onClose }) {
               </div>
             ) : (
               <div className="space-y-8 mt-6">
-                {Object.entries(getMergedMatrixData(MATRIX_DATA, customPortfolios)).map(([committee, countries]) => {
+                {Object.entries(getMergedMatrixData(MATRIX_DATA, dynamicCommittees, dynamicPortfolios, dynamicPress)).map(([committee, countries]) => {
                   let maxAllowed = 1;
                   if (committee.includes("IPL")) maxAllowed = 3;
                   else if (committee.includes("UNSC")) maxAllowed = 2;
