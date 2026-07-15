@@ -313,6 +313,18 @@ export default function AdminPanel() {
                     committees={committees}
                     portfolios={portfolios}
                     delegates={delegates}
+                    onUpdatePortfolios={async (newPortfolios) => {
+                      setPortfolios(newPortfolios);
+                      await savePortfolios(newPortfolios);
+                    }}
+                    onRefresh={refreshData}
+                  />
+                )}
+                {activeTab === "matrix" && (
+                  <PortfolioMatrixViewer
+                    committees={committees}
+                    portfolios={portfolios}
+                    delegates={delegates}
                     registrations={registrations}
                     onUpdatePortfolios={async (newPortfolios) => {
                       setPortfolios(newPortfolios);
@@ -613,6 +625,7 @@ function AdminSidebar({ activeTab, setActiveTab, isOpen, setIsOpen, onLogout, us
     { id: "settings", label: "08 SETTINGS", icon: "⚙" },
     { id: "committees", label: "09 COMMITTEES", icon: "🏛️" },
     { id: "portfolios", label: "10 PORTFOLIOS", icon: "🌐" },
+    { id: "matrix", label: "10.5 MATRIX TRACKER", icon: "📊" },
     { id: "revoke_access", label: "11 REVOKE ACCESS", icon: "🚫" },
     { id: "press", label: "12 INTL PRESS", icon: "📰" },
     { id: "passes", label: "13 E-PASSPORTS", icon: "🎟️" },
@@ -3242,7 +3255,212 @@ function InternationalPressManager({ pressCrew, onUpdate }) {
 // ----------------------------------------------------
 // Tab Component: PortfolioManager
 // ----------------------------------------------------
-function PortfolioManager({ committees, portfolios, delegates, onUpdatePortfolios, onRefresh, registrations, onUpdateRegistrations }) {
+function PortfolioManager({ committees, portfolios, delegates, onUpdatePortfolios, onRefresh }) {
+  const [selectedCommittee, setSelectedCommittee] = useState("");
+  const [newCountry, setNewCountry] = useState("");
+  const [showDelegationForm, setShowDelegationForm] = useState(false);
+  const [delegationFormCountry, setDelegationFormCountry] = useState("");
+  const [delegationForm, setDelegationForm] = useState({ full_name: "", email: "", phone_number: "", country: "", city_of_residence: "", past_experience: "", dietary_instructions: "", nickname: "", is_atlas_plus: false });
+  const [grantLoading, setGrantLoading] = useState(false);
+
+  const committeePortfolios = selectedCommittee ? (portfolios[selectedCommittee] || []) : [];
+  const selectedCommitteeData = committees.find(c => c.name === selectedCommittee);
+
+  const handleAddPortfolio = (e) => {
+    e.preventDefault();
+    if (!selectedCommittee) return toast.error("Select a committee first");
+    if (!newCountry.trim()) return toast.error("Country/portfolio name required");
+    if (committeePortfolios.some(p => p.country.toLowerCase() === newCountry.trim().toLowerCase())) return toast.error("Portfolio already exists");
+    const updated = { ...portfolios };
+    if (!updated[selectedCommittee]) updated[selectedCommittee] = [];
+    updated[selectedCommittee] = [...updated[selectedCommittee], { id: `PF-${Date.now()}`, country: newCountry.trim() }];
+    onUpdatePortfolios(updated);
+    setNewCountry("");
+    toast.success("PORTFOLIO ADDED", { description: `${newCountry.trim()} → ${selectedCommittee}` });
+    addActivityLog(`Portfolio "${newCountry.trim()}" added to ${selectedCommittee}`);
+  };
+
+  const handleRemovePortfolio = (portfolioId, portfolioName) => {
+    if (!window.confirm(`Remove portfolio "${portfolioName}" from ${selectedCommittee}?`)) return;
+    const updated = { ...portfolios };
+    updated[selectedCommittee] = updated[selectedCommittee].filter(p => p.id !== portfolioId);
+    onUpdatePortfolios(updated);
+    toast.success("PORTFOLIO REMOVED");
+    addActivityLog(`Portfolio "${portfolioName}" removed from ${selectedCommittee}`);
+  };
+
+  const openDelegationForm = (portfolioCountry) => {
+    setDelegationFormCountry(portfolioCountry);
+    setDelegationForm({ full_name: "", email: "", phone_number: "", country: "", city_of_residence: "", past_experience: "", dietary_instructions: "", nickname: "", is_atlas_plus: false });
+    setShowDelegationForm(true);
+  };
+
+  const handleGrantAccess = async (e) => {
+    e.preventDefault();
+    if (!delegationForm.full_name.trim() || !delegationForm.email.trim()) return toast.error("Name and Gmail are required");
+    setGrantLoading(true);
+    try {
+      await grantDelegateAccess({ ...delegationForm, committee: selectedCommittee, portfolio_country: delegationFormCountry });
+      toast.success("ACCESS GRANTED", { description: `${delegationForm.email} can now sign in as a delegate.` });
+      setShowDelegationForm(false);
+      onRefresh();
+    } catch (err) {
+      toast.error("GRANT FAILED", { description: err.message });
+    } finally {
+      setGrantLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6 relative">
+      <div className="border-b border-white/5 pb-4">
+        <span className="classified-label text-[var(--atlas-cyan)] text-xs block">/ PORTFOLIO MANAGEMENT</span>
+        <h3 className="font-display text-white text-2xl">PORTFOLIOS (COUNTRIES)</h3>
+        <p className="text-white/40 text-[10px] mt-1 font-mono">Add or remove country portfolios per committee. Grant delegate access via delegation form.</p>
+      </div>
+      <div className="glass rounded border border-white/5 p-4">
+        <label className="text-[10px] text-white/50 tracking-widest mb-2 block">SELECT COMMITTEE</label>
+        <select value={selectedCommittee} onChange={(e) => setSelectedCommittee(e.target.value)}
+          className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:border-[var(--atlas-gold)] outline-none">
+          <option value="">-- Choose a committee --</option>
+          {committees.map(c => (<option key={c.id} value={c.name}>{c.name} ({c.delegationType})</option>))}
+        </select>
+      </div>
+      {selectedCommittee && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="glass rounded border border-white/5 p-5">
+            <span className="classified-label text-[var(--atlas-gold)] text-xs block mb-4">/ ADD PORTFOLIO</span>
+            <form onSubmit={handleAddPortfolio} className="space-y-4">
+              <div>
+                <label className="text-[10px] text-white/50 tracking-widest mb-1 block">COUNTRY / PORTFOLIO NAME</label>
+                <input type="text" required placeholder="e.g. India, USA" value={newCountry} onChange={(e) => setNewCountry(e.target.value)}
+                  className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:border-[var(--atlas-gold)] outline-none" />
+              </div>
+              {selectedCommitteeData && (
+                <div className="text-[9px] text-[var(--atlas-cyan)] font-mono tracking-widest bg-[var(--atlas-cyan)]/10 border border-[var(--atlas-cyan)]/20 rounded p-2">
+                  DELEGATION TYPE: {selectedCommitteeData.delegationType.toUpperCase()}
+                </div>
+              )}
+              <button type="submit" className="w-full py-2 bg-[var(--atlas-cyan)]/10 text-[var(--atlas-cyan)] border border-[var(--atlas-cyan)]/20 hover:bg-[var(--atlas-cyan)]/20 rounded font-mono text-[10px] tracking-widest transition-colors">ADD PORTFOLIO</button>
+            </form>
+          </div>
+          <div className="lg:col-span-2 glass rounded border border-white/5 p-0 overflow-hidden flex flex-col max-h-[500px]">
+            <div className="p-4 border-b border-white/5 bg-black/20 flex justify-between items-center">
+              <span className="classified-label text-[var(--atlas-gold)] text-xs">/ {selectedCommittee.toUpperCase()}</span>
+              <span className="text-[10px] text-white/40 font-mono">{committeePortfolios.length} PORTFOLIOS</span>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {committeePortfolios.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-[10px] text-white/30 tracking-widest py-8">NO PORTFOLIOS ADDED</div>
+              ) : (
+                committeePortfolios.map((p) => {
+                  const assignedDelegates = delegates.filter(d => d.committee === selectedCommittee && (d.portfolio === p.country || d.portfolio_country === p.country));
+                  return (
+                    <div key={p.id} className="bg-black/40 border border-white/10 rounded p-4">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="text-white font-bold font-mono tracking-wider">{p.country}</span>
+                          {assignedDelegates.length > 0 && <span className="ml-2 text-[9px] text-emerald-400 font-mono tracking-widest">{assignedDelegates.length} ASSIGNED</span>}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => openDelegationForm(p.country)} className="text-[10px] text-[var(--atlas-gold)] border border-[var(--atlas-gold)]/20 bg-[var(--atlas-gold)]/10 hover:bg-[var(--atlas-gold)]/20 px-3 py-1.5 rounded transition-colors">+ GRANT ACCESS</button>
+                          <button onClick={() => handleRemovePortfolio(p.id, p.country)} className="text-[10px] text-red-400 border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded transition-colors">REMOVE</button>
+                        </div>
+                      </div>
+                      {assignedDelegates.length > 0 && (
+                        <div className="mt-3 space-y-1.5 border-t border-white/5 pt-3">
+                          {assignedDelegates.map(d => (
+                            <div key={d.id} className="flex justify-between items-center text-[10px] font-mono">
+                              <span className="text-white/70">{d.full_name}</span>
+                              <span className="text-[var(--atlas-cyan)]">{d.email}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      <AnimatePresence>
+        {showDelegationForm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-[#0a0212]/95 border border-[var(--atlas-gold)]/30 rounded-xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+              <div className="p-4 border-b border-white/10 flex justify-between items-start bg-white/[0.02]">
+                <div>
+                  <span className="text-[10px] text-[var(--atlas-gold)] font-mono tracking-widest block mb-1">DELEGATION FORM</span>
+                  <h3 className="font-display text-white text-xl">GRANT ACCESS · {delegationFormCountry}</h3>
+                  <p className="text-[10px] text-white/40 font-mono mt-1">{selectedCommittee}</p>
+                </div>
+                <button onClick={() => setShowDelegationForm(false)} className="text-white/40 hover:text-white">✕</button>
+              </div>
+              <form onSubmit={handleGrantAccess} className="p-5 overflow-y-auto space-y-4 flex-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] text-white/50 tracking-widest mb-1 block">FULL NAME *</label>
+                    <input type="text" required value={delegationForm.full_name} onChange={e => setDelegationForm({...delegationForm, full_name: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:border-[var(--atlas-gold)] outline-none" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-white/50 tracking-widest mb-1 block">GMAIL ID *</label>
+                    <input type="email" required placeholder="delegate@gmail.com" value={delegationForm.email} onChange={e => setDelegationForm({...delegationForm, email: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:border-[var(--atlas-gold)] outline-none" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] text-white/50 tracking-widest mb-1 block">NICKNAME</label>
+                    <input type="text" value={delegationForm.nickname} onChange={e => setDelegationForm({...delegationForm, nickname: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:border-[var(--atlas-gold)] outline-none" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-white/50 tracking-widest mb-1 block">PHONE</label>
+                    <input type="text" value={delegationForm.phone_number} onChange={e => setDelegationForm({...delegationForm, phone_number: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:border-[var(--atlas-gold)] outline-none" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] text-white/50 tracking-widest mb-1 block">NATIONALITY</label>
+                    <input type="text" value={delegationForm.country} onChange={e => setDelegationForm({...delegationForm, country: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:border-[var(--atlas-gold)] outline-none" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-white/50 tracking-widest mb-1 block">CITY OF RESIDENCE</label>
+                    <input type="text" value={delegationForm.city_of_residence} onChange={e => setDelegationForm({...delegationForm, city_of_residence: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:border-[var(--atlas-gold)] outline-none" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] text-white/50 tracking-widest mb-1 block">PAST EXPERIENCE</label>
+                  <textarea rows={2} value={delegationForm.past_experience} onChange={e => setDelegationForm({...delegationForm, past_experience: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:border-[var(--atlas-gold)] outline-none resize-none" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-white/50 tracking-widest mb-1 block">DIETARY INSTRUCTIONS</label>
+                  <input type="text" value={delegationForm.dietary_instructions} onChange={e => setDelegationForm({...delegationForm, dietary_instructions: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:border-[var(--atlas-gold)] outline-none" />
+                </div>
+                <label className="flex items-center gap-2 text-white/50 text-[10px] font-mono">
+                  <input type="checkbox" checked={delegationForm.is_atlas_plus} onChange={e => setDelegationForm({...delegationForm, is_atlas_plus: e.target.checked})} className="accent-[var(--atlas-gold)]" />
+                  GRANT ATLAS PLUS ACCESS
+                </label>
+                <div className="bg-black/30 border border-[var(--atlas-gold)]/20 rounded p-3 text-[10px] font-mono text-white/50">
+                  <span className="text-[var(--atlas-gold)] font-bold block mb-1">⚡ WHAT HAPPENS:</span>
+                  The Gmail ID entered will be added to the delegates database. When they sign in with Google, they will be recognized as an approved delegate for <span className="text-white">{selectedCommittee}</span> with portfolio <span className="text-white">{delegationFormCountry}</span>.
+                </div>
+                <button type="submit" disabled={grantLoading} className="w-full py-2.5 bg-[var(--atlas-gold)] text-black font-mono text-[10px] font-bold tracking-widest rounded hover:bg-[#d4ae4a] transition-colors disabled:opacity-50">
+                  {grantLoading ? "GRANTING ACCESS..." : "GRANT DELEGATE ACCESS"}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ----------------------------------------------------
+// Tab Component: PortfolioMatrixViewer
+// ----------------------------------------------------
+function PortfolioMatrixViewer({ committees, portfolios, delegates, onUpdatePortfolios, onRefresh, registrations, onUpdateRegistrations }) {
   const [selectedPortfolio, setSelectedPortfolio] = useState(null);
   const [assignEmail, setAssignEmail] = useState("");
   const [isManuallyAssigned, setIsManuallyAssigned] = useState(false);
