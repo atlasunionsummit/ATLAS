@@ -3,7 +3,7 @@ import { ATLAS } from "@/constants/testIds";
 import { GUARDIAN_HERO } from "@/lib/atlasAssets";
 import DelhiSkylineSVG from "@/components/atlas/DelhiSkylineSVG";
 
-export default function Hero({ onRequestAccess }) {
+export default function Hero() {
   return (
     <section
       id="hero"
@@ -98,11 +98,10 @@ export default function Hero({ onRequestAccess }) {
             className="mt-10 flex flex-wrap gap-3"
           >
             <button
-              data-testid={ATLAS.heroCta}
-              onClick={onRequestAccess}
-              className="btn-atlas"
+              disabled
+              className="btn-atlas opacity-50 cursor-not-allowed"
             >
-              REQUEST ACCESS <span aria-hidden>↗</span>
+              APPLICATIONS CLOSED
             </button>
             <a
               data-testid={ATLAS.heroSecondary}

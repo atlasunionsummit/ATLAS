@@ -1,6 +1,6 @@
 import { ATLAS_LOGO_CLEAN } from "@/lib/atlasAssets";
 
-export default function Footer({ onRequestAccess }) {
+export default function Footer() {
   return (
     <footer className="relative py-20 px-6 lg:px-10 mt-10 mb-8">
       <div className="max-w-[1240px] mx-auto">
@@ -18,12 +18,7 @@ export default function Footer({ onRequestAccess }) {
               Engineered by AUVREO International — registered under the
               Government of India&apos;s MSME Framework.
             </p>
-            <button
-              onClick={onRequestAccess}
-              className="btn-atlas mt-6"
-            >
-              REQUEST ACCESS <span>↗</span>
-            </button>
+
           </div>
           {[
             {

@@ -932,29 +932,145 @@ export const subscribeToChat = (room, callback) => {
 };
 
 // ----------------------------------------------------
-// CUSTOM PORTFOLIOS
+// COMMITTEES MANAGEMENT
 // ----------------------------------------------------
-export const getCustomPortfolios = async () => {
+export const getCommittees = async () => {
   try {
-    const docRef = doc(db, "settings", "custom_portfolios");
+    const docRef = doc(db, "settings", "committees");
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data().list || [];
+    }
+    return [];
+  } catch (error) {
+    console.error("Error fetching committees:", error);
+    return [];
+  }
+};
+
+export const saveCommittees = async (committees) => {
+  try {
+    const docRef = doc(db, "settings", "committees");
+    await setDoc(docRef, { list: committees, updated_at: new Date().toISOString() });
+    return true;
+  } catch (error) {
+    console.error("Error saving committees:", error);
+    return false;
+  }
+};
+
+// ----------------------------------------------------
+// PORTFOLIOS (COUNTRIES) MANAGEMENT
+// ----------------------------------------------------
+export const getPortfolios = async () => {
+  try {
+    const docRef = doc(db, "settings", "portfolios");
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       return docSnap.data();
     }
     return {};
   } catch (error) {
-    console.error("Error fetching custom portfolios:", error);
+    console.error("Error fetching portfolios:", error);
     return {};
   }
 };
 
-export const saveCustomPortfolios = async (portfolios) => {
+export const savePortfolios = async (portfolios) => {
   try {
-    const docRef = doc(db, "settings", "custom_portfolios");
-    await setDoc(docRef, portfolios);
+    const docRef = doc(db, "settings", "portfolios");
+    await setDoc(docRef, { ...portfolios, updated_at: new Date().toISOString() });
     return true;
   } catch (error) {
-    console.error("Error saving custom portfolios:", error);
+    console.error("Error saving portfolios:", error);
     return false;
   }
 };
+
+// ----------------------------------------------------
+// INTERNATIONAL PRESS CREW
+// ----------------------------------------------------
+export const getPressCrew = async () => {
+  try {
+    const docRef = doc(db, "settings", "press_crew");
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data().list || [];
+    }
+    return [];
+  } catch (error) {
+    console.error("Error fetching press crew:", error);
+    return [];
+  }
+};
+
+export const savePressCrew = async (crew) => {
+  try {
+    const docRef = doc(db, "settings", "press_crew");
+    await setDoc(docRef, { list: crew, updated_at: new Date().toISOString() });
+    return true;
+  } catch (error) {
+    console.error("Error saving press crew:", error);
+    return false;
+  }
+};
+
+// ----------------------------------------------------
+// REVOKE DELEGATE ACCESS
+// ----------------------------------------------------
+export const revokeDelegate = async (delegateId, delegateName, delegateEmail) => {
+  try {
+    // Delete from delegates collection
+    await deleteDoc(doc(db, "delegates", delegateId));
+
+    // Revoke their pass if exists
+    if (delegateEmail) {
+      try {
+        const passRef = doc(db, "passes", delegateEmail.toLowerCase());
+        const passSnap = await getDoc(passRef);
+        if (passSnap.exists()) {
+          await updateDoc(passRef, { status: "revoked" });
+        }
+      } catch (e) {
+        console.warn("Pass revocation skipped:", e);
+      }
+    }
+
+    await addActivityLog(`Delegate access FULLY REVOKED for ${delegateName} (${delegateId})`);
+    return true;
+  } catch (error) {
+    console.error("Error revoking delegate:", error);
+    return false;
+  }
+};
+
+// ----------------------------------------------------
+// GRANT DELEGATE ACCESS (Admin creates delegate with Gmail)
+// ----------------------------------------------------
+export const grantDelegateAccess = async (payload) => {
+  const delegateId = `AUS-ADMIN-${Math.floor(10000 + Math.random() * 90000)}`;
+  const delegateData = {
+    id: delegateId,
+    full_name: payload.full_name,
+    nickname: payload.nickname || "",
+    email: payload.email.toLowerCase(),
+    phone_number: payload.phone_number || "",
+    country: payload.country || "",
+    city_of_residence: payload.city_of_residence || "",
+    committee: payload.committee,
+    portfolio_country: payload.portfolio_country || "",
+    portfolio: payload.portfolio_country || "",
+    past_experience: payload.past_experience || "",
+    dietary_instructions: payload.dietary_instructions || "",
+    status: "alloted",
+    role: "delegate",
+    is_atlas_plus: payload.is_atlas_plus || false,
+    granted_by_admin: true,
+    timestamp: new Date().toISOString(),
+  };
+
+  await setDoc(doc(db, "delegates", delegateId), delegateData);
+  await addActivityLog(`Admin granted delegate access to ${payload.full_name} (${payload.email})`);
+  return delegateData;
+};
+

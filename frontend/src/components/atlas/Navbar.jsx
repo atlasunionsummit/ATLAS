@@ -13,7 +13,6 @@ const NAV = [
 ];
 
 export default function Navbar({
-  onRequestAccess,
   onRequestDelegateLogin,
   delegateUser,
   onDelegateLogout,
@@ -132,14 +131,6 @@ export default function Navbar({
                 className="font-mono text-[9.5px] text-white/60 hover:text-white px-2 sm:px-3 py-1.5 border border-white/10 hover:border-white/20 rounded transition-all shrink-0"
               >
                 SIGN IN
-              </button>
-              <button
-                data-testid={ATLAS.navRequestAccess}
-                onClick={onRequestAccess}
-                className="btn-atlas !py-1.5 sm:!py-2 !px-2 sm:!px-3.5 !text-[9px] sm:!text-[10px] shrink-0"
-              >
-                <span className="hidden sm:inline">REQUEST ACCESS <span aria-hidden>→</span></span>
-                <span className="sm:hidden">REQUEST <span aria-hidden>→</span></span>
               </button>
             </>
           )}

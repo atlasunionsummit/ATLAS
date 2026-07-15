@@ -22,14 +22,11 @@ import Partners from "@/components/atlas/Partners";
 import Faq from "@/components/atlas/Faq";
 import TermsAndConditions from "@/components/atlas/TermsAndConditions";
 import Footer from "@/components/atlas/Footer";
-import AccessDialog from "@/components/atlas/AccessDialog";
-import DelegateLoginDialog from "@/components/atlas/DelegateLoginDialog";
 import { ScanWipe } from "@/components/atlas/SectionFX";
 import { signOutUser } from "@/lib/atlasApi";
-import VerifyPayment from "@/pages/VerifyPayment";
-import VerifyUpgrade from "@/pages/VerifyUpgrade";
+import DelegateLoginDialog from "@/components/atlas/DelegateLoginDialog";
 
-function Home({ setAccessOpen }) {
+function Home() {
   const navigate = useNavigate();
   const [booted, setBooted] = useState(
     typeof window !== "undefined" &&
@@ -97,7 +94,6 @@ function Home({ setAccessOpen }) {
       {!booted && <LoadingScreen onDone={finishBoot} />}
 
       <Navbar
-        onRequestAccess={() => setAccessOpen(true)}
         onRequestDelegateLogin={() => setDelegateLoginOpen(true)}
         delegateUser={delegateUser}
         onDelegateLogout={handleDelegateLogout}
@@ -106,19 +102,19 @@ function Home({ setAccessOpen }) {
       <ScanWipe />
 
       <main>
-        <Hero onRequestAccess={() => setAccessOpen(true)} />
+        <Hero />
         <Ecosystem />
         <Committees />
         <SignatureCollection />
         <OperationRed />
-        <Passport delegateUser={delegateUser} onOpenRegistration={() => setAccessOpen(true)} />
+        <Passport delegateUser={delegateUser} />
         <Timeline />
         <Partners />
         <Faq />
         <TermsAndConditions />
       </main>
 
-      <Footer onRequestAccess={() => setAccessOpen(true)} />
+      <Footer />
       
       <DelegateLoginDialog
         open={delegateLoginOpen}
@@ -146,12 +142,18 @@ function Home({ setAccessOpen }) {
 
 function App() {
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#0a0212', color: '#c9a44c', fontFamily: 'JetBrains Mono, monospace', textAlign: 'center', padding: '2rem' }}>
-      <div>
-        <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>Website is under maintenance</h1>
-        <p style={{ fontSize: '1.2rem', color: '#F5F1FF' }}>We are redesigning the website, stay tuned for further updates.</p>
-      </div>
-    </div>
+    <>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/dashboard" element={<DelegateDashboard />} />
+          <Route path="/coachella" element={<CoachellaDashboard />} />
+          <Route path="/passport" element={<DelegatePassportPage />} />
+          <Route path="/p/:id" element={<StandalonePassPage />} />
+        </Routes>
+      </BrowserRouter>
+    </>
   );
 }
 

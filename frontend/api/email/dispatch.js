@@ -66,9 +66,6 @@ export default async function handler(req, res) {
       case "WELCOME":
         templateId = process.env.BREVO_TEMPLATE_ID_WELCOME;
         break;
-      case "PAYMENT_SUCCESS":
-        templateId = process.env.BREVO_TEMPLATE_ID_PAYMENT_SUCCESS;
-        break;
       case "ATLAS_PLUS":
         templateId = process.env.BREVO_TEMPLATE_ID_ATLAS_PLUS;
         break;

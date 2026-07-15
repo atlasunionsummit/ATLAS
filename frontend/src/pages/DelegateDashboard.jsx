@@ -17,7 +17,6 @@ import {
   getConferenceSettings
 } from "@/lib/atlasApi";
 import { toast } from "sonner";
-import { load } from '@cashfreepayments/cashfree-js';
 import CoachellaDashboard, { UrgentSafetyContact } from "@/pages/CoachellaDashboard";
 import PortfolioMatrixViewer from "@/components/atlas/PortfolioMatrixViewer";
 import TermsAndConditions from "@/components/atlas/TermsAndConditions";
@@ -32,12 +31,8 @@ export default function DelegateDashboard({ onRequestAccess }) {
   const [notifications, setNotifications] = useState([]);
   const [shownNotifications, setShownNotifications] = useState(new Set());
 
-  // Atlas Plus Upgrade state
-  const [showUpgradePay, setShowUpgradePay] = useState(false);
-  const [upgradeLoading, setUpgradeLoading] = useState(false);
-  const [atlasPlusPrice, setAtlasPlusPrice] = useState(999);
-
   // Redirect if not signed in
+
   useEffect(() => {
     const session = localStorage.getItem("aus_delegate_session");
     if (!session) {
@@ -51,11 +46,6 @@ export default function DelegateDashboard({ onRequestAccess }) {
         navigate("/");
       }
     }
-    
-    // Fetch dynamic atlas plus price
-    getConferenceSettings().then(settings => {
-      setAtlasPlusPrice(settings?.atlas_plus_price ?? 999);
-    }).catch(console.error);
   }, [navigate]);
 
   // Read admin broadcasts for push notifications
@@ -112,61 +102,6 @@ export default function DelegateDashboard({ onRequestAccess }) {
     }
   };
 
-  const handleCashfreeUpgrade = async (e) => {
-    if (e) e.preventDefault();
-    setUpgradeLoading(true);
-    try {
-      const orderId = `AUS-UPG-${Date.now()}`;
-      const payload = {
-        ...delegate,
-        is_upgrade: true,
-        registration_id: orderId,
-        package_name: "Atlas Plus Tier",
-        timestamp: new Date().toISOString(),
-      };
-
-      // Save to localStorage for verify step
-      localStorage.setItem("pending_upgrade_payload", JSON.stringify(payload));
-
-      const res = await fetch("/api/payment/create-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          order_amount: atlasPlusPrice,
-          order_id: orderId,
-          customer_details: {
-            customer_id: delegate.id || `CUST_${Date.now()}`,
-            customer_phone: delegate.phone_number || "9999999999",
-            customer_email: delegate.email,
-            customer_name: delegate.full_name
-          },
-          order_meta: {
-            return_url: `${window.location.origin}/verify-upgrade?order_id=${orderId}`
-          },
-          delegate_payload: payload
-        })
-      });
-
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.message || "Failed to initiate Cashfree payment");
-      }
-
-      // Initialize Checkout using NPM package
-      const cashfree = await load({ mode: "production" });
-      
-      cashfree.checkout({
-        paymentSessionId: data.payment_session_id,
-        redirectTarget: "_self"
-      });
-
-    } catch (err) {
-      console.error("CASHFREE UPGRADE ERROR:", err);
-      toast.error("GATEWAY ERROR", { description: err.message || String(err) });
-      setUpgradeLoading(false);
-    }
-  };
 
   const dismissNotification = (id) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
@@ -433,12 +368,9 @@ export default function DelegateDashboard({ onRequestAccess }) {
                             <div>
                               <h4 className="font-display text-[var(--atlas-gold)] text-xl mb-1 tracking-wider">UPGRADE TO ATLAS PLUS</h4>
                               <div className="text-[var(--atlas-gold)] font-mono text-sm tracking-widest mb-4 border-b border-[var(--atlas-gold)]/20 pb-3 inline-block">
-                                ₹{atlasPlusPrice} / INVITATION ONLY
+                                REGISTRATIONS CLOSED
                               </div>
                             </div>
-                            <button onClick={handleCashfreeUpgrade} disabled={upgradeLoading} className="btn-atlas shrink-0">
-                              {upgradeLoading ? "INITIALIZING SECURE GATEWAY..." : "UPGRADE NOW ↗"}
-                            </button>
                           </div>
                         </div>
                       )}

@@ -15,7 +15,7 @@ const COMMITTEES = [
   "INTERNATIONAL PRESS",
 ];
 
-export default function Passport({ delegateUser, onOpenRegistration }) {
+export default function Passport({ delegateUser }) {
   const wrapRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: wrapRef,
@@ -322,22 +322,7 @@ export default function Passport({ delegateUser, onOpenRegistration }) {
             </div>
           </motion.div>
 
-          {/* Tagline Promo */}
-          {showRegisterPromo && !delegateUser && (
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-6 text-center space-y-3 font-mono text-xs border border-[var(--atlas-gold)]/20 p-4 rounded bg-[var(--atlas-gold)]/[0.01] w-full max-w-[520px] shadow-[0_0_12px_rgba(201,164,76,0.05)] font-bold"
-            >
-              <p className="text-white/60 tracking-wider">WANNA GET A REAL ONE?</p>
-              <button
-                onClick={onOpenRegistration}
-                className="btn-atlas w-full text-center py-2 text-[10.5px] tracking-[0.2em] font-mono mt-1"
-              >
-                REGISTER NOW <span>↗</span>
-              </button>
-            </motion.div>
-          )}
+
         </div>
       </div>
     </section>
