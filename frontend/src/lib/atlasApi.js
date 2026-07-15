@@ -987,33 +987,7 @@ export const savePortfolios = async (portfolios) => {
   }
 };
 
-// ----------------------------------------------------
-// INTERNATIONAL PRESS CREW
-// ----------------------------------------------------
-export const getPressCrew = async () => {
-  try {
-    const docRef = doc(db, "settings", "press_crew");
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return docSnap.data().list || [];
-    }
-    return [];
-  } catch (error) {
-    console.error("Error fetching press crew:", error);
-    return [];
-  }
-};
 
-export const savePressCrew = async (crew) => {
-  try {
-    const docRef = doc(db, "settings", "press_crew");
-    await setDoc(docRef, { list: crew, updated_at: new Date().toISOString() });
-    return true;
-  } catch (error) {
-    console.error("Error saving press crew:", error);
-    return false;
-  }
-};
 
 // ----------------------------------------------------
 // REVOKE DELEGATE ACCESS

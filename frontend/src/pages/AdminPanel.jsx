@@ -31,8 +31,6 @@ import {
   saveCommittees,
   getPortfolios,
   savePortfolios,
-  getPressCrew,
-  savePressCrew,
   revokeDelegate,
   grantDelegateAccess
 } from "@/lib/atlasApi";
@@ -79,14 +77,13 @@ export default function AdminPanel() {
   const [googleLogins, setGoogleLogins] = useState([]);
   const [committees, setCommittees] = useState([]);
   const [portfolios, setPortfolios] = useState({});
-  const [pressCrew, setPressCrew] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch all mock data
   const refreshData = async () => {
     setLoading(true);
     try {
-      const [d, r, p, e, s, b, l, dc, gl, cm, pf, pc] = await Promise.all([
+      const [d, r, p, e, s, b, l, dc, gl, cm, pf] = await Promise.all([
         getDelegates(),
         getRegistrations(),
         getPayments(),
@@ -98,7 +95,6 @@ export default function AdminPanel() {
         getGoogleLogins(),
         getCommittees(),
         getPortfolios(),
-        getPressCrew(),
       ]);
       setDelegates(d);
       setRegistrations(r);
@@ -111,7 +107,6 @@ export default function AdminPanel() {
       setGoogleLogins(gl);
       setCommittees(cm);
       setPortfolios(pf);
-      setPressCrew(pc);
     } catch (err) {
       toast.error("DATA FETCH FAILED");
     } finally {
@@ -219,6 +214,8 @@ export default function AdminPanel() {
                 {activeTab === "delegates" && (
                   <DelegateManager
                     delegates={delegates}
+                    committees={committees}
+                    portfolios={portfolios}
                     onUpdate={async (newDelegates) => {
                       setDelegates(newDelegates);
                       await saveDelegates(newDelegates);
@@ -347,15 +344,7 @@ export default function AdminPanel() {
                     onRefresh={refreshData}
                   />
                 )}
-                {activeTab === "press" && (
-                  <InternationalPressManager
-                    pressCrew={pressCrew}
-                    onUpdate={async (newCrew) => {
-                      setPressCrew(newCrew);
-                      await savePressCrew(newCrew);
-                    }}
-                  />
-                )}
+
                 {activeTab === "discounts" && (
                   <DiscountCodeManager
                     discountCodes={discountCodes}
@@ -627,7 +616,7 @@ function AdminSidebar({ activeTab, setActiveTab, isOpen, setIsOpen, onLogout, us
     { id: "portfolios", label: "10 PORTFOLIOS", icon: "🌐" },
     { id: "matrix", label: "10.5 MATRIX TRACKER", icon: "📊" },
     { id: "revoke_access", label: "11 REVOKE ACCESS", icon: "🚫" },
-    { id: "press", label: "12 INTL PRESS", icon: "📰" },
+
     { id: "passes", label: "13 E-PASSPORTS", icon: "🎟️" },
     { id: "discounts", label: "14 DISCOUNTS", icon: "🏷️" },
     { id: "atlas_plus", label: "15 ATLAS PLUS", icon: "✨" },
@@ -783,7 +772,7 @@ function DashboardOverview({ delegates, registrations, payments, events, logs })
 // ----------------------------------------------------
 // Tab Component: DelegateManager
 // ----------------------------------------------------
-function DelegateManager({ delegates, customPortfolios, onUpdate, onRefresh }) {
+function DelegateManager({ delegates, committees, portfolios, onUpdate, onRefresh }) {
   const [search, setSearch] = useState("");
   const [filterCommittee, setFilterCommittee] = useState("");
   const [filterCountry, setFilterCountry] = useState("");
@@ -791,8 +780,12 @@ function DelegateManager({ delegates, customPortfolios, onUpdate, onRefresh }) {
   const [viewingDelegate, setViewingDelegate] = useState(null);
   const fileInputRef = useRef(null);
 
+  const [addFormOpen, setAddFormOpen] = useState(false);
+  const [addForm, setAddForm] = useState({ full_name: "", email: "", committee: "", portfolio: "" });
+  const [addLoading, setAddLoading] = useState(false);
+
   // Filters
-  const committees = Array.from(new Set(delegates.map((d) => d.committee)));
+  const filterCommitteesList = Array.from(new Set(delegates.map((d) => d.committee)));
   const countries = Array.from(new Set(delegates.map((d) => d.country)));
 
   const filteredDelegates = delegates.filter((d) => {
@@ -805,12 +798,39 @@ function DelegateManager({ delegates, customPortfolios, onUpdate, onRefresh }) {
     return matchesSearch && matchesCommittee && matchesCountry;
   });
 
-  const handleDelete = (id, name) => {
-    if (confirm(`Are you sure you want to delete Delegate: ${name}?`)) {
-      const updated = delegates.filter((d) => d.id !== id);
-      onUpdate(updated);
-      toast.success("DELEGATE DELETED", { description: `${name} has been removed.` });
-      addActivityLog(`Delegate ${name} (${id}) was deleted from the register`);
+  const handleAddSubmit = async (e) => {
+    e.preventDefault();
+    if (!addForm.full_name.trim() || !addForm.email.trim() || !addForm.committee) {
+      return toast.error("Missing required fields");
+    }
+    setAddLoading(true);
+    try {
+      await grantDelegateAccess({
+        full_name: addForm.full_name,
+        email: addForm.email,
+        committee: addForm.committee,
+        portfolio_country: addForm.portfolio
+      });
+      toast.success("DELEGATE ADDED", { description: `${addForm.full_name} granted access` });
+      setAddFormOpen(false);
+      setAddForm({ full_name: "", email: "", committee: "", portfolio: "" });
+      onRefresh();
+    } catch (err) {
+      toast.error("ADD FAILED", { description: err.message });
+    } finally {
+      setAddLoading(false);
+    }
+  };
+
+  const handleDelete = async (d) => {
+    if (confirm(`Are you sure you want to completely revoke access for Delegate: ${d.full_name}?`)) {
+      try {
+        await revokeDelegate(d.id, d.full_name, d.email);
+        toast.success("DELEGATE DELETED", { description: `${d.full_name} has been removed.` });
+        onRefresh();
+      } catch(err) {
+        toast.error("REVOKE FAILED", { description: err.message });
+      }
     }
   };
 
@@ -917,6 +937,12 @@ function DelegateManager({ delegates, customPortfolios, onUpdate, onRefresh }) {
         </div>
 
         <div className="flex flex-wrap gap-2.5">
+          <button
+            onClick={() => setAddFormOpen(!addFormOpen)}
+            className={`px-3 py-1.5 border text-xs tracking-wider rounded transition-all ${addFormOpen ? "border-white/20 text-white hover:bg-white/10" : "border-emerald-500 text-emerald-400 hover:bg-emerald-500/10"}`}
+          >
+            {addFormOpen ? "CANCEL" : "ADD DELEGATE"}
+          </button>
           <input
             type="file"
             accept=".csv"
@@ -939,6 +965,45 @@ function DelegateManager({ delegates, customPortfolios, onUpdate, onRefresh }) {
         </div>
       </div>
 
+      {/* Add Delegate Form */}
+      {addFormOpen && (
+        <div className="glass rounded p-5 border border-[var(--atlas-cyan)]/30 relative">
+          <button onClick={() => setAddFormOpen(false)} className="absolute top-4 right-4 text-white/50 hover:text-white">✕</button>
+          <span className="classified-label text-[var(--atlas-gold)] text-xs block mb-4">/ REGISTER DELEGATE</span>
+          <form onSubmit={handleAddSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-[10px] text-white/50 tracking-widest mb-1 block">FULL NAME</label>
+                <input required type="text" value={addForm.full_name} onChange={(e) => setAddForm({...addForm, full_name: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:border-[var(--atlas-gold)] outline-none" />
+              </div>
+              <div>
+                <label className="text-[10px] text-white/50 tracking-widest mb-1 block">EMAIL (GOOGLE LOGIN)</label>
+                <input required type="email" value={addForm.email} onChange={(e) => setAddForm({...addForm, email: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:border-[var(--atlas-gold)] outline-none" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-[10px] text-white/50 tracking-widest mb-1 block">COMMITTEE</label>
+                <select required value={addForm.committee} onChange={(e) => setAddForm({...addForm, committee: e.target.value, portfolio: ""})} className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:border-[var(--atlas-gold)] outline-none">
+                  <option value="" className="bg-[var(--atlas-black)]">-- Select Committee --</option>
+                  {committees && committees.map((c) => (<option key={c.id || c.name} value={c.name} className="bg-[var(--atlas-black)]">{c.name}</option>))}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] text-white/50 tracking-widest mb-1 block">PORTFOLIO / COUNTRY</label>
+                <select value={addForm.portfolio} onChange={(e) => setAddForm({...addForm, portfolio: e.target.value})} className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:border-[var(--atlas-gold)] outline-none">
+                  <option value="" className="bg-[var(--atlas-black)]">-- Unassigned (Optional) --</option>
+                  {(addForm.committee && portfolios && portfolios[addForm.committee]) ? portfolios[addForm.committee].map(p => (<option key={p.id} value={p.country} className="bg-[var(--atlas-black)]">{p.country}</option>)) : null}
+                </select>
+              </div>
+            </div>
+            <button type="submit" disabled={addLoading} className="w-full py-2 bg-[var(--atlas-cyan)]/10 text-[var(--atlas-cyan)] border border-[var(--atlas-cyan)]/20 hover:bg-[var(--atlas-cyan)]/20 rounded font-mono text-[10px] tracking-widest transition-colors disabled:opacity-50">
+              {addLoading ? "GRANTING ACCESS..." : "GRANT DELEGATE ACCESS"}
+            </button>
+          </form>
+        </div>
+      )}
+
       {/* Filters bar */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <input
@@ -954,7 +1019,7 @@ function DelegateManager({ delegates, customPortfolios, onUpdate, onRefresh }) {
           className="bg-transparent border-b border-white/10 focus:border-[var(--atlas-gold)] outline-none py-2 text-xs text-white"
         >
           <option value="" className="bg-[var(--atlas-black)]">ALL COMMITTEES</option>
-          {committees.map((c) => (
+          {filterCommitteesList.map((c) => (
             <option key={c} value={c} className="bg-[var(--atlas-black)]">
               {c}
             </option>
@@ -1032,7 +1097,7 @@ function DelegateManager({ delegates, customPortfolios, onUpdate, onRefresh }) {
                         EDIT
                       </button>
                       <button
-                        onClick={() => handleDelete(d.id, d.full_name)}
+                        onClick={() => handleDelete(d)}
                         className="text-red-400 hover:underline"
                       >
                         DELETE
@@ -3159,100 +3224,6 @@ function RevokeAccessManager({ delegates, onRefresh }) {
   );
 }
 
-// ----------------------------------------------------
-// Tab Component: InternationalPressManager
-// ----------------------------------------------------
-function InternationalPressManager({ pressCrew, onUpdate }) {
-  const [form, setForm] = useState({ name: "", email: "", role: "journalist" });
-
-  const handleAdd = (e) => {
-    e.preventDefault();
-    if (!form.name.trim()) return toast.error("Name required");
-    const newMember = { id: `PRESS-${Date.now()}`, name: form.name.trim(), email: form.email.trim().toLowerCase(), role: form.role, createdAt: new Date().toISOString() };
-    onUpdate([...pressCrew, newMember]);
-    setForm({ name: "", email: "", role: "journalist" });
-    toast.success("PRESS MEMBER ADDED", { description: `${newMember.name} (${newMember.role})` });
-    addActivityLog(`Press crew member added: ${newMember.name} as ${newMember.role}`);
-  };
-
-  const handleRemove = (id, memberName) => {
-    if (!window.confirm(`Remove ${memberName} from the press crew?`)) return;
-    onUpdate(pressCrew.filter(m => m.id !== id));
-    toast.success("PRESS MEMBER REMOVED");
-    addActivityLog(`Press crew member removed: ${memberName}`);
-  };
-
-  const roleColors = {
-    photographer: "text-[var(--atlas-cyan)] bg-[var(--atlas-cyan)]/10 border-[var(--atlas-cyan)]/20",
-    caricaturist: "text-purple-400 bg-purple-500/10 border-purple-500/20",
-    journalist: "text-[var(--atlas-gold)] bg-[var(--atlas-gold)]/10 border-[var(--atlas-gold)]/20",
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="border-b border-white/5 pb-4">
-        <span className="classified-label text-[var(--atlas-cyan)] text-xs block">/ MEDIA OPERATIONS</span>
-        <h3 className="font-display text-white text-2xl">INTERNATIONAL PRESS</h3>
-        <p className="text-white/40 text-[10px] mt-1 font-mono">Manage photographers, caricaturists, and journalists assigned to International Press.</p>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="glass rounded border border-white/5 p-5">
-          <span className="classified-label text-[var(--atlas-gold)] text-xs block mb-4">/ ADD PRESS MEMBER</span>
-          <form onSubmit={handleAdd} className="space-y-4">
-            <div>
-              <label className="text-[10px] text-white/50 tracking-widest mb-1 block">FULL NAME</label>
-              <input type="text" required placeholder="e.g. Ravi Kumar" value={form.name} onChange={(e) => setForm({...form, name: e.target.value})}
-                className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:border-[var(--atlas-gold)] outline-none" />
-            </div>
-            <div>
-              <label className="text-[10px] text-white/50 tracking-widest mb-1 block">EMAIL (OPTIONAL)</label>
-              <input type="email" placeholder="press@gmail.com" value={form.email} onChange={(e) => setForm({...form, email: e.target.value})}
-                className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:border-[var(--atlas-gold)] outline-none" />
-            </div>
-            <div>
-              <label className="text-[10px] text-white/50 tracking-widest mb-1 block">ROLE</label>
-              <select value={form.role} onChange={(e) => setForm({...form, role: e.target.value})}
-                className="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-xs font-mono text-white focus:border-[var(--atlas-gold)] outline-none">
-                <option value="journalist">Journalist</option>
-                <option value="photographer">Photographer</option>
-                <option value="caricaturist">Caricaturist</option>
-              </select>
-            </div>
-            <button type="submit" className="w-full py-2 bg-[var(--atlas-cyan)]/10 text-[var(--atlas-cyan)] border border-[var(--atlas-cyan)]/20 hover:bg-[var(--atlas-cyan)]/20 rounded font-mono text-[10px] tracking-widest transition-colors">ADD PRESS MEMBER</button>
-          </form>
-        </div>
-        <div className="lg:col-span-2 glass rounded border border-white/5 p-0 overflow-hidden flex flex-col max-h-[600px]">
-          <div className="p-4 border-b border-white/5 bg-black/20 flex justify-between items-center">
-            <span className="classified-label text-[var(--atlas-gold)] text-xs">/ PRESS CREW ROSTER</span>
-            <div className="flex items-center gap-3 text-[9px] font-mono tracking-widest">
-              <span className="text-[var(--atlas-gold)]">📰 {pressCrew.filter(m => m.role === "journalist").length}</span>
-              <span className="text-[var(--atlas-cyan)]">📷 {pressCrew.filter(m => m.role === "photographer").length}</span>
-              <span className="text-purple-400">🖊️ {pressCrew.filter(m => m.role === "caricaturist").length}</span>
-            </div>
-          </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {pressCrew.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-[10px] text-white/30 tracking-widest">NO PRESS CREW ADDED YET</div>
-            ) : (
-              pressCrew.map((m) => (
-                <div key={m.id} className="bg-black/40 border border-white/10 rounded p-4 flex justify-between items-center">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-white font-bold font-mono tracking-wider">{m.name}</span>
-                      <span className={`text-[9px] px-2 py-0.5 rounded border tracking-widest uppercase ${roleColors[m.role] || roleColors.journalist}`}>{m.role}</span>
-                    </div>
-                    {m.email && <p className="text-[var(--atlas-cyan)] font-mono text-[9px] mt-1">{m.email}</p>}
-                  </div>
-                  <button onClick={() => handleRemove(m.id, m.name)} className="text-[10px] text-red-400 border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded transition-colors">REMOVE</button>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ----------------------------------------------------
 // Tab Component: PortfolioManager
