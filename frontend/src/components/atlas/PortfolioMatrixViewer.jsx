@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { subscribeToDelegates, subscribeToRegistrations, getCommittees, getPortfolios, getPressCrew } from "@/lib/atlasApi";
+import { subscribeToDelegates, subscribeToRegistrations, getCommittees, getPortfolios } from "@/lib/atlasApi";
 import { MATRIX_DATA, getMergedMatrixData } from "@/lib/matrixData";
 import { toast } from "sonner";
 
@@ -15,12 +15,10 @@ export default function PortfolioMatrixViewer({ open, onClose }) {
     if (open) {
       Promise.all([
         getCommittees(),
-        getPortfolios(),
-        getPressCrew()
-      ]).then(([c, p, pr]) => {
+        getPortfolios()
+      ]).then(([c, p]) => {
         setDynamicCommittees(c);
         setDynamicPortfolios(p);
-        setDynamicPress(pr);
       }).catch(console.error);
     }
   }, [open]);
