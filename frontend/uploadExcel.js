@@ -25,35 +25,33 @@ async function eraseAndUpload(excelFilePath) {
 
   console.log(`Reading Excel file: ${excelFilePath}`);
   const workbook = xlsx.readFile(excelFilePath);
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-  
-  // Convert sheet to JSON array
-  // Assuming headers "Committee" and "Portfolio"
-  const rows = xlsx.utils.sheet_to_json(sheet);
-  
   const committeesSet = new Set();
   const portfoliosMap = {};
-  
-  for (const row of rows) {
-    let committeeName = row.Committee;
-    let portfolioName = row.Portfolio || row.Country;
+
+  for (const sheetName of workbook.SheetNames) {
+    const sheet = workbook.Sheets[sheetName];
+    const rows = xlsx.utils.sheet_to_json(sheet);
     
-    if (!committeeName) continue;
-    
-    // Normalize committee names if needed, or keep exactly as in excel
-    committeeName = committeeName.trim();
-    committeesSet.add(committeeName);
-    
-    if (!portfoliosMap[committeeName]) {
-      portfoliosMap[committeeName] = [];
-    }
-    
-    if (portfolioName) {
-      portfoliosMap[committeeName].push({
-        country: portfolioName.trim(),
-        status: "Open" // Default status
-      });
+    for (const row of rows) {
+      let committeeName = row.Committee || row.committee || row.COMMITTEE || sheetName;
+      let portfolioName = row.Portfolio || row.Country || row.portfolio || row.PORTFOLIO || row.COUNTRY;
+      
+      if (!committeeName) continue;
+      
+      // Normalize committee names if needed, or keep exactly as in excel
+      committeeName = committeeName.trim();
+      committeesSet.add(committeeName);
+      
+      if (!portfoliosMap[committeeName]) {
+        portfoliosMap[committeeName] = [];
+      }
+      
+      if (portfolioName) {
+        portfoliosMap[committeeName].push({
+          country: String(portfolioName).trim(),
+          status: "Open" // Default status
+        });
+      }
     }
   }
   
