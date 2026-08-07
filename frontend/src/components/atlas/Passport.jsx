@@ -6,13 +6,13 @@ import { toast } from "sonner";
 import { ATLAS_LOGO_CLEAN } from "@/lib/atlasAssets";
 
 const COMMITTEES = [
-  "UNSC",
-  "UNGA",
-  "AIPPM",
   "UNCSW",
-  "UNFCCC",
+  "UNGA",
+  "UNSC",
+  "IPL",
+  "IP",
   "COACHELLA",
-  "INTERNATIONAL PRESS",
+  "F1",
 ];
 
 export default function Passport({ delegateUser }) {

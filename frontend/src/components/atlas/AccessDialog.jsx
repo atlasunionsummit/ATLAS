@@ -6,16 +6,12 @@ import { toast } from "sonner";
 import PortfolioMatrixViewer from "./PortfolioMatrixViewer";
 import PortfolioMatrixViewer from "./PortfolioMatrixViewer";
 const COMMITTEES = [
-  "UNSC (United Nations Security Council)",
-  "UNGA (United Nations General Assembly)",
-  "AIPPM (All India Political Parties Meet)",
   "UNCSW (UN Commission on the Status of Women)",
-  "UNFCCC (UN Framework Convention on Climate Change)",
-  "Coachella (Simulated Crisis)",
+  "UNGA (United Nations General Assembly)",
+  "UNSC (United Nations Security Council)",
   "IPL (Indian Premier League)",
   "International Press",
-  "Vaidya Council (Premium)",
-  "Simulation Corps (Premium)",
+  "Coachella (Simulated Crisis)",
   "F1 Simulation (Premium)",
 ];
 
