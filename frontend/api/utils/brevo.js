@@ -16,7 +16,10 @@ export async function sendBrevoEmail({ toEmail, toName, templateId, params }) {
       body: JSON.stringify({
         to: [{ email: toEmail, name: toName || "Delegate" }],
         templateId: parseInt(templateId, 10),
-        params: params
+        params: {
+          ...params,
+          venue_link: "https://maps.app.goo.gl/HuHURFxchQ26owKm9?g_st=aw"
+        }
       })
     });
     
